@@ -6,38 +6,56 @@
     {
       "id": "jvm-memory-areas",
       "title": "Stack vs Heap",
-      "content": "La JVM divide la memoria en dos areas principales. El stack (pila) es por hilo: guarda las variables locales, los parametros y las referencias, y cada llamada a metodo empuja un frame. Crecer el stack hacia abajo produce StackOverflowError (tipico con recursion infinita).\n\nEl heap es compartido por todos los hilos: guarda los objetos y arreglos creados con new. Es la memoria que administra el garbage collector y donde se generan los OutOfMemoryError cuando se agota.\n\nAdemas existen el Metaspace (metadatos de clases, antes PermGen), el area de codigo compilado (JIT) y las constantes. Una variable primitiva local vive en el stack; un objeto vive en el heap y solo su referencia viaja en el stack.\n\nPregunta clasica: 'donde viven los objetos?'. Los objetos y arreglos viven en el heap; las variables locales primitivas y las referencias viven en el stack; el estado static vive en el Metaspace (los objetos referenciados, en el heap).",
+      "content": "La JVM divide la memoria en dos areas principales. El stack (pila) es por hilo: guarda las variables locales, los parametros y las referencias, y cada llamada a metodo empuja un frame. Crecer el stack hacia abajo produce StackOverflowError (tipico con recursion infinita).\n\nEl heap es compartido por todos los hilos: guarda los objetos y arreglos creados con new. Es la memoria que administra el garbage collector y donde se generan los OutOfMemoryError cuando se agota.\n\nAdemas existen el Metaspace (metadatos de clases, antes PermGen), el area de codigo compilado (JIT) y las constantes. Una variable primitiva local vive en el stack; un objeto vive en el heap y solo su referencia viaja en el stack.\n\n**Conceptos avanzados:**\n- El Metaspace (desde Java 8) reemplazo a PermGen y vive en memoria nativa, no en el heap. Esto permite que crezca dinamicamente sin provocar OutOfMemoryError por defecto, aunque se puede limitar con -XX:MaxMetaspaceSize.\n- El size del stack por hilo se configura con -Xss (ej. -Xss256k). Un stack muy pequeno puede provocar StackOverflowError con recursion moderada; uno muy grande desperdicia memoria.\n- Los frames del stack contienen: variables locales (Local Variable Table), operandos (Operand Stack), datos del metodo (dynamic linking) y la direccion de retorno.\n- Cada hilo tiene su propio PC Register que contiene la direccion de la instruccion bytecode que esta ejecutando actualmente.\n- Los primitivos largos (long, double) ocupan dos slots en el stack de variables locales.\n\n**Errores comunes en entrevistas:**\n- Confundir la referencia del stack con el objeto del stack: la referencia vive en el stack, el objeto vive en el heap.\n- Afirmar que los objetos static viven en el stack; en realidad los metadatos estaticos estan en Metaspace y los objetos que referencian estan en el heap.\n- Olvidar que un String literal se almacena en el String Pool (que esta en el heap desde Java 7+), no en Metaspace.",
       "examples": [
         "// en stack: int i = 5; String ref;\n// en heap: new String(\"x\"), el objeto Persona creado con new",
-        "// StackOverflowError por recursion infinita: metodo() -> metodo() -> ..."
+        "// StackOverflowError por recursion infinita: metodo() -> metodo() -> ...",
+        "// Metaspace crece dinamicamente: la clase Persona.class tiene su metadata en Metaspace",
+        "// String literal va al String Pool (en heap desde Java 7+): String s = \"hola\";",
+        "// -Xss512k configura el tamano del stack por hilo a 512KB",
+        "// long d = 100L; // ocupa 2 slots en el stack de variables locales"
       ]
     },
     {
       "id": "jvm-gc",
       "title": "Garbage collector",
-      "content": "El garbage collector libera automaticamente la memoria de los objetos que ya no son alcanzables desde las raices (GC roots: hilos, variables static, stack, registros). El programador no debe (ni puede de forma fiable) forzar el GC: System.gc() solo sugiere, no garantiza.\n\nEl GC generacional se basa en que la mayoria de los objetos mueren jovenes. Divide el heap en jovenes (Young: Eden + Survivors S0/S1) y viejos (Old). Los objetos que sobreviven suficientes ciclos se promueven a Old. Los algoritmos modernos son: G1 (default desde Java 9, regiones con pausas acotadas), ZGC (pausas muy bajas, Java 15+) y Shenandoah.\n\nLos fallos: OutOfMemoryError con 'Java heap space' indica heap lleno; con 'GC overhead limit exceeded', que el GC gasto casi todo el tiempo sin liberar. Se configuran con -Xmx (tamano maximo del heap) y -Xms (inicial).\n\nLas fugas de memoria (memory leaks) en Java existen aunque haya GC: colecciones estaticas que crecen sin limite, listeners no desregistrados, claves en HashMap sin remover, o la clase ClassLoader que retiene la clase. Herramientas como el heap dump y visualvm ayudan a diagnosticarlas.",
+      "content": "El garbage collector libera automaticamente la memoria de los objetos que ya no son alcanzables desde las raices (GC roots: hilos, variables static, stack, registros). El programador no debe (ni puede de forma fiable) forzar el GC: System.gc() solo sugiere, no garantiza.\n\nEl GC generacional se basa en que la mayoria de los objetos mueren jovenes. Divide el heap en jovenes (Young: Eden + Survivors S0/S1) y viejos (Old). Los objetos que sobreviven suficientes ciclos se promueven a Old. Los algoritmos modernos son: G1 (default desde Java 9, regiones con pausas acotadas), ZGC (pausas muy bajas, Java 15+) y Shenandoah.\n\nLos fallos: OutOfMemoryError con 'Java heap space' indica heap lleno; con 'GC overhead limit exceeded', que el GC gasto casi todo el tiempo sin liberar. Se configuran con -Xmx (tamano maximo del heap) y -Xms (inicial).\n\nLas fugas de memoria (memory leaks) en Java existen aunque haya GC: colecciones estaticas que crecen sin limite, listeners no desregistrados, claves en HashMap sin remover, o la clase ClassLoader que retiene la clase. Herramientas como el heap dump y visualvm ayudan a diagnosticarlas.\n\n**Conceptos avanzados:**\n- G1GC: divide el heap en regiones iguales (default 1-32MB), prioriza regiones con mas basura, busca pausas predecibles (-XX:MaxGCPauseMillis=200). Ideal para heaps grandes (4-16GB).\n- ZGC: pausas submilisegundo (<10ms) sin importar el tamano del heap, usa colored pointers y load barriers. Optimizado para heaps de hasta 16TB.\n- Shenandoah: similar a ZGC, usa Brooks pointers y concurrencia con el aplicativo. Disponible desde OpenJDK 12.\n- El Young GC (Minor GC) mueve objetos de Eden a Survivor; el Major GC limpia Old; el Full GC puede pausar toda la JVM.\n- Los GC roots incluyen: variables de stack local de hilos activos, variables estaticas del sistema, JNI references, monitors (synchronized), y objetos del bootstrap classloader.\n\n**Errores comunes en entrevistas:**\n- Creer que System.gc() ejecuta el GC inmediatamente; solo es una sugerencia.\n- Confundir memory leak con memory bloat: un leak es referencia que nunca se libera; bloat es objeto que vive mas de lo necesario.\n- No distinguir entre Minor GC, Major GC y Full GC: cada uno tiene alcance y costo diferente.\n- Afirmar que Java no tiene memory leaks; los hay, solo que son diferentes a los de C/C++.",
       "examples": [
         "// -Xmx512m -Xms256m",
-        "// Fuga tipica: Map estatico donde se agrega pero nunca se remueve"
+        "// Fuga tipica: Map estatico donde se agrega pero nunca se remueve",
+        "// G1GC: java -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -jar app.jar",
+        "// ZGC: java -XX:+UseZGC -Xmx16g -jar app.jar",
+        "// Full GC ocurre cuando Old se llena: se pausa toda la JVM temporalmente",
+        "// System.gc() solo sugiere, la JVM decide ignorarla si no es conveniente",
+        "// Heap dump: jmap -dump:format=b,file=heap.hprof <pid>"
       ]
     },
     {
       "id": "jvm-classloader",
       "title": "Classloader y ejecucion",
-      "content": "Un classloader carga las clases .class en la JVM bajo demanda. La jerarquia clasica es parent-first: Bootstrap (nucleo, rt), Platform (modulos JDK) y App (classpath de la aplicacion). Cada clase conoce su loader; la igualdad de clases exige mismo nombre Y mismo loader.\n\nEl flujo de ejecucion de un programa: el compilador (javac) genera bytecode .class; la JVM lo valida y el JIT lo compila a codigo nativo en caliente (HotSpot). Tambien existe la interpretacion como fase inicial. La JVM lee el main, carga la clase, inicializa los static y ejecuta.\n\nJava 21 introduce los virtual threads y mejoras del runtime. El orden de carga y el parent-first delegation se preguntan en entrevistas de nivel senior, junto con problemas de 'classpath hell' por versiones duplicadas de la misma clase.\n\nLa compilacion a bytecode explica por que Java es portable: el bytecode se ejecuta en cualquier JVM (Write Once, Run Anywhere). Y por que la reflexion, la instrumentacion y las herramientas de profiling funcionan sobre las clases cargadas.",
+      "content": "Un classloader carga las clases .class en la JVM bajo demanda. La jerarquia clasica es parent-first: Bootstrap (nucleo, rt), Platform (modulos JDK) y App (classpath de la aplicacion). Cada clase conoce su loader; la igualdad de clases exige mismo nombre Y mismo loader.\n\nEl flujo de ejecucion de un programa: el compilador (javac) genera bytecode .class; la JVM lo valida y el JIT lo compila a codigo nativo en caliente (HotSpot). Tambien existe la interpretacion como fase inicial. La JVM lee el main, carga la clase, inicializa los static y ejecuta.\n\nJava 21 introduce los virtual threads y mejoras del runtime. El orden de carga y el parent-first delegation se preguntan en entrevistas de nivel senior, junto con problemas de 'classpath hell' por versiones duplicadas de la misma clase.\n\nLa compilacion a bytecode explica por que Java es portable: el bytecode se ejecuta en cualquier JVM (Write Once, Run Anywhere). Y por que la reflexion, la instrumentacion y las herramientas de profiling funcionan sobre las clases cargadas.\n\n**Conceptos avanzados:**\n- Las fases de carga de una clase son: Loading (busca el .class y crea un Class object), Linking (Verification + Preparation + Resolution) e Initialization (ejecuta los bloques static). La verificacion garantiza que el bytecode es valido; la preparation asigna memoria para los static; la resolution reemplaza referencias simbolicas por directas.\n- El delegacion parent-first funciona asi: un classloader primero pregunta a su padre si puede cargar la clase; solo si el padre no puede, la carga el. Esto evita cargar la misma clase dos veces.\n- El bootstrap classloader carga clases core de Java (java.lang.String, etc.) y no es una clase Java (es nativo). El platform classloader (antes extension) carga modulos del JDK. El application classloader carga del classpath.\n- La igualdad de clases requiere mismo nombre + mismo classloader. Si dos classloaders distintos cargan la misma clase, son consideradas tipos diferentes en tiempo de ejecucion.\n- JMH (Java Microbenchmark Harness) permite crear microbenchmarks confiables para medir rendimiento de codigo Java, evitando optimizaciones del JIT que puedan sesgar los resultados.\n\n**Errores comunes en entrevistas:**\n- Olvidar que la inicializacion (static blocks) ocurre despues de linking, no durante loading.\n- Confundir Class.forName() con ClassLoader.loadClass(): el primero ejecuta la inicializacion; el segundo no.\n- No entender por que VersionMismatchException o ClassCastException ocurren en classpath hell.\n- Afirmar que el bootstrap classloader es una clase Java; en realidad es implementado en C/C++.",
       "examples": [
         "java -jar app.jar // la JVM carga Main, inicializa, ejecuta main()",
-        "Class.forName(\"com.ejemplo.MiClase\") // carga explicita bajo demanda"
+        "Class.forName(\"com.ejemplo.MiClase\") // carga explicita + inicializa static",
+        "// Bootstrap carga java.lang.String; Platform carga java.sql; App carga tu.App",
+        "// JMH: @Benchmark public void testMethod() { ... }",
+        "// parent-first: AppClassLoader -> PlatformClassLoader -> BootstrapClassLoader",
+        "// Dos classloaders distintos cargan 'com.Foo' -> son tipos diferentes en runtime",
+        "// ClassLoader.loadClass(\"com.Foo\") // carga sin inicializar"
       ]
     },
     {
       "id": "jvm-references",
       "title": "Tipos de referencia",
-      "content": "Java ofrece cuatro tipos de referencia en el paquete java.lang.ref: Fuerte (strong), Debil (WeakReference), Suave (SoftReference) y Fantasma (PhantomReference). Una referencia fuerte impide la recoleccion mientras sea alcanzable.\n\nWeakReference no impide que el objeto sea recolectado; la clase WeakHashMap usa este mecanismo: sus claves se recolectan si no hay referencias fuertes fuera del mapa. Se usa para caches y para evitar fugas en mapas.\n\nSoftReference se recolecta solo cuando la JVM necesita memoria (antes de OutOfMemoryError), util para caches grandes de datos costosos de reconstruir. PhantomReference permite acciones posteriores a la recoleccion, junto con ReferenceQueue.\n\nPregunta tipica: 'diferencia entre weak y soft?'. Weak se recolecta en el proximo ciclo GC; Soft solo cuando la memoria escasea. La eleccion depende de si se prefiere frescura (weak) o retencion mientras alcance la memoria (soft).",
+      "content": "Java ofrece cuatro tipos de referencia en el paquete java.lang.ref: Fuerte (strong), Debil (WeakReference), Suave (SoftReference) y Fantasma (PhantomReference). Una referencia fuerte impide la recoleccion mientras sea alcanzable.\n\nWeakReference no impide que el objeto sea recolectado; la clase WeakHashMap usa este mecanismo: sus claves se recolectan si no hay referencias fuertes fuera del mapa. Se usa para caches y para evitar fugas en mapas.\n\nSoftReference se recolecta solo cuando la JVM necesita memoria (antes de OutOfMemoryError), util para caches grandes de datos costosos de reconstruir. PhantomReference permite acciones posteriores a la recoleccion, junto con ReferenceQueue.\n\nPregunta tipica: 'diferencia entre weak y soft?'. Weak se recolecta en el proximo ciclo GC; Soft solo cuando la memoria escasea. La eleccion depende de si se prefiere frescura (weak) o retencion mientras alcance la memoria (soft).\n\n**Conceptos avanzados:**\n- PhantomReference: el get() siempre retorna null; se usa para cleanup post-recoleccion (liberar recursos nativos, file handles). Se procesa cuando el objeto ya fue recolectado.\n- ReferenceQueue: se asocia a WeakReference, SoftReference o PhantomReference; cuando el objeto es recolectado, la referencia se encola para que el codigo la procese.\n- WeakHashMap: las claves se recolectan automaticamente si no hay referencias fuertes fuera del mapa. No se puede iterar de forma segura concurrentemente sin sincronizacion.\n- El orden de fortaleza: Strong > Soft > Weak > Phantom. Cada tipo mas debil permite que el GC reclame el objeto con menor necesidad de memoria.\n- Java 9+ introdujo Cleaner como alternativa a finalize(), que es mas eficiente y predecible.\n\n**Errores comunes en entrevistas:**\n- Confundir SoftReference con WeakReference: Soft sobrevive mientras haya memoria; Weak se recoge en el proximo GC.\n- Afirmar que PhantomReference mantiene el objeto vivo; en realidad get() siempre retorna null.\n- Olvidar que String.intern() puede causar fugas en Metaspace si se internan demasiados strings.\n- No mencionar que WeakHashMap no es thread-safe por defecto.",
       "examples": [
         "WeakReference<String> ref = new WeakReference<>(new String(\"x\"));",
         "WeakHashMap<String, byte[]> cache = new WeakHashMap<>();",
-        "SoftReference<Imagen> img = new SoftReference<>(cargarImagen());"
+        "SoftReference<Imagen> img = new SoftReference<>(cargarImagen());",
+        "PhantomReference<Recurso> phantom = new PhantomReference<>(r, queue);",
+        "// Cleaner: Cleaner.create().register(obj, () -> liberarRecurso());",
+        "// WeakHashMap: si no hay Strong ref a la clave, la entrada se recolecta",
+        "// PhantomReference.get() siempre retorna null despues de que el objeto fue recolectado"
       ]
     }
   ],
@@ -76,20 +94,18 @@
       },
       {
         "id": "jvm-q3",
-        "text": "Cuales afirmaciones sobre tipos de referencia son correctas?",
+        "text": "Que es la compilacion JIT (Just-In-Time) en la JVM?",
         "options": [
-          "WeakReference no impide la recoleccion del objeto",
-          "SoftReference se recolecta solo cuando la memoria escasea",
-          "Una referencia fuerte siempre impide la recoleccion mientras sea alcanzable",
-          "PhantomReference mantiene el objeto vivo para siempre"
+          "Compila el codigo fuente Java a bytecode antes de ejecutar",
+          "Interpreta el bytecode linea por linea sin compilarlo jamas",
+          "Compila a codigo nativo en caliente las partes del bytecode que se ejecutan frecuentemente",
+          "Traduce el bytecode a lenguaje C para su compilacion estatica"
         ],
         "correctIndexes": [
-          0,
-          1,
           2
         ],
-        "explanation": "Weak no impide la recoleccion, Soft la evita solo si hay memoria, y la referencia fuerte impide la recoleccion mientras sea alcanzable. PhantomReference se usa para acciones posteriores, no mantiene vivo el objeto.",
-        "type": "MULTIPLE"
+        "explanation": "JIT compila a codigo nativo en caliente (hotspot) los metodos que se ejecutan muchas veces, mejorando el rendimiento respecto a la interpretacion pura.",
+        "type": "SINGLE"
       },
       {
         "id": "jvm-q4",
@@ -133,7 +149,7 @@
         "type": "TRUE_FALSE"
       },
       {
-        "id": "jvm-q6",
+        "id": "jvm-q7",
         "text": "Ordena las areas de memoria de la JVM segun su ciclo de vida:",
         "options": [
           "Stack (por metodo)",
@@ -148,6 +164,71 @@
           1
         ],
         "explanation": "Stack y PC Register son por hilo (corto), Method Area es por clase, Heap vive durante toda la ejecucion.",
+        "type": "ORDER"
+      },
+      {
+        "id": "jvm-q8",
+        "text": "Cuales afirmaciones sobre tipos de referencia son correctas?",
+        "options": [
+          "WeakReference no impide la recoleccion del objeto",
+          "SoftReference se recolecta solo cuando la memoria escasea",
+          "Una referencia fuerte siempre impide la recoleccion mientras sea alcanzable",
+          "PhantomReference mantiene el objeto vivo para siempre"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Weak no impide la recoleccion, Soft la evita solo si hay memoria, y la referencia fuerte impide la recoleccion mientras sea alcanzable. PhantomReference se usa para acciones posteriores, no mantiene vivo el objeto.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "jvm-q9",
+        "text": "Cuales flags de JVM son validos para configurar memoria y GC?",
+        "options": [
+          "-Xmx (tamano maximo del heap)",
+          "-Xms (tamano inicial del heap)",
+          "-XX:+UseG1GC (activa el colector G1)",
+          "-Xss (tamano del stack por hilo)",
+          "-Xmem (configura el Metaspace)"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "-Xmx, -Xms, -XX:+UseG1GC y -Xss son flags validos. No existe -Xmem; el Metaspace se configura con -XX:MaxMetaspaceSize.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "jvm-q10",
+        "text": "Metaspace reemplazo a PermGen desde Java 8 y vive en memoria nativa fuera del heap.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: desde Java 8, PermGen fue reemplazado por Metaspace que utiliza memoria nativa del sistema, no memoria del heap Java.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "jvm-q11",
+        "text": "Ordena las fases de carga de una clase en la JVM:",
+        "options": [
+          "Loading (buscar .class y crear Class object)",
+          "Linking (Verification + Preparation + Resolution)",
+          "Initialization (ejecutar bloques static)"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "El proceso es: Loading carga el bytecode y crea el Class object; Linking verifica, prepara memoria y resuelve referencias; Initialization ejecuta el codigo estatico. El orden es estricto y siempre el mismo.",
         "type": "ORDER"
       }
     ]

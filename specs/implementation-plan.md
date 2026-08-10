@@ -84,3 +84,96 @@
 
 - Plan detallado en [`specs/v2-plan.md`](./v2-plan.md): modos de juego (quiz contra reloj, mixto aleatorio, verdadero/falso, tarjetas de repaso), estadisticas por tema, repaso de errores y retos de ordenar codigo.
 - Se ejecuta al cerrar la fase 6 y reutiliza el dominio, el `progress.json` y la API REST existentes; todo arranca actualizando los specs.
+
+## Fase 8 (V3) — Expansion de contenido, mejora visual y nuevas secciones interactivas
+
+> Plan de la tercera version de la app. Complementa a la V2 y se ejecuta con el mismo workflow de spec-driven development. Documento viviente: se actualiza al arrancar cada iteracion.
+
+### Resumen
+
+La V2 entrego actividades ludo-didacticas (quiz mixto, contra-reloj, flashcards, examen, etc.). La V3 se enfoca en tres frentes: **(1) profundizar el contenido existente** (mas preguntas, teoria mas profunda, mas ejemplos de codigo, expansion de modulos como Spring y patrones de diseno), **(2) mejorar sustancialmente la UI** (migrar a Chakra UI para un diseno profesional) y **(3) agregar nuevas secciones interactivas** (ejercicios de rellenar codigo, encontrar bugs, y testing extenso).
+
+### Iteraciones
+
+| Iter | Entregables | Verificacion | Estado |
+|---|---|---|---|
+| V3-1 | README.md + LICENCIA MIT | Archivos creados, README con instrucciones de levantamiento | Pendiente |
+| V3-2 | Expansion de contenido: mas preguntas y teoria profunda para los 12 modulos existentes (min. 10 preguntas por modulo, ejemplos ampliados, conceptos avanzados) | `mvn test` + validacion de JSON | **Completada** |
+| V3-3 | Expansion del modulo Spring (Spring Boot profiles, actuator, testing, transactional) + nuevo contenido sobre librerias (Hibernate, JPA, JDBC avanzado) integrado al modulo SQL/JDBC y Spring | `mvn test` | Pendiente |
+| V3-4 | Expansion de patrones de diseno (mas patrones, ejemplos completos) + nueva seccion de Arquitectura (Clean Architecture, Hexagonal, Microservicios conceptos, con diagramas y codigo) | `mvn test` | Pendiente |
+| V3-5 | Migracion del frontend a **Chakra UI**: instalar dependencias, reemplazar estilos, refactorizar componentes existentes, mejorar Layout, dark mode profesional, responsive | `npm run build` + `npm run dev` visual check | **Completada** |
+| V3-6 | Nuevo modulo JSON: **Rellenar Codigo** (fragmentos con blanks que el usuario debe completar para que compile). Nueva vista en la UI con editor simple y validacion | `mvn test` + `npm run build` | Pendiente |
+| V3-7 | Nuevo modulo JSON: **Encontrar el Bug** (fragmentos de codigo con errores intencionales que el usuario debe identificar). Nueva vista en la UI con seleccion de area del bug | `mvn test` + `npm run build` | Pendiente |
+| V3-8 | Expansion extensa del modulo Testing (mas teoria, cobertura, parametrizados, mocks avanzados, tests de integracion, tests de contrato, testing en Spring Boot) | `mvn test` + `npm run build` | Pendiente |
+
+### Detalle por iteracion
+
+#### V3-1: README + Licencia MIT
+
+- `README.md` en la raiz: descripcion del proyecto, stack, como levantar (backend + frontend), estructura del repo, modulos disponibles.
+- `LICENSE` con texto MIT completo.
+
+#### V3-2: Expansion de contenido de los 12 modulos
+
+Para cada modulo existente:
+- **Ampliar teoria**: secciones de "conceptos avanzados", "errores comunes en entrevistas", "comparaciones" (p. ej. ArrayList vs LinkedList, HashMap vs TreeMap).
+- **Agregar ejemplos**: min. 3-5 ejemplos adicionales por topico con comentarios explicativos.
+- **Agregar preguntas**: de 7 a 10+ preguntas por modulo, incluyendo mas MULTIPLE y ORDER.
+- **Corregir bugs**: IDs duplicados entre preguntas TRUE_FALSE y ORDER en 7 modulos; inconsistencias de prefijos en ORDER.
+- Modulos priorizados: Core Java, POO, Colecciones, Streams, Concurrencia (los mas preguntados en entrevistas).
+
+#### V3-3: Expansion Spring + Librerias Java
+
+- **Spring existente**: agregar topics sobre Spring Boot profiles, @ConfigurationProperties, Actuator, @Transactional, Spring Data conceptos, testing con @SpringBootTest.
+- **SQL/JDBC**: expandir con JDBC avanzado (DataSource, connection pooling, Batch updates), integrar conceptos de JPA/Hibernate como topics dentro del modulo (no como modulo separado, sino como evolucion de JDBC).
+- El modulo SQL/JDBC pasaria a llamarse **"SQL, JDBC y Persistencia"** cubriendo JDBC basico -> JPA/Hibernate -> Spring Data.
+
+#### V3-4: Patrones de diseno + Arquitectura
+
+- **Patrones**: agregar mas patrones (Chain of Responsibility, Command, Mediator, Visitor, Flyweight, Bridge) con ejemplos completos en Java. Expandir SOLID con ejemplos de violaciones y como corregirlas.
+- **Arquitectura**: nuevo topic dentro de patrones de diseno o nuevo modulo dedicado. Contenido: Clean Architecture (Circle), Hexagonal (Ports & Adapters), Arquitectura por Capas, Microservicios (conceptos, Cuando SI / Cuando NO), monolito vs microservicios. Incluir diagramas Mermaid y ejemplos de codigo.
+
+#### V3-5: Migracion a Chakra UI
+
+- Instalar: `@chakra-ui/react`, `@chakra-ui/icons`, `framer-motion` (peer dep).
+- Refactorizar cada componente existente para usar componentes Chakra (`Box`, `Flex`, `Text`, `Button`, `Badge`, `Card`, `SimpleGrid`, `Tabs`, etc.).
+- Mantener el dark mode existente usando el sistema de temas de Chakra.
+- Mejorar: sombras, bordes redondeados, spacing consistente, tipografia, hover states, transiciones.
+- `styles.css` se reduce drasticamente (Chakra maneja los estilos via props).
+
+#### V3-6: Modulo "Rellenar Codigo"
+
+- Nuevo tipo de pregunta: `CODE_FILL` en `QuestionType`.
+- Formato JSON: `{ "id", "text" (enunciado), "codeTemplate" (codigo con ___BLANK___), "blanks" (array con la respuesta correcta de cada blank), "explanation" }`.
+- UI: textarea por cada blank, validacion al submit, feedback con el codigo completo resaltado.
+- Crear modulo JSON `code-fill.json` con 10+ ejercicios cubriendo distintos temas.
+
+#### V3-7: Modulo "Encontrar el Bug"
+
+- Nuevo tipo de pregunta: `BUG_HUNT` en `QuestionType`.
+- Formato JSON: `{ "id", "text" (enunciado), "code" (codigo con bug), "bugLine" (linea o region del bug), "options" (posibles respuestas: que tipo de bug es), "correctIndexes", "explanation" }`.
+- UI: codigo con syntax highlighting, el usuario selecciona la linea/region del bug, feedback con explicacion.
+- Crear modulo JSON `bug-hunt.json` con 10+ ejercicios.
+
+#### V3-8: Expansion Testing
+
+- Expandir el modulo `testing.json` existente con:
+  - JUnit 5 avanzado: `@ParameterizedTest`, `@ValueSource`, `@CsvSource`, `@MethodSource`, `@Nested`, `@DisplayName`, lifecycle callbacks.
+  - Mockito avanzado: `verify`, `argumentCaptor`, `doReturn/doThrow`, `spy`, `@Captor`, `@ExtendWith(MockitoExtension.class)`.
+  - Tests de integracion: `@SpringBootTest`, `@WebMvcTest`, `TestRestTemplate`, `MockMvc`.
+  - Testing de APIs REST: contratos, status codes, response bodies.
+  - Cobertura de codigo: Jacoco, metrics.
+  - TDD workflow detallado con ejemplo paso a paso.
+  - Anti-patrones en testing.
+- De 7 a 15+ preguntas en el modulo.
+
+### Criterios de exito de V3
+
+- Cada modulo tiene min. 10 preguntas y teoria profunda con multiples ejemplos.
+- El frontend usa Chakra UI con un look profesional, dark mode, responsive.
+- Las secciones de "Rellenar Codigo" y "Encontrar el Bug" funcionan como modulos interactivos.
+- El modulo de Testing cubre desde basico hasta avanzado (parametrizados, mocks, integracion).
+- Spring incluye perfiles, actuator, transaccionalidad y testing.
+- Arquitectura esta cubierta con diagramas y ejemplos de codigo.
+- README清楚 explica como levantar el proyecto.
+- Licencia MIT presente.

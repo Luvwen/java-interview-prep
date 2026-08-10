@@ -55,6 +55,7 @@ Cada modulo expone: objetivos de aprendizaje, teoria resumida, ejemplos de codig
 - La iteracion **V2-5** incorpora **Flashcards (A4)**: el usuario selecciona modulos y recorre tarjetas con conceptos clave. Voltea la tarjeta para ver el contenido y se autoevalua ("sabia" / "no sabia"). Las tarjetas "no sabia" vuelven a aparecer al final de la sesion.
 - La iteracion **V2-6** incorpora **Examen simulado (A7)**: configuracion previa (modulos, cantidad de preguntas, tiempo limite). Una vez iniciado no se puede volver atras y no hay feedback hasta el final. El tiempo corre y al agotarse se entrega automaticamente.
 - La iteracion **V2-7** incorpora: (a) **Racha diaria (A8)**: reto del dia (5 preguntas fijas por fecha, deterministas) que mantiene la racha; completar el reto suma el dia, faltar lo reinicia. (b) **Estadisticas por modulo (A9)**: dashboard con aciertos/errores por modulo, mejor puntaje, promedio, tiempo promedio y topicos debiles (< 60%).
+- La iteracion **V3-2** incorpora **Expansion de contenido**: ampliacion de teoria con conceptos avanzados y errores comunes en entrevistas, ejemplos adicionales por topico (min. 3-5), y expansion del banco de preguntas a 10+ por modulo incluyendo mas MULTIPLE y ORDER. Prioridad: Core Java, POO, Colecciones, Streams, Concurrencia. Tambien corrige bugs de IDs duplicados entre preguntas TRUE_FALSE y ORDER en 7 modulos.
 
 ### 3.4 Seguimiento de progreso
 
@@ -67,6 +68,8 @@ Cada modulo expone: objetivos de aprendizaje, teoria resumida, ejemplos de codig
 ### 3.5 UI web (fase 2)
 
 Una vez estable la CLI, la app crece con una **UI web moderna** (SPA React + Vite consumiendo una API REST en Spring Boot) que ofrece las mismas funcionalidades de catalogo, teoria, quiz y progreso en el navegador. La CLI y la UI conviven: ambas comparten el mismo dominio y el mismo archivo de progreso local.
+
+El frontend usa **Chakra UI v2** con dark mode profesional, tokens de color semanticos centralizados (`colors.ts`) y componentes compartidos (`QuestionRenderer`, `QuizFeedback`) que eliminan duplicacion. La navegacion se resuelve con un custom hook (`useNavigation.ts`) que sincroniza el estado con la API de historial del navegador, permitiendo que el boton "Atras" del navegador funcione como el boton "Volver" interno de la app.
 
 La UI web se organiza en 10 vistas:
 

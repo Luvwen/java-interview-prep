@@ -6,47 +6,58 @@
     {
       "id": "poo-classes",
       "title": "Clases, objetos y constructores",
-      "content": "Una clase es una plantilla que define estado (campos) y comportamiento (metodos). Un objeto es una instancia concreta creada con new. El constructor inicializa el estado; si no se define ninguno, Java agrega un constructor por defecto sin argumentos.\n\nUn constructor puede delegar en otro de la misma clase con this(...) o en el de la superclase con super(...). La llamada a super() debe ser la primera sentencia del constructor. Si el constructor de la superclase sin argumentos no existe, las subclases estan obligadas a llamar a un constructor explicito con super(arg...).\n\nJava moderno ofrece records para clases de datos inmutables (crea automaticamente constructor, equals, hashCode y toString) y enum para conjuntos finitos de constantes. Conocer cuando usar cada uno demuestra criterio.",
+      "content": "Una clase es una plantilla que define estado (campos) y comportamiento (metodos). Un objeto es una instancia concreta creada con new. El constructor inicializa el estado; si no se define ninguno, Java agrega un constructor por defecto sin argumentos.\n\nUn constructor puede delegar en otro de la misma clase con this(...) o en el de la superclase con super(...). La llamada a super() debe ser la primera sentencia del constructor. Si el constructor de la superclase sin argumentos no existe, las subclases estan obligadas a llamar a un constructor explicito con super(arg...).\n\nJava moderno ofrece records para clases de datos inmutables (crea automaticamente constructor, equals, hashCode y toString) y enum para conjuntos finitos de constantes. Conocer cuando usar cada uno demuestra criterio.\n\nConceptos avanzados:\n- Un record es una clase final cuyos campos son privados y finales. Automaticamente genera constructor canonico, accessor methods (getNombre() no getNombre()), equals, hashCode y toString. Puede implementar interfaces pero no extender clases.\n- Los enums pueden tener campos, constructores (privados) y metodos. Implementan java.lang.Enum automaticamente. Se pueden usar en switch sin necesidad de break. Cada constante es un singleton.\n- La inicializacion de campos se ejecuta despues del constructor de Object y antes del cuerpo del constructor. El orden es: static fields/static blocks -> instance fields/instance blocks -> constructor.\n\nErrores comunes en entrevistas:\n- Olvidar que un record no puede extender otra clase (es implicitamente final).\n- Confundir this() con super(): this() llama a otro constructor de la misma clase, super() llama al constructor de la superclase.\n- Creer que el constructor devuelve un valor; en realidad, new ya devuelve la referencia.",
       "examples": [
         "record Point(int x, int y) { }",
         "public class Animal { public Animal(String nombre) { this.nombre = nombre; } }",
-        "enum Estado { ACTIVO, INACTIVO }"
+        "enum Estado { ACTIVO, INACTIVO }",
+        "record Persona(String nombre, int edad) { public Persona { if (edad < 0) throw new IllegalArgumentException(); } }",
+        "enum Color { ROJO(1), AZUL(2); private final int code; Color(int code) { this.code = code; } }",
+        "var p = new Point(1, 2); System.out.println(p.x()); // accessor method"
       ]
     },
     {
       "id": "poo-encapsulation",
       "title": "Encapsulacion",
-      "content": "La encapsulacion consiste en ocultar el estado interno de un objeto y exponerlo solo a traves de metodos. Se logra con campos private y metodos publicos que validan y controlan los cambios. El beneficio es que el objeto siempre queda en un estado consistente: nadie puede saltarse las reglas de negocio.\n\nEl error mas comun en entrevistas es confundir encapsulacion con 'poner getters y setters'. El verdadero objetivo no es exponer cada campo, sino exponer comportamiento. Si solo se generan getters y setters automaticos, el estado sigue siendo manipulable sin control; mejor es disenar metodos que expresen la intencion (por ejemplo, depositar() y retirar() en vez de setSaldo()).\n\nLa inmutabilidad es la forma maxima de encapsulacion: el objeto se crea con su estado y nunca cambia. Se logra con campos final, sin setters y devolviendo copias defensivas cuando se exponen estructuras mutables.",
+      "content": "La encapsulacion consiste en ocultar el estado interno de un objeto y exponerlo solo a traves de metodos. Se logra con campos private y metodos publicos que validan y controlan los cambios. El beneficio es que el objeto siempre queda en un estado consistente: nadie puede saltarse las reglas de negocio.\n\nEl error mas comun en entrevistas es confundir encapsulacion con 'poner getters y setters'. El verdadero objetivo no es exponer cada campo, sino exponer comportamiento. Si solo se generan getters y setters automaticos, el estado sigue siendo manipulable sin control; mejor es disenar metodos que expresen la intencion (por ejemplo, depositar() y retirar() en vez de setSaldo()).\n\nLa inmutabilidad es la forma maxima de encapsulacion: el objeto se crea con su estado y nunca cambia. Se logra con campos final, sin setters y devolviendo copias defensivas cuando se exponen estructuras mutables.\n\nConceptos avanzados:\n- Para crear una clase inmutable: campos final, no setters, constructor que copia colecciones defensivamente (List.copyOf o new ArrayList(original), y metodos que devuelvan copias, no la referencia interna.\n- Los records son inmutables por defecto: sus campos son finales y el constructor es el unico punto de asignacion.\n- Una copia defensiva se hace tanto al recibir como al devolver: Collections.unmodifiableList(new ArrayList<>(lista interna)).\n\nErrores comunes en entrevistas:\n- Devolver la referencia directa a una coleccion interna (return this.lista;) permite que el caller modifique el estado del objeto.\n- Poner campos final no garantiza inmutabilidad si el campo es una coleccion mutable.\n- Confundir encapsulacion con accesor: un getter puro (getCampo()) no es encapsulacion si expone el estado sin proteccion.",
       "examples": [
         "public class Cuenta { private double saldo; public void depositar(double m) { if (m <= 0) throw new IllegalArgumentException(); saldo += m; } }",
-        "public final class Punto { private final int x, y; public Punto(int x, int y) { this.x = x; this.y = y; } }"
+        "public final class Punto { private final int x, y; public Punto(int x, int y) { this.x = x; this.y = y; } }",
+        "public List<String> getNombres() { return List.copyOf(nombres); } // copia defensiva",
+        "public final class Periodo { private final LocalDate inicio, fin; public Periodo(LocalDate i, LocalDate f) { this.inicio = i; this.fin = f; } }"
       ]
     },
     {
       "id": "poo-inheritance",
       "title": "Herencia y polimorfismo",
-      "content": "La herencia (extends) permite que una clase reutilice el estado y comportamiento de otra. Java soporta herencia simple de clases y herencia multiple solo de interfaces. Un metodo marcado final no puede sobrescribirse; una clase final no puede heredarse.\n\nEl polimorfismo es la capacidad de un objeto de comportarse segun su tipo real en tiempo de ejecucion aunque se referencie con un tipo mas general. Gracias al dispatch dinamico (dynamic dispatch), al llamar a un metodo sobrescrito se ejecuta la version de la clase real del objeto.\n\nLa sobrescritura (override) tiene reglas estrictas: mismo nombre y firma, visibilidad igual o mayor, y excepciones iguales o mas restrictivas. La sobrecarga (overload) es distinta: mismo nombre y distinta firma, y se resuelve en tiempo de compilacion.\n\nUna pregunta clasica: la diferencia entre compilacion y ejecucion. Con Animal a = new Perro(); a.hablar() ejecuta Perro.hablar en runtime, pero a.soloDePerro() no compila porque el tipo declarado es Animal.",
+      "content": "La herencia (extends) permite que una clase reutilice el estado y comportamiento de otra. Java soporta herencia simple de clases y herencia multiple solo de interfaces. Un metodo marcado final no puede sobrescribirse; una clase final no puede heredarse.\n\nEl polimorfismo es la capacidad de un objeto de comportarse segun su tipo real en tiempo de ejecucion aunque se referencie con un tipo mas general. Gracias al dispatch dinamico (dynamic dispatch), al llamar a un metodo sobrescrito se ejecuta la version de la clase real del objeto.\n\nLa sobrescritura (override) tiene reglas estrictas: mismo nombre y firma, visibilidad igual o mayor, y excepciones iguales o mas restrictivas. La sobrecarga (overload) es distinta: mismo nombre y distinta firma, y se resuelve en tiempo de compilacion.\n\nUna pregunta clasica: la diferencia entre compilacion y ejecucion. Con Animal a = new Perro(); a.hablar() ejecuta Perro.hablar en runtime, pero a.soloDePerro() no compila porque el tipo declarado es Animal.\n\nConceptos avanzados:\n- El dispatch dinamico en Java usa vtables (tablas de metodos virtuales) en la JVM. Cada clase tiene su vtable que apunta a la implementacion correcta de cada metodo.\n- Covariant return types: si un metodo sobrescrito retorna un tipo, la subclase puede retornar un subtipo. Ejemplo: clone() retorna Object pero una subclase puede retornar SuTipo.\n- Los metodos privados no se heredan ni se sobrescriben. Los constructores tampoco se heredan.\n- super.metodo() llama a la implementacion de la superclase, util para extender comportamiento sin reemplazarlo.\n\nErrores comunes en entrevistas:\n- Confundir sobrescritura (override) con sobrecarga (overload): override = misma firma, runtime; overload = distinta firma, compilacion.\n- Creer que @Override es obligatorio; es opcional pero muy recomendado porque el compilador verifica que la sobrescritura es correcta.\n- Olvidar que los metodos static no se sobrescriben (se ocultan).",
       "examples": [
         "class Perro extends Animal { @Override public void hablar() { System.out.println(\"Guau\"); } }",
-        "Animal a = new Perro(); a.hablar(); // polimorfismo: imprime Guau"
+        "Animal a = new Perro(); a.hablar(); // polimorfismo: imprime Guau",
+        "class Animal { Animal clone() { return new Animal(this); } } class Perro extends Animal { @Override Perro clone() { return new Perro(this); } }",
+        "super.hablar(); // llama a la version de la superclase"
       ]
     },
     {
       "id": "poo-interfaces",
       "title": "Interfaces y clases abstractas",
-      "content": "Una interfaz define un contrato de comportamiento (que metodos debe tener un tipo) sin imponer estado ni implementacion. Una clase abstracta puede tener estado, metodos concretos y metodos abstractos, y sirve para codigo compartido entre clases muy relacionadas.\n\nLa regla practica para elegir: si lo que se quiere es un contrato que varias clases no relacionadas cumplen, usar interface; si se quiere reutilizar codigo y estado con una jerarquia fuerte, usar clase abstracta. Java permite implementar multiples interfaces en una clase, pero una clase solo extiende una clase abstracta.\n\nDesde Java 8 las interfaces pueden tener metodos default (implementacion por defecto) y static. Desde Java 9, metodos privados. Esto permitio la programacion funcional con las interfaces del paquete java.util.function sin romper implementaciones existentes.\n\nEn entrevistas se valora mencionar que las interfaces en Java 8+ pueden tener metodos default y que la herencia multiple de interfaces exige resolver conflictos: si dos interfaces default con la misma firma, la clase debe sobrescribir el metodo.",
+      "content": "Una interfaz define un contrato de comportamiento (que metodos debe tener un tipo) sin imponer estado ni implementacion. Una clase abstracta puede tener estado, metodos concretos y metodos abstractos, y sirve para codigo compartido entre clases muy relacionadas.\n\nLa regla practica para elegir: si lo que se quiere es un contrato que varias clases no relacionadas cumplen, usar interface; si se quiere reutilizar codigo y estado con una jerarquia fuerte, usar clase abstracta. Java permite implementar multiples interfaces en una clase, pero una clase solo extiende una clase abstracta.\n\nDesde Java 8 las interfaces pueden tener metodos default (implementacion por defecto) y static. Desde Java 9, metodos privados. Esto permitio la programacion funcional con las interfaces del paquete java.util.function sin romper implementaciones existentes.\n\nEn entrevistas se valora mencionar que las interfaces en Java 8+ pueden tener metodos default y que la herencia multiple de interfaces exige resolver conflictos: si dos interfaces default con la misma firma, la clase debe sobrescribir el metodo.\n\nConceptos avanzados:\n- Los metodos default pueden invocar metodos privados de la interfaz para factorizar codigo comun.\n- Si una clase implementa dos interfaces con un metodo default identico, debe sobrescribirlo y decidir cual usar (o invocar a ambos con InterfaceName.super.metodo()).\n- Las interfaces funcionales (una unica metodo abstracto) permiten lambdas: Comparator, Runnable, Callable.\n- Se pueden anidar interfaces dentro de interfaces (public static interface).\n- Los campos de una interfaz son implicitamente public static final (constantes).\n\nErrores comunes en entrevistas:\n- Creer que las interfaces no pueden tener estado: tienen campos (constantes) y metodos default.\n- Olvidar que desde Java 9 hay metodos privados en interfaces.\n- No saber resolver conflictos de metodos default entre dos interfaces.",
       "examples": [
         "public interface Pagable { double monto(); default void procesar() { System.out.println(\"Pagando \" + monto()); } }",
-        "public abstract class Vehiculo { protected int velocidad; public abstract void acelerar(); }"
+        "public abstract class Vehiculo { protected int velocidad; public abstract void acelerar(); }",
+        "public interface Printable { void print(); default void printPretty() { print(); } private void log(String s) { System.out.println(s); } }",
+        "interface A { default void hacer() { } } interface B { default void hacer() { } } class C implements A, B { @Override public void hacer() { A.super.hacer(); } }"
       ]
     },
     {
       "id": "poo-composition",
       "title": "Composicion sobre herencia",
-      "content": "La composicion consiste en construir clases mas complejas teniendo instancias de otras clases como campos. Es la alternativa preferida a la herencia cuando no existe una relacion 'es-un' real: se usa una relacion 'tiene-un'.\n\nEl principio 'favorecer composicion sobre herencia' se explica por los problemas de la herencia: acoplamiento fuerte con la superclase, riesgo de romper invariantes al sobrescribir metodos, y jerarquias rigidas que no evolucionan. Con composicion se delega en componentes pequenos y testeables, y el comportamiento se puede cambiar en tiempo de ejecucion.\n\nUn ejemplo tipico: en vez de que Coche herede de Motor, Coche tiene un Motor. Tambien es la base de patrones como Strategy y Decorator. En entrevistas, una respuesta madura menciona que la herencia esta bien para jerarquias estables y profundas, pero que en codigo moderno se compone.",
+      "content": "La composicion consiste en construir clases mas complejas teniendo instancias de otras clases como campos. Es la alternativa preferida a la herencia cuando no existe una relacion 'es-un' real: se usa una relacion 'tiene-un'.\n\nEl principio 'favorecer composicion sobre herencia' se explica por los problemas de la herencia: acoplamiento fuerte con la superclase, riesgo de romper invariantes al sobrescribir metodos, y jerarquias rigidas que no evolucionan. Con composicion se delega en componentes pequenos y testeables, y el comportamiento se puede cambiar en tiempo de ejecucion.\n\nUn ejemplo tipico: en vez de que Coche herede de Motor, Coche tiene un Motor. Tambien es la base de patrones como Strategy y Decorator. En entrevistas, una respuesta madura menciona que la herencia esta bien para jerarquias estables y profundas, pero que en codigo moderno se compone.\n\nConceptos avanzados:\n- La delegacion es el mecanismo central de la composicion: la clase compuesta delega llamadas a sus componentes.\n- Patrones que usan composicion: Strategy (intercambiar algoritmos), Decorator (agregar comportamiento envolviendo), Composite (arbol de objetos), Adapter (convertir interfaz).\n- La herencia tiene el 'problema de la fragilidad de la superclase': cambios en la superclase pueden romper subclases sin aviso.\n- La composicion permite cambiar comportamiento en runtime (setter con una nueva implementacion de la interfaz).\n\nErrores comunes en entrevistas:\n- Usar herencia cuando no hay relacion 'es-un' real (ej: Coche extends VehiculoMotorizado podria ser correcto, pero Coche extends Motor no lo es).\n- Olvidar que la herencia expone metodos de la superclase al API de la subclase.\n- No mencionar que la composicion facilita el testing (se puede inyectar un mock del componente).",
       "examples": [
         "public class Coche { private final Motor motor; public Coche(Motor motor) { this.motor = motor; } }",
-        "// Delegacion: Coche.arrancar() delega en motor.encender()"
+        "// Delegacion: Coche.arrancar() delega en motor.encender()",
+        "public class Logger { private final Appender appender; public Logger(Appender appender) { this.appender = appender; } public void log(String msg) { appender.append(msg); } }",
+        "// Strategy pattern: contexto mantiene una referencia a una interfaz Strategy"
       ]
     }
   ],
@@ -141,7 +152,7 @@
         "type": "TRUE_FALSE"
       },
       {
-        "id": "poo-q6",
+        "id": "poo-q7",
         "text": "Ordena los principios de POO segun la jerarquia de relacion mas basica a mas avanzada:",
         "options": [
           "Encapsulamiento",
@@ -156,6 +167,70 @@
           2
         ],
         "explanation": "Encapsulamiento es la base, luego herencia, abstraccion y polimorfismo.",
+        "type": "ORDER"
+      },
+      {
+        "id": "poo-q8",
+        "text": "Cuales de estos son principios SOLID?",
+        "options": [
+          "Single Responsibility Principle",
+          "Open/Closed Principle",
+          "Liskov Substitution Principle",
+          "Dependency Inversion Principle"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "SOLID: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "poo-q9",
+        "text": "Que ventaja ofrece un record sobre una clase con campos final y constructor?",
+        "options": [
+          "Es mas rapido en tiempo de ejecucion",
+          "Genera automaticamente constructor, equals, hashCode y toString",
+          "Permite herencia de multiples clases",
+          "No requiere declarar campos"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Un record genera automaticamente el constructor canonico, equals, hashCode y toString, reduciendo boilerplate.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "poo-q10",
+        "text": "Una clase inmutable puede contener una coleccion mutable como campo interno sin problemas.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: si el campo es una coleccion mutable, el caller podria modificarla directamente. Se deben devolver copias defensivas o usar colecciones inmutables.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "poo-q11",
+        "text": "Ordena estos conceptos de herencia de lo mas basico a lo mas avanzado:",
+        "options": [
+          "Sobrescritura de metodos",
+          "Herencia simple de clases",
+          "Interfaces multiples",
+          "Metodos default en interfaces"
+        ],
+        "correctIndexes": [
+          1,
+          0,
+          2,
+          3
+        ],
+        "explanation": "Primero herencia simple, luego sobrescritura, interfaces multiples y finalmente metodos default (Java 8+).",
         "type": "ORDER"
       }
     ]

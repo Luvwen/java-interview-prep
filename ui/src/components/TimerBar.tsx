@@ -1,41 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import { Box, Flex, Text } from "@chakra-ui/react";
+import { colors } from "../colors";
 
-function TimerBar({
-  totalSeconds,
-  onTimeUp,
-  running,
-}: {
-  totalSeconds: number;
-  onTimeUp: () => void;
-  running: boolean;
-}) {
+function TimerBar({ totalSeconds, onTimeUp, running }: { totalSeconds: number; onTimeUp: () => void; running: boolean }) {
   const [remaining, setRemaining] = useState(totalSeconds);
   const startTime = useRef<number>(Date.now());
   const pausedRemaining = useRef(totalSeconds);
 
   useEffect(() => {
-    if (running) {
-      startTime.current = Date.now();
-    } else {
-      pausedRemaining.current = remaining;
-    }
+    if (running) { startTime.current = Date.now(); }
+    else { pausedRemaining.current = remaining; }
   }, [running]);
 
   useEffect(() => {
     if (!running) return;
-
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime.current) / 1000);
       const left = pausedRemaining.current - elapsed;
-      if (left <= 0) {
-        setRemaining(0);
-        clearInterval(interval);
-        onTimeUp();
-      } else {
-        setRemaining(left);
-      }
+      if (left <= 0) { setRemaining(0); clearInterval(interval); onTimeUp(); }
+      else { setRemaining(left); }
     }, 250);
-
     return () => clearInterval(interval);
   }, [running, onTimeUp]);
 
@@ -45,17 +29,14 @@ function TimerBar({
   const isLow = remaining <= 10;
 
   return (
-    <div className="timer-bar-container">
-      <div className="timer-bar">
-        <div
-          className={`timer-fill ${isLow ? "timer-low" : ""}`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <span className={`timer-text ${isLow ? "timer-low-text" : ""}`}>
+    <Flex align="center" gap={3} mb={4} role="timer" aria-label={`${minutes} minutos ${seconds} segundos restantes`}>
+      <Box flex={1} h="8px" bg={colors.surfaceHover} borderRadius="full" overflow="hidden">
+        <Box h="100%" bg={isLow ? colors.error : colors.success} borderRadius="full" transition="width 0.25s linear" w={`${percent}%`} />
+      </Box>
+      <Text fontWeight="600" style={{ fontVariantNumeric: "tabular-nums" }} minW="48px" textAlign="right" color={isLow ? colors.error : "inherit"}>
         {minutes}:{seconds.toString().padStart(2, "0")}
-      </span>
-    </div>
+      </Text>
+    </Flex>
   );
 }
 

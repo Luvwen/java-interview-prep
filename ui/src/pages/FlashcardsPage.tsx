@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
+import {
+  Box, Button, Checkbox, Flex, Heading, Stack, Text, HStack,
+} from "@chakra-ui/react";
+import { ArrowLeft } from "lucide-react";
 import { api } from "../api";
+import { colors } from "../colors";
 import type { ModuleSummary, ModuleDetail } from "../types";
 import FlipCard from "../components/FlipCard";
 
-interface Flashcard {
-  moduleId: string;
-  moduleTitle: string;
-  topicId: string;
-  title: string;
-  content: string;
-}
+interface Flashcard { moduleId: string; moduleTitle: string; topicId: string; title: string; content: string; }
 
 function FlashcardsPage({ onExit }: { onExit: () => void }) {
   const [modules, setModules] = useState<ModuleSummary[]>([]);
@@ -22,159 +21,78 @@ function FlashcardsPage({ onExit }: { onExit: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [sessionDone, setSessionDone] = useState(false);
 
-  useEffect(() => {
-    api.listModules().then(setModules).catch((err: Error) => setError(err.message));
-  }, []);
+  useEffect(() => { api.listModules().then(setModules).catch((err: Error) => setError(err.message)); }, []);
+
+  const shuffle = <T,>(arr: T[]) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } };
 
   const startSession = async () => {
     if (selectedModules.length === 0) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const allCards: Flashcard[] = [];
       for (const moduleId of selectedModules) {
         const detail: ModuleDetail = await api.getModule(moduleId);
         const mod = modules.find((m) => m.id === moduleId);
         for (const topic of detail.topics) {
-          allCards.push({
-            moduleId,
-            moduleTitle: mod?.title ?? moduleId,
-            topicId: topic.id,
-            title: topic.title,
-            content: topic.content.substring(0, 300) + (topic.content.length > 300 ? "..." : ""),
-          });
+          allCards.push({ moduleId, moduleTitle: mod?.title ?? moduleId, topicId: topic.id, title: topic.title, content: topic.content.substring(0, 300) + (topic.content.length > 300 ? "..." : "") });
         }
       }
-      shuffle(allCards);
-      setCards(allCards);
-      setCurrentIndex(0);
-      setKnown([]);
-      setUnknown([]);
-      setSessionDone(false);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+      shuffle(allCards); setCards(allCards); setCurrentIndex(0); setKnown([]); setUnknown([]); setSessionDone(false);
+    } catch (err) { setError((err as Error).message); } finally { setLoading(false); }
   };
 
-  const shuffle = <T,>(arr: T[]) => {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  };
+  const markKnown = () => { setKnown((prev) => [...prev, cards[currentIndex].topicId]); advance(); };
+  const markUnknown = () => { setUnknown((prev) => [...prev, cards[currentIndex].topicId]); advance(); };
+  const advance = () => { if (currentIndex + 1 < cards.length) setCurrentIndex(currentIndex + 1); else setSessionDone(true); };
+  const toggleModule = (id: string) => setSelectedModules((prev) => prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]);
 
-  const markKnown = () => {
-    const card = cards[currentIndex];
-    setKnown((prev) => [...prev, card.topicId]);
-    advance();
-  };
-
-  const markUnknown = () => {
-    const card = cards[currentIndex];
-    setUnknown((prev) => [...prev, card.topicId]);
-    advance();
-  };
-
-  const advance = () => {
-    if (currentIndex + 1 < cards.length) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      setSessionDone(true);
-    }
-  };
-
-  const toggleModule = (id: string) => {
-    setSelectedModules((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
-    );
-  };
-
-  if (error) return <p className="error">{error}</p>;
+  if (error) return <Text color={colors.error}>{error}</Text>;
 
   if (sessionDone) {
     return (
-      <section className="quiz-result">
-        <h2>Sesion de Flashcards</h2>
-        <p className="score">
-          {known.length} sabia / {unknown.length} no sabia
-        </p>
-        {unknown.length > 0 && (
-          <p className="hint">
-            Repasa los temas que marcaste como "no sabia" para reforzar.
-          </p>
-        )}
-        <div className="actions">
-          <button className="primary" onClick={startSession}>
-            Repetir sesion
-          </button>
-          <button onClick={onExit}>Volver</button>
-        </div>
-      </section>
+      <Box textAlign="center">
+        <Heading size="lg" mb={4}>Sesion de Flashcards</Heading>
+        <Text color={colors.textMuted} mb={6}>{known.length} sabia / {unknown.length} no sabia</Text>
+        {unknown.length > 0 && <Text color={colors.textMuted} mb={4}>Repasa los temas que marcaste como "no sabia" para reforzar.</Text>}
+        <HStack justify="center" spacing={3}>
+          <Button colorScheme="blue" onClick={startSession}>Repetir sesion</Button>
+          <Button variant="outline" onClick={onExit}>Volver</Button>
+        </HStack>
+      </Box>
     );
   }
 
   if (cards.length > 0) {
     const card = cards[currentIndex];
     return (
-      <section>
-        <div className="session-progress">
-          {currentIndex + 1} / {cards.length}
-        </div>
-        <p className="hint">{card.moduleTitle}</p>
-        <FlipCard
-          front={card.title}
-          back={card.content}
-          onKnow={markKnown}
-          onDontKnow={markUnknown}
-        />
-      </section>
+      <Box textAlign="center">
+        <Text color={colors.textMuted} mb={2}>{currentIndex + 1} / {cards.length}</Text>
+        <Text color={colors.textMuted} mb={4}>{card.moduleTitle}</Text>
+        <FlipCard front={card.title} back={card.content} onKnow={markKnown} onDontKnow={markUnknown} />
+      </Box>
     );
   }
 
   return (
-    <section>
-      <button className="link" onClick={onExit}>
-        &larr; Volver
-      </button>
-      <h2>Flashcards</h2>
-      <p className="description">
-        Voltea las tarjetas y autoevalua si sabias el contenido. Las tarjetas
-        que marques como "no sabia" volveran a aparecer al final de la sesion.
-      </p>
-      <div className="module-selector">
-        <div className="selector-header">
-          <h3>Modulos</h3>
-          <button className="link" onClick={() => setSelectedModules(modules.map((m) => m.id))}>
-            Seleccionar todos
-          </button>
-        </div>
-        <ul className="module-checkboxes">
+    <Box>
+      <Button variant="ghost" color={colors.accent} leftIcon={<ArrowLeft size={16} />} onClick={onExit} mb={4} size="sm">Volver</Button>
+      <Heading size="lg" mb={2}>Flashcards</Heading>
+      <Text color={colors.textMuted} mb={6}>Voltea las tarjetas y autoevalua si sabias el contenido. Las tarjetas que marques como "no sabia" volveran a aparecer al final de la sesion.</Text>
+      <Box bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="12px" p={5} mb={4}>
+        <Flex align="center" justify="space-between" mb={3}>
+          <Heading size="sm">Modulos</Heading>
+          <Button variant="link" size="sm" color={colors.accent} onClick={() => setSelectedModules(modules.map((m) => m.id))}>Seleccionar todos</Button>
+        </Flex>
+        <Stack spacing={2}>
           {modules.map((m) => (
-            <li key={m.id}>
-              <label className="option">
-                <input
-                  type="checkbox"
-                  checked={selectedModules.includes(m.id)}
-                  onChange={() => toggleModule(m.id)}
-                />
-                <span>{m.title}</span>
-              </label>
-            </li>
+            <Checkbox key={m.id} isChecked={selectedModules.includes(m.id)} onChange={() => toggleModule(m.id)} colorScheme="blue">{m.title}</Checkbox>
           ))}
-        </ul>
-      </div>
-      <div className="actions-row">
-        <button
-          className="primary"
-          disabled={selectedModules.length === 0 || loading}
-          onClick={startSession}
-        >
-          {loading ? "Cargando..." : "Iniciar sesion"}
-        </button>
-      </div>
-    </section>
+        </Stack>
+      </Box>
+      <Button colorScheme="blue" isDisabled={selectedModules.length === 0 || loading} onClick={startSession}>
+        {loading ? "Cargando..." : "Iniciar sesion"}
+      </Button>
+    </Box>
   );
 }
 

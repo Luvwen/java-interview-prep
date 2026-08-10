@@ -110,9 +110,9 @@ Aplicacion **CLI** escrita en **Java** para aprender/practicar Java de cara a en
 - **Motivo**: al cerrar la CLI, la app suma una UI web moderna. React + Vite es el stack frontend mas difundido y Spring Boot el estandar backend de la industria Java (temas muy relevantes en entrevistas). La migracion a **multi-modulo Maven** (modulo `core` compartido + modulo `web`) permite que CLI y UI reutilicen el mismo dominio, los mismos servicios y el mismo `progress.json`.
 - **Consecuencia**: el no-alcance "sin backend servidor" de v1 queda limitado a la primera version; la fase 2 agrega una API REST local (sin multiusuario ni autenticacion).
 
-### D-08: Frontend como SPA React + Vite + TypeScript sin router
+### D-08: Frontend como SPA React + Vite + TypeScript con navegacion por historial
 
-- **Motivo**: una SPA con 4 vistas no justifica una libreria de routing de terceros; la navegacion se resuelve con estado local de React (view + parametros), manteniendo dependencias minimas. TypeScript tipa los DTOs del backend (`ModuleSummary`, `ModuleDetail`, `QuizResponse`, `QuizResultResponse`, `ProgressResponse`) evitando errores de contrato entre front y back. Vite ofrece dev server con **proxy de `/api` hacia `http://localhost:8080`**, con lo que en desarrollo no hay CORS; igualmente se mantiene el mapping CORS para el puerto 5174 como red de seguridad.
+- **Motivo**: una SPA con 10+ vistas no justifica una libreria de routing de terceros; la navegacion se resuelve con un custom hook (`useNavigation.ts`) que sincroniza el estado con `history.pushState`/`popstate`, permitiendo que el boton "Atras" del navegador funcione dentro de la SPA. TypeScript tipa los DTOs del backend (`ModuleSummary`, `ModuleDetail`, `QuizResponse`, `QuizResultResponse`, `ProgressResponse`) evitando errores de contrato entre front y back. Vite ofrece dev server con **proxy de `/api` hacia `http://localhost:8080`**, con lo que en desarrollo no hay CORS; igualmente se mantiene el mapping CORS para el puerto 5174 como red de seguridad.
 - **Alternativa descartada**: react-router (dependencia extra innecesaria a este tamano) y JS plano (pierde el contrato tipado con el backend).
 
 ### D-09: Contrato REST por casos de uso (misma logica que la CLI)
@@ -284,20 +284,35 @@ flowchart LR
 ```
 ui/
 ├── index.html
-├── package.json          # deps: react, react-dom; dev: vite, typescript, @vitejs/plugin-react
+├── package.json          # deps: react, react-dom, @chakra-ui/react; dev: vite, typescript
 ├── vite.config.ts        # dev server :5174 + proxy /api -> http://localhost:8080
 ├── tsconfig.json
 └── src/
-    ├── main.tsx          # bootstrap de React
-    ├── App.tsx           # navegacion por estado (10 vistas)
+    ├── main.tsx          # bootstrap de React con ChakraProvider
+    ├── App.tsx           # navegacion por historial (10 vistas)
     ├── api.ts            # cliente fetch tipado para la API REST
     ├── types.ts          # DTOs tipados espejo del backend
-    ├── components/       # StateBadge, TimerBar, OrderQuestion, FlipCard
-    ├── pages/            # CatalogPage, ModulePage, QuizPage, ProgressPage,
-    │                     # MixedQuizPage, ErrorReviewPage, TimeAttackPage,
-    │                     # FlashcardsPage, ExamPage, StatisticsPage
-    └── styles.css
+    ├── colors.ts         # tokens de color semanticos centralizados
+    ├── theme.ts          # tema Chakra UI (dark mode, font, component defaults)
+    ├── useNavigation.ts  # hook de navegacion con pushState/popstate
+    ├── prism-darcula.css # tema de syntax highlighting
+    ├── components/       # StateBadge, TimerBar, OrderQuestion, FlipCard,
+    │                     # QuestionRenderer, QuestionBody, QuizFeedback, ErrorPage
+    └── pages/            # CatalogPage, ModulePage, QuizPage, ProgressPage,
+                          # MixedQuizPage, ErrorReviewPage, TimeAttackPage,
+                          # FlashcardsPage, ExamPage, StatisticsPage
 ```
+
+### 4.8 Arquitectura del frontend (refactor V3-5)
+
+El refactor a Chakra UI (V3-5) introdujo:
+
+- **`colors.ts`**: archivo centralizado con 13 tokens semanticos (`bg`, `surface`, `surfaceHover`, `border`, `borderSelected`, `accent`, `textPrimary`, `textMuted`, `error`, `success`, `codeBg`, `codeBorder`, `codeText`). Todos los componentes referencian estos tokens en vez de valores hex hardcodeados, facilitando cambios de tema.
+- **`theme.ts`**: configura Chakra UI con dark mode, body background/color desde los tokens, y `Button` defaultProps.
+- **`useNavigation.ts`**: hook que sincroniza el estado de navegacion (`view` + `moduleId`) con la API de historial del navegador (`pushState`/`popstate`). Las rutas se mapean a paths legibles (`/`, `/module/{id}`, `/quiz/{id}`, `/activities`, etc.). El boton "Atras" del navegador funciona como el boton "Volver" interno.
+- **`QuestionRenderer` + `QuestionBody`**: componente compartido que unifica el renderizado de preguntas (SINGLE, MULTIPLE, TRUE_FALSE, ORDER) y reemplaza el codigo duplicado en 5 paginas. Usa `Radio`/`Checkbox` de Chakra en vez de inputs nativos HTML.
+- **`QuizFeedback`**: componente reutilizable para la pantalla de resultado (puntaje, aprobado/desaprobado, feedback por pregunta).
+- **Accesibilidad**: `FlipCard` tiene `role="button"`, `tabIndex`, `onKeyDown` y `aria-label`. `TimerBar` tiene `role="timer"` y `aria-label` con el tiempo restante.
 
 En desarrollo se levantan dos procesos: `mvn -pl web spring-boot:run` (backend en `:8080`) y `npm run dev` en `ui/` (front en `:5174`). En produccion, `npm run build` genera el bundle estatico servible por cualquier servidor web (la integracion con Spring Boot sirviendo los estaticos queda fuera de alcance por ahora).
 
@@ -337,5 +352,6 @@ En desarrollo se levantan dos procesos: `mvn -pl web spring-boot:run` (backend e
 - **V2-5: Flashcards**: funcionalidad puramente de frontend; no requiere endpoints nuevos. El usuario selecciona modulos, el frontend carga las preguntas y las presenta como tarjetas que se voltean con animacion CSS 3D. La autoevaluacion sabia/no sabia es estado local del componente; las tarjetas "no sabia" se reciclan al final de la sesion.
 - **V2-6: Examen simulado**: modo `EXAM` en `QuizMode`. Configuracion previa (modulos, cantidad de preguntas, tiempo total) en el frontend; se usa el endpoint existente `POST /api/quiz/mixed` para generar las preguntas. Navegacion forward-only y timer global son puramente frontend; al finalizar se envia el submit completo con `durationSeconds` del tiempo total. Sin feedback hasta el final (el frontend omite el feedback por pregunta y solo lo muestra al entregar).
 - **V2-7: Racha diaria + estadisticas**: nuevo domain record `Streak` (current, best, lastDate, isStreakActive, isChallengeCompletedToday) persistido en `progress.streak`. Nuevo servicio `StatisticsService` calcula stats por modulo (aciertos, errores, mejor, promedio) a partir de `attempts` y `questionStats`. Nuevos endpoints: `GET /api/stats`, `GET /api/streak`, `POST /api/streak/daily`, `POST /api/quiz/daily`. El reto diario usa 5 preguntas deterministas por fecha (HashSet de seed + hashCode sobre el modulo). `Streak` lleva `@JsonIgnoreProperties(ignoreUnknown = true)` para manejar metodos computados `isStreakActive`/`isChallengeCompletedToday`.
+- **V3-5: Refactor a Chakra UI**: migracion del frontend de estilos CSS manuales a **Chakra UI v2** con dark mode profesional. Se introdujo `colors.ts` (tokens semanticos centralizados), `theme.ts` (configuracion Chakra), `useNavigation.ts` (navegacion con `pushState`/`popstate` para que el boton "Atras" del navegador funcione dentro de la SPA). Se extrajeron componentes compartidos (`QuestionRenderer`+`QuestionBody`, `QuizFeedback`) eliminando duplicacion en 5 paginas. Se reemplazaron inputs HTML nativos por `Radio`/`Checkbox` de Chakra. Se corrigio `disabled` -> `isDisabled` en todos los `Button`. Se mejoro accesibilidad: `FlipCard` (keyboard, aria), `TimerBar` (role="timer"). Los endpoints de estadisticas (`getStats`, `getStreak`) se centralizaron en `api.ts` en vez de usar `fetch()` directo.
 
 Ver el [`implementation-plan.md`](./implementation-plan.md) para la secuencia de fases y verificaciones.

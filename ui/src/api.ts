@@ -70,4 +70,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ quizId, moduleIds, answers, durationSeconds }),
     }),
+
+  getStats: () => request<Record<string, ModuleStats>>("/api/stats"),
+
+  getStreak: () => request<{ current: number; lastDate: string | null }>("/api/streak"),
 };
+
+interface ModuleStats {
+  moduleId: string;
+  title: string;
+  correct: number;
+  wrong: number;
+  bestPercent: number;
+  avgPercent: number;
+  avgTimeSeconds: number;
+  attempts: number;
+}

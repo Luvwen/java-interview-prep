@@ -6,40 +6,53 @@
     {
       "id": "streams-lambdas",
       "title": "Lambdas e interfaces funcionales",
-      "content": "Una lambda es una funcion anonima: (parametros) -> cuerpo. Es una forma concisa de implementar una interfaz funcional, que es una interfaz con un unico metodo abstracto (SAM, Single Abstract Method). Puede tener metodos default y static adicionales.\n\nLas interfaces funcionales mas usadas estan en java.util.function: Predicate<T> (boolean test(T)), Function<T,R> (R apply(T)), Consumer<T> (void accept(T)), Supplier<T> (T get()) y BiFunction<T,U,R>. Tambien las versiones con primitivos como IntPredicate para evitar autoboxing.\n\n@FunctionalInterface es una anotacion opcional que hace que el compilador verifique que la interfaz tiene un unico metodo abstracto. Usarla en interfaces propias evita romper el contrato por accidente.\n\nUna lambda captura variables locales efectivamente finales (effectively final): no pueden cambiar despues de su inicializacion. Intentar modificar una variable capturada dentro de una lambda es un error de compilacion.",
+      "content": "Una lambda es una funcion anonima: (parametros) -> cuerpo. Es una forma concisa de implementar una interfaz funcional, que es una interfaz con un unico metodo abstracto (SAM, Single Abstract Method). Puede tener metodos default y static adicionales.\n\nLas interfaces funcionales mas usadas estan en java.util.function: Predicate<T> (boolean test(T)), Function<T,R> (R apply(T)), Consumer<T> (void accept(T)), Supplier<T> (T get()) y BiFunction<T,U,R>. Tambien las versiones con primitivos como IntPredicate, IntFunction, LongConsumer y DoubleFunction para evitar autoboxing y mejorar el rendimiento.\n\n@FunctionalInterface es una anotacion opcional que hace que el compilador verifique que la interfaz tiene un unico metodo abstracto. Usarla en interfaces propias evita romper el contrato por accidente al agregar un nuevo metodo abstracto.\n\nUna lambda captura variables locales efectivamente finales (effectively final): no pueden cambiar despues de su inicializacion. Intentar modificar una variable capturada dentro de una lambda es un error de compilacion. Esto garantiza seguridad en contextos concurrentes.\n\nConceptos avanzados: Las lambdas pueden ser asignadas a variables, pasadas como argumentos y devueltas como resultado, como cualquier otro tipo. El tipo de una lambda se infiere del contexto funcional (target typing). Las method references (obj::metodo, Clase::metodoEstatico, Clase::new) son azucar sintactico sobre lambdas y pueden mejorar la legibilidad. Cuando una lambda tiene un solo parametro sin tipo, los parentesis pueden omitirse: s -> s.length(). Si el cuerpo es una sola expresion, las llaves y el return implicito se manejan automaticamente.\n\nErrores comunes en entrevistas: Confundir una lambda con un closure; las lambdas no crean un nuevo ambito, capturan variables del ambito envolvente. Olvidar que @FunctionalInterface previene agregar segundos metodos abstractos. No distinguir entre Function<T,R> y BiFunction<T,U,R> cuando la lambda recibe dos parametros. Usar lambdas过于 complejas que reducen la legibilidad; en esos casos, un metodo con nombre es preferible.",
       "examples": [
         "Predicate<String> largo = s -> s.length() > 5;",
         "Function<Integer, String> toString = Object::toString; // method reference",
-        "@FunctionalInterface interface Validador { boolean validar(String v); }"
+        "@FunctionalInterface interface Validador { boolean validar(String v); }",
+        "Consumer<String> imprimir = System.out::println; // method reference como lambda",
+        "Function<String, Integer> len = String::length; // referencia a metodo de instancia",
+        "Supplier<List<String>> fabrica = ArrayList::new; // referencia a constructor",
+        "Function<String, Boolean> empiezaConA = s -> s.startsWith(\"A\"); // lambda con inferencia de tipo"
       ]
     },
     {
       "id": "streams-pipeline",
       "title": "Operaciones de pipeline",
-      "content": "Un Stream es una secuencia de elementos que se procesa con operaciones encadenadas: operaciones intermedias (lazy, devuelven un nuevo stream) y una operacion terminal (eager, produce el resultado y cierra el stream). Sin operacion terminal, el pipeline no ejecuta nada.\n\nOperaciones intermedias tipicas: filter (Predicate), map (Function), flatMap (Function que devuelve un stream, aplana estructuras), peek, distinct, sorted, limit y skip. Operaciones terminales: forEach, collect (reducir a coleccion), count, anyMatch/allMatch/noneMatch, findFirst/findAny, reduce y toList.\n\nLa evaluacion es lazy y por demanda: las operaciones intermedias se encadenan y se ejecutan solo lo necesario para satisfacer la terminal. Por eso findFirst puede no procesar toda la secuencia. En streams paralelos (parallelStream) el procesamiento es concurrente y el orden de resultados puede variar.\n\nCollectors ofrece collect(Collectors.toList()), groupingBy, joining, summarizingInt, partitioningBy y mas. Desde Java 16, toList() del propio stream es la forma mas simple para una lista inmutable.",
+      "content": "Un Stream es una secuencia de elementos que se procesa con operaciones encadenadas: operaciones intermedias (lazy, devuelven un nuevo stream) y una operacion terminal (eager, produce el resultado y cierra el stream). Sin operacion terminal, el pipeline no ejecuta nada.\n\nOperaciones intermedias tipicas: filter (Predicate), map (Function), flatMap (Function que devuelve un stream, aplana estructuras anidadas como List<List<T>> a List<T>), peek (observar sin modificar), distinct (elimina duplicados), sorted (ordena), limit (recorta) y skip (salta elementos). Operaciones terminales: forEach, collect (reducir a coleccion), count, anyMatch/allMatch/noneMatch, findFirst/findAny, reduce, min, max y toList.\n\nLa evaluacion es lazy y por demanda: las operaciones intermedias se encadenan y se ejecutan solo lo necesario para satisfacer la terminal. Por eso findFirst puede no procesar toda la secuencia. En streams paralelos (parallelStream) el procesamiento es concurrente y el orden de resultados puede variar; findAny es mas eficiente que findFirst en paralelo porque no requiere mantener el orden de encuentro.\n\nCollectors ofrece collect(Collectors.toList()), groupingBy (agrupar por clave), joining (concatenar strings), summarizingInt (estadisticas), partitioningBy (dividir en dos grupos por predicado) y mas. Desde Java 16, toList() del propio stream es la forma mas simple para una lista inmutable.\n\nConceptos avanzados: flatMap es esencial cuando necesitas aplanar estructuras anidadas, como una lista de listas o un Optional<Optional<T>>. El comportamiento de parallelStream depende del ForkJoinPool.commonPool(); el numero de hilos es igual al numero de cores menos uno. La intermedias como filter y map son stateless (no dependen de otros elementos), mientras que distinct y sorted son stateful (requieren memoria). Usar stateful operations en paralelo puede ser costoso.\n\nErrores comunes en entrevistas: Olvidar que un pipeline sin terminal no ejecuta nada. Confundir map con flatMap: map aplica una funcion que devuelve un valor, flatMap aplica una funcion que devuelve un Stream y lo aplana. Esperar orden deterministic en parallelStream. Usar collect(Collectors.toList()) cuando toList() es suficiente (Java 16+). No entender que forEach no garantiza orden en paralelo.",
       "examples": [
         "nombres.stream().filter(s -> s.length() > 3).map(String::toUpperCase).sorted().toList()",
         "Map<String, List<Persona>> porCiudad = personas.stream().collect(Collectors.groupingBy(Persona::ciudad));",
-        "int total = nums.stream().mapToInt(Integer::intValue).sum();"
+        "int total = nums.stream().mapToInt(Integer::intValue).sum();",
+        "List<String> palabras = oraciones.stream().flatMap(o -> Arrays.stream(o.split(\" \"))).toList();",
+        "String.concatenado = lista.stream().collect(Collectors.joining(\", \", \"[\", \"]\"));",
+        "boolean todosAdultos = personas.stream().allMatch(p -> p.edad() >= 18);",
+        "Optional<String> mayor = nombres.stream().max(Comparator.comparingInt(String::length));"
       ]
     },
     {
       "id": "streams-optional",
       "title": "Optional",
-      "content": "Optional<T> es un contenedor que puede tener un valor o estar vacio. Su proposito es comunicar la ausencia de valor de forma explicita, evitando null y los NullPointerException. Se usa tipicamente como retorno de metodos que pueden no tener resultado.\n\nMetodos de creacion: Optional.of (valor no nulo), Optional.ofNullable (admite null) y Optional.empty. Metodos de consumo: isPresent, isEmpty, get (peligroso: lanza NoSuchElementException si esta vacio), orElse, orElseGet (Supplier, se evalua de forma lazy) y orElseThrow.\n\nLa forma funcional recomendada es orElseGet y map/filter/ifPresent en vez de encadenar if (o.isPresent()). La diferencia entre orElse y orElseGet: orElse evalua el argumento siempre, aunque el Optional no este vacio; orElseGet solo lo evalua si esta vacio. Si el valor por defecto es costoso, conviene orElseGet.\n\nOptional no es Serializable, no es una coleccion, y no esta pensado como campo de una entidad ni como parametro. Su uso principal es el valor de retorno. Abusar de Optional (por ejemplo, en campos o parametros) se considera antipatron en muchas guias de estilo.",
+      "content": "Optional<T> es un contenedor que puede tener un valor o estar vacio. Su proposito es comunicar la ausencia de valor de forma explicita, evitando null y los NullPointerException. Se usa tipicamente como retorno de metodos que pueden no tener resultado.\n\nMetodos de creacion: Optional.of (lanza NullPointerException si el valor es null), Optional.ofNullable (admite null, devuelve Optional.empty si es null) y Optional.empty. Metodos de consumo: isPresent, isEmpty (Java 11+), get (peligroso: lanza NoSuchElementException si esta vacio), orElse (eager), orElseGet (Supplier, lazy), orElseThrow (lanza excepcion si vacio) y ifPresent (Consumer).\n\nLa forma funcional recomendada es orElseGet y map/filter/ifPresent en vez de encadenar if (o.isPresent()). La diferencia entre orElse y orElseGet: orElse evalua el argumento siempre, aunque el Optional no este vacio; orElseGet solo lo evalua si esta vacio. Si el valor por defecto es costoso (consulta a BD, creacion de objetos), conviene orElseGet.\n\nOptional no es Serializable, no es una coleccion, y no esta pensado como campo de una entidad ni como parametro. Su uso principal es el valor de retorno. Abusar de Optional (por ejemplo, en campos o parametros) se considera antipatron en muchas guias de estilo.\n\nConceptos avanzados: Optional esta disenado para componerse funcionalmente con map, flatMap y filter. flatMap es util cuando la funcion de transformation ya devuelve un Optional, evitando Optional<Optional<T>>. El metodo orElseThrow() sin argumentos (Java 10+) es la forma mas limpia de extraer el valor cuando se espera que exista. Optional.empty() es preferible a Optional.ofNullable(null) cuando se quiere expresar explicitamente ausencia.\n\nErrores comunes en entrevistas: Usar isPresent() seguido de get() en vez de ifPresent() o orElseThrow(); esto es code smell. Confundir orElse (eager) con orElseGet (lazy) y no entender las implicaciones de rendimiento. Usar Optional como parametro de metodo o campo de clase, lo cual es antipatron. No saber que Optional.of(null) lanza NullPointerException mientras que Optional.ofNullable(null) devuelve Optional.empty().",
       "examples": [
         "return Optional.ofNullable(buscarPorId(id));",
         "String nombre = opt.orElseGet(() -> \"anonimo\");",
-        "opt.map(Persona::edad).filter(e -> e > 18).ifPresent(System.out::println);"
+        "opt.map(Persona::edad).filter(e -> e > 18).ifPresent(System.out::println);",
+        "Optional<String> nombreLargo = opt.filter(n -> n.length() > 5).map(String::toUpperCase);",
+        "String valor = opt.orElseThrow(() -> new IllegalArgumentException(\"Requerido\"));",
+        "Optional<Integer> suma = optA.flatMap(a -> optB.map(b -> a + b));"
       ]
     },
     {
       "id": "streams-common-mistakes",
       "title": "Errores comunes",
-      "content": "Uno de los errores mas frecuentes es reutilizar un stream: un stream ya consumido por una operacion terminal no se puede volver a recorrer y lanza IllegalStateException. La solucion es crear un nuevo stream por operacion.\n\nOtro error clasico es usar stream() sobre un null o esperar orden en streams paralelos. Tambien se abusa de Optional.get() sin verificar isPresent, y de orElse con valores costosos en vez de orElseGet.\n\nLos streams no modifican la coleccion de origen: son procesamiento de datos, no mutacion. Si se necesita modificar, se recopila el resultado con collect o toList en una nueva estructura.\n\nEl uso de streams no siempre es lo mas legible: para transformaciones simples de una coleccion, un for tradicional puede ser mas claro. En entrevistas, saber explicar cuando usar streams y cuando no demuestra buen criterio, no solo sintaxis.",
+      "content": "Uno de los errores mas frecuentes es reutilizar un stream: un stream ya consumido por una operacion terminal no se puede volver a recorrer y lanza IllegalStateException. La solucion es crear un nuevo stream por operacion.\n\nOtro error clasico es usar stream() sobre un null o esperar orden en streams paralelos. Tambien se abusa de Optional.get() sin verificar isPresent, y de orElse con valores costosos en vez de orElseGet.\n\nLos streams no modifican la coleccion de origen: son procesamiento de datos, no mutacion. Si se necesita modificar, se recopila el resultado con collect o toList en una nueva estructura.\n\nEl uso de streams no siempre es lo mas legible: para transformaciones simples de una coleccion, un for tradicional puede ser mas claro. En entrevistas, saber explicar cuando usar streams y cuando no demuestra buen criterio, no solo sintaxis.\n\nConceptos avanzados: Evitar side effects dentro de operaciones intermedias (como modificaciones a variables externas dentro de map o filter), ya que en paralelo puede causar condiciones de carrera. Usar reduce con cuidado: la version con identidad es segura y siempre retorna un valor, la version sin identidad retorna Optional. En paralelo, reduce requiere que la funcion sea asociativa y que el identidad sea el elemento neutro de la operacion.\n\nErrores comunes en entrevistas: Crear un stream y luego intentar recorrerlo dos veces. No entender por que un parallelStream puede ser mas lento que un stream secuencial para colecciones pequenas (overhead de coordinacion). Confundir la pereza de las operaciones intermedias con la ejecucion real: el pipeline se ensambla pero no se ejecuta hasta la terminal. Usar count() + filter() cuando anyMatch() o noneMatch() son mas eficientes porque cortocircuita.",
       "examples": [
         "Stream<String> s = list.stream(); long n = s.count(); // s ya esta consumido",
-        "long n2 = list.stream().count(); // correcto: nuevo stream por pipeline"
+        "long n2 = list.stream().count(); // correcto: nuevo stream por pipeline",
+        "boolean existe = list.stream().anyMatch(s -> s.length() > 5); // cortocircuito eficiente",
+        "list.stream().filter(s -> s.length() > 3).map(String::toUpperCase).forEach(System.out::println); // side effect en forEach"
       ]
     }
   ],
@@ -134,7 +147,7 @@
         "type": "TRUE_FALSE"
       },
       {
-        "id": "st-q6",
+        "id": "st-q7",
         "text": "Ordena las etapas de un pipeline de Streams:",
         "options": [
           "Terminal (collect, forEach)",
@@ -150,6 +163,66 @@
         ],
         "explanation": "Primero se crea el Stream, luego la fuente, etapas intermedias y finalmente la operacion terminal.",
         "type": "ORDER"
+      },
+      {
+        "id": "st-q8",
+        "text": "Que diferencias clave existen entre stream() y parallelStream()?",
+        "options": [
+          "parallelStream siempre es mas rapido",
+          "parallelStream puede cambiar el orden de procesamiento y los resultados",
+          "stream() soporta flatMap y parallelStream no",
+          "parallelStream usa un pool de hilos separado por defecto"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "parallelStream puede alterar el orden de encuentro de los elementos y de los resultados. No siempre es mas rapido (overhead de coordinacion) y usa el ForkJoinPool.commonPool(), no uno separado.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "st-q9",
+        "text": "Que operaciones aplana un Stream de Streams en un solo Stream?",
+        "options": [
+          "map",
+          "flatMap",
+          "filter",
+          "distinct"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "flatMap aplica una funcion que devuelve un Stream por cada elemento y luego aplana todos los streams resultantes en uno solo. map devuelve un valor por elemento, no un stream.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "st-q10",
+        "text": "Collectors.groupingBy() agrupa elementos de un Stream por una clave y devuelve un Map.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: groupingBy toma un Function que extrae la clave y devuelve un Map<K, List<T>>. Tambien soporta un collector downstream para transformar los valores agrupados.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "st-q11",
+        "text": "Cuales de estas formas son validas para crear un Stream?",
+        "options": [
+          "Stream.of(1, 2, 3)",
+          "Arrays.stream(array)",
+          "collection.stream()",
+          "Stream.create(collection)"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Stream.of() crea un stream de valores, Arrays.stream() convierte un array, y collection.stream() crea un stream desde una coleccion. Stream.create() no existe en la API.",
+        "type": "MULTIPLE"
       }
     ]
   }

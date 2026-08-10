@@ -6,45 +6,56 @@
     {
       "id": "http-basics",
       "title": "HTTP: peticiones y respuestas",
-      "content": "HTTP es un protocolo de peticion/respuesta sin estado sobre TCP. Una peticion tiene metodo, URL, cabeceras y opcionalmente cuerpo; una respuesta tiene codigo de estado, cabeceras y cuerpo.\n\nLos metodos mas importantes: GET (leer, sin efectos secundarios, no debe llevar cuerpo), POST (crear o enviar datos), PUT (reemplazar un recurso completo), PATCH (modificacion parcial) y DELETE (eliminar). GET, PUT y DELETE son idempotentes: repetirlos produce el mismo resultado; POST no lo es.\n\nLas cabeceras clave: Content-Type (formato del cuerpo, p. ej. application/json), Accept (formato que el cliente acepta), Authorization (credenciales) y Cache-Control (politicas de cache).\n\nEl protocolo es sin estado (stateless): cada peticion es independiente y el servidor no recuerda interacciones previas; la sesion, si existe, se maneja con tokens o cookies. Esta propiedad es central en diseno REST y en la escala horizontal de servidores.",
+      "content": "HTTP es un protocolo de peticion/respuesta sin estado sobre TCP. Una peticion tiene metodo, URL, cabeceras y opcionalmente cuerpo; una respuesta tiene codigo de estado, cabeceras y cuerpo.\n\nLos metodos mas importantes: GET (leer, sin efectos secundarios, no debe llevar cuerpo), POST (crear o enviar datos), PUT (reemplazar un recurso completo), PATCH (modificacion parcial) y DELETE (eliminar). GET, PUT y DELETE son idempotentes: repetirlos produce el mismo resultado; POST no lo es.\n\nLas cabeceras clave: Content-Type (formato del cuerpo, p. ej. application/json), Accept (formato que el cliente acepta), Authorization (credenciales) y Cache-Control (politicas de cache).\n\nEl protocolo es sin estado (stateless): cada peticion es independiente y el servidor no recuerda interacciones previas; la sesion, si existe, se maneja con tokens o cookies. Esta propiedad es central en diseno REST y en la escala horizontal de servidores.\n\nConceptos avanzados: HTTP/2 multiplexa conexiones sobre un solo TCP; HTTP/3 usa QUIC para menor latencia. Las cabeceras condicionales (If-None-Match, If-Modified-Since) habilitan cache eficiente. El content negotiation via Accept y Content-Type permite que el mismo recurso se sirva en JSON, XML u otros formatos. Los metodos seguros (GET, HEAD, OPTIONS) no deben tener efectos colaterales; los idempotentes (GET, PUT, DELETE, HEAD, OPTIONS) garantizan que multiples ejecuciones produzcan el mismo efecto que una sola.\n\nErrores comunes en entrevistas: Confundir idempotencia con ausencia de efectos secundarios (PUT es idempotente pero modifica estado). Asumir que GET nunca puede recibir cuerpo (la especificacion lo permite aunque no es recomendable). No conocer la diferencia entre HEAD (igual que GET pero sin cuerpo) y OPTIONS (describe las opciones soportadas). Olvidar que POST no es idempotente y que reenvios pueden causar duplicados si no se usa un mecanismo de deduplicacion con Idempotency-Key.",
       "examples": [
         "GET /api/cuentas/1 HTTP/1.1\nAccept: application/json",
         "POST /api/cuentas HTTP/1.1\nContent-Type: application/json\n\n{\"nombre\": \"Ana\"}",
         "PUT /api/cuentas/1   -> reemplaza el recurso completo (idempotente)",
-        "PATCH /api/cuentas/1  -> modifica solo algunos campos"
+        "PATCH /api/cuentas/1  -> modifica solo algunos campos",
+        "HEAD /api/cuentas/1  -> igual que GET pero sin cuerpo (verifica existencia)",
+        "OPTIONS /api/cuentas -> devuelve metodos soportados y cabeceras CORS",
+        "DELETE /api/cuentas/1\nIf-Match: \"etag-abc123\"  -> borrado condicional con ETag"
       ]
     },
     {
       "id": "http-status",
       "title": "Codigos de estado",
-      "content": "Los codigos de estado resumen el resultado de una peticion en cinco familias. La 1xx son informativas, la 2xx exito, la 3xx redirecciones, la 4xx errores del cliente y la 5xx errores del servidor.\n\nLos mas usados: 200 OK (exito generico), 201 Created (recurso creado, suele incluir Location), 204 No Content (exito sin cuerpo), 400 Bad Request (peticion mal formada), 401 Unauthorized (sin autenticacion), 403 Forbidden (autenticado sin permisos), 404 Not Found (recurso inexistente), 409 Conflict (estado incompatible), 422 Unprocessable Entity (validacion de negocio fallida) y 500 Internal Server Error.\n\nEs importante distinguir 401 de 403 (autenticacion vs autorizacion) y 400 de 422 (sintaxis vs semantica de negocio). Elegir el codigo correcto hace la API expresiva y es una pregunta frecuente en entrevistas.\n\nTambien se usa 301 (movido permanentemente) y 304 (no modificado, para cache). Los codigos 5xx nunca deben usarse para errores esperables del cliente, y un 500 siempre debe loguearse en el servidor.",
+      "content": "Los codigos de estado resumen el resultado de una peticion en cinco familias. La 1xx son informativas, la 2xx exito, la 3xx redirecciones, la 4xx errores del cliente y la 5xx errores del servidor.\n\nLos mas usados: 200 OK (exito generico), 201 Created (recurso creado, suele incluir Location), 204 No Content (exito sin cuerpo), 400 Bad Request (peticion mal formada), 401 Unauthorized (sin autenticacion), 403 Forbidden (autenticado sin permisos), 404 Not Found (recurso inexistente), 409 Conflict (estado incompatible), 422 Unprocessable Entity (validacion de negocio fallida) y 500 Internal Server Error.\n\nEs importante distinguir 401 de 403 (autenticacion vs autorizacion) y 400 de 422 (sintaxis vs semantica de negocio). Elegir el codigo correcto hace la API expresiva y es una pregunta frecuente en entrevistas.\n\nTambien se usa 301 (movido permanentemente) y 304 (no modificado, para cache). Los codigos 5xx nunca deben usarse para errores esperables del cliente, y un 500 siempre debe loguearse en el servidor.\n\nConceptos avanzados: 429 Too Many Requests es el estandar para rate limiting; incluye Retry-After para indicar cuando reintentar. 409 Conflict es util para control de concurrencia optimista (versiones de recurso). 415 Unsupported Media Type indica que el Content-Type no es soportado. Los codigos 304 Not Modified y 412 Precondition Failed se usan en conjunto con cabeceras condicionales (ETag, If-Match) para sincronizacion de caches. Los codigos 207 Multi-Status (WebDAV) permiten reportar exitos parciales en operaciones batch.\n\nErrores comunes en entrevistas: Devolver siempre 200 incluso para errores (anti-patron que dificulta el monitoreo y el manejo por parte del cliente). Usar 400 para errores de autenticacion (deberia ser 401 o 403). No distinguir entre 404 y 410 Gone (recurso eliminado permanentemente). Devolver 500 con stack trace expuesto (riesgo de seguridad). No usar 409 para conflictos de concurrencia optimista cuando el modelo lo requiere.",
       "examples": [
         "201 Created -> creacion exitosa de un recurso",
         "204 No Content -> operacion exitosa sin cuerpo (p. ej. DELETE)",
         "401 Unauthorized -> falta autenticacion; 403 Forbidden -> falta autorizacion",
-        "404 Not Found -> recurso inexistente"
+        "404 Not Found -> recurso inexistente",
+        "429 Too Many Requests -> rate limiting alcanzado (incluir Retry-After)",
+        "409 Conflict -> version de recurso desactualizada (concurrencia optimista)",
+        "304 Not Modified -> el recurso no ha cambiado desde la ultima consulta (cache)"
       ]
     },
     {
       "id": "rest-design",
       "title": "Diseno de APIs REST",
-      "content": "REST (Representational State Transfer) es un estilo arquitectonico que trata los datos como recursos identificados por URLs, manipulados con los verbos HTTP y representados en JSON (o XML). Las APIs bien disenadas son predecibles y faciles de consumir.\n\nBuenas practicas: recursos en plural y en sustantivos (/api/cuentas, /api/cuentas/1), verbos HTTP para las operaciones (no /api/crearCuenta), anidacion limitada (/api/cuentas/1/transacciones), versionado (/api/v1/...), paginacion para listas (page, size) y filtros via query params.\n\nEl principio de uniformidad dice que el mismo verbo significa lo mismo en toda la API. Ademas, una API REST es sin estado: cada peticion lleva toda la informacion que necesita. La relacion entre recursos se expone con identificadores (hypermedia/HATEOAS es un nivel avanzado).\n\nErrores comunes en entrevistas: diseñar una API basada en acciones ('/api/enviarEmail'), no usar el codigo HTTP adecuado, devolver siempre 200 con un flag de error en el cuerpo, o exponer detalles internos del servidor en los mensajes de error.",
+      "content": "REST (Representational State Transfer) es un estilo arquitectonico que trata los datos como recursos identificados por URLs, manipulados con los verbos HTTP y representados en JSON (o XML). Las APIs bien disenadas son predecibles y faciles de consumir.\n\nBuenas practicas: recursos en plural y en sustantivos (/api/cuentas, /api/cuentas/1), verbos HTTP para las operaciones (no /api/crearCuenta), anidacion limitada (/api/cuentas/1/transacciones), versionado (/api/v1/...), paginacion para listas (page, size) y filtros via query params.\n\nEl principio de uniformidad dice que el mismo verbo significa lo mismo en toda la API. Ademas, una API REST es sin estado: cada peticion lleva toda la informacion que necesita. La relacion entre recursos se expone con identificadores (hypermedia/HATEOAS es un nivel avanzado).\n\nErrores comunes en entrevistas: disenar una API basada en acciones ('/api/enviarEmail'), no usar el codigo HTTP adecuado, devolver siempre 200 con un flag de error en el cuerpo, o exponer detalles internos del servidor en los mensajes de error.\n\nConceptos avanzados: HATEOAS (Hypermedia As The Engine Of Application State) es el nivel mas alto de madurez REST; incluye links en las respuestas que permiten al cliente navegar entre recursos sin conocer la API de antemano. La versionado puede ser por URI (/v1/), por cabecera (Accept: application/vnd.api+json;version=1) o por query param (?version=1). La paginacion con cursor (usando un id o timestamp como referencia) es mas eficiente que la offset-based para datasets grandes. La negacion de contenido (Content Negotiation) permite servir distintas representaciones del mismo recurso. Los query params de filtrado deben ser predecibles y documentados.\n\nErrores comunes en entrevistas: No considerar la paginacion en listas grandes (devolver todo de golpe causa timeouts). Versionar incluyendo el numero de version en cada endpoint individual. No documentar los filtros disponibles. Exponer campos internos como IDs de base de datos o timestamps de creacion internos.",
       "examples": [
         "GET /api/cuentas?page=2&size=20          -> lista paginada",
         "POST /api/cuentas                         -> crea (201 Created)",
         "GET /api/cuentas/1/transacciones         -> recursos anidados",
-        "DELETE /api/cuentas/1                     -> elimina (204 No Content)"
+        "DELETE /api/cuentas/1                     -> elimina (204 No Content)",
+        "GET /api/cuentas?saldoMinimo=1000&ordenarPor=nombre -> filtros avanzados",
+        "GET /api/v2/cuentas/1                     -> versionado por URI",
+        "GET /api/cuentas/1\nAccept: application/xml  -> content negotiation"
       ]
     },
     {
       "id": "rest-json",
       "title": "JSON y serializacion",
-      "content": "JSON (JavaScript Object Notation) es el formato de intercambio por defecto de las APIs. Es texto con dos estructuras: objetos (pares clave/valor) y arreglos. En Java se serializa y deserializa con Jackson (u otra libreria) hacia/desde DTOs o records.\n\nUn DTO (Data Transfer Object) es la forma de representar un recurso en la API: se separa del modelo de dominio para no exponer campos internos (como passwords o detalles de persistencia) ni acoplar la API a la estructura interna. Los records de Java son ideales para esto.\n\nBuenas practicas: nombres de campos en camelCase o snake_case (consistente), no exponer campos que el cliente no necesita, usar tipos correctos (numeros como numeros, no strings), fechas en ISO 8601 y mensajes de error con estructura uniforme.\n\nEn entrevistas suele preguntarse como se maneja la serializacion de null (omision vs null explicito), como se configuran nombres alternativos con Jackson (@JsonProperty) y por que los records simplifican el contrato. El ciclo completo: peticion JSON -> DTO -> servicio -> DTO -> respuesta JSON.",
+      "content": "JSON (JavaScript Object Notation) es el formato de intercambio por defecto de las APIs. Es texto con dos estructuras: objetos (pares clave/valor) y arreglos. En Java se serializa y deserializa con Jackson (u otra libreria) hacia/desde DTOs o records.\n\nUn DTO (Data Transfer Object) es la forma de representar un recurso en la API: se separa del modelo de dominio para no exponer campos internos (como passwords o detalles de persistencia) ni acoplar la API a la estructura interna. Los records de Java son ideales para esto.\n\nBuenas practicas: nombres de campos en camelCase o snake_case (consistente), no exponer campos que el cliente no necesita, usar tipos correctos (numeros como numeros, no strings), fechas en ISO 8601 y mensajes de error con estructura uniforme.\n\nEn entrevistas suele preguntarse como se maneja la serializacion de null (omision vs null explicito), como se configuran nombres alternativos con Jackson (@JsonProperty) y por que los records simplifican el contrato. El ciclo completo: peticion JSON -> DTO -> servicio -> DTO -> respuesta JSON.\n\nConceptos avanzados: Jackson permite @JsonIgnoreProperties para ignorar campos desconocidos, @JsonInclude(NON_NULL) para omitir nulos, y @JsonFormat para formatear fechas. Los records inmutables por naturaleza evitan efectos secundarios en la serializacion. El manejo de colecciones vacias vs null es importante: un array vacio [] es diferente a null en semantica. Los enums se serializan como strings por defecto con @JsonValue. La validacion con @Valid y anotaciones de Jakarta (NotBlank, Min, Max) se integra directamente en el DTO.\n\nErrores comunes en entrevistas: Exponer el modelo de dominio directamente en la API (acoplamiento innecesario). No manejar excepciones de Jackson (JsonParseException, JsonMappingException) de forma controlada. Usar String para todo (numeros, fechas, booleanos) perdiendo el tipado. No configurar un ObjectMapper global (cada instancia tiene configuracion por defecto diferente). Olvidar que los records de Java generan equals/hashCode/toString automaticamente.",
       "examples": [
         "{\n  \"id\": 1,\n  \"nombre\": \"Ana\",\n  \"saldo\": 1250.50,\n  \"activa\": true\n}",
         "record CuentaDto(Long id, String nombre, double saldo, boolean activa) { }",
         "@JsonProperty(\"customer_id\")\nprivate Long customerId;",
-        "// Error estandar\n{\"status\": 404, \"message\": \"Cuenta no encontrada\"}"
+        "// Error estandar\n{\"status\": 404, \"message\": \"Cuenta no encontrada\"}",
+        "@JsonInclude(JsonInclude.Include.NON_NULL)\npublic record UsuarioDto(String nombre, String email) {}",
+        "// Manejo de excepciones Jackson\ntry {\n  mapper.readValue(json, CuentaDto.class);\n} catch (JsonMappingException e) {\n  throw new BadRequestException(\"JSON invalido\");\n}"
       ]
     }
   ],
@@ -83,20 +94,18 @@
       },
       {
         "id": "rh-q3",
-        "text": "Cuales son buenas practicas al disenar una API REST?",
+        "text": "Cual es la diferencia principal entre @PathVariable y @RequestParam en Spring Boot?",
         "options": [
-          "Recursos en plural y sustantivos",
-          "Usar verbos HTTP para las operaciones",
-          "Versionar la API",
-          "Poner acciones en la URL como /api/enviarEmail"
+          "@PathVariable extrae valores de la URI; @RequestParam extrae query params o form data",
+          "@PathVariable es para POST; @RequestParam es para GET",
+          "Ambos son intercambiables",
+          "@RequestParam es opcional; @PathVariable siempre es obligatorio"
         ],
         "correctIndexes": [
-          0,
-          1,
-          2
+          0
         ],
-        "explanation": "REST usa recursos en sustantivos y verbos HTTP; versionar es buena practica. Las acciones en la URL son una anti-practica.",
-        "type": "MULTIPLE"
+        "explanation": "@PathVariable captura partes de la ruta (/cuentas/{id}), mientras que @RequestParam captura parametros de consulta (?page=1). @RequestParam puede ser opcional con required=false.",
+        "type": "SINGLE"
       },
       {
         "id": "rh-q4",
@@ -140,7 +149,7 @@
         "type": "TRUE_FALSE"
       },
       {
-        "id": "rest-q6",
+        "id": "rh-q7",
         "text": "Ordena los verbos HTTP de menos a mas persistente:",
         "options": [
           "GET",
@@ -155,6 +164,73 @@
           3
         ],
         "explanation": "GET (lectura), POST (creacion), PUT (actualizacion), DELETE (eliminacion).",
+        "type": "ORDER"
+      },
+      {
+        "id": "rh-q8",
+        "text": "Cuales de los siguientes son conceptos clave de HATEOAS en REST?",
+        "options": [
+          "Las respuestas incluyen links a recursos relacionados",
+          "El cliente puede navegar sin conocer la API de antemano",
+          "El servidor expone la logica de negocio en los links",
+          "El enlace entre recursos es dinamico y no hardcodeado"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          3
+        ],
+        "explanation": "HATEOAS permite navegacion dinamica via links en las respuestas. El servidor NO expone logica de negocio en los links, solo la estructura de navegacion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "rh-q9",
+        "text": "Cuales de las siguientes son estrategias validas de versionado de APIs REST?",
+        "options": [
+          "Version en la URI: /api/v1/cuentas",
+          "Cabecera Accept: application/vnd.api+json;version=1",
+          "QueryParam: ?version=1",
+          "Incluir la version en el body del POST"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Version por URI, cabecera y query param son estrategias validas. Incluir la version en el body no es una estrategia de versionado estandar.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "rh-q10",
+        "text": "PUT es idempotente pero no es seguro (tiene efectos colaterales).",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: PUT modifica el estado del servidor (no es seguro) pero repetirlo produce el mismo resultado (idempotente).",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "rh-q11",
+        "text": "Ordena los siguientes codigos de estado de menor a mayor severidad del error:",
+        "options": [
+          "400 Bad Request",
+          "401 Unauthorized",
+          "403 Forbidden",
+          "404 Not Found",
+          "500 Internal Server Error"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "explanation": "400 (peticion mal formada), 401 (sin autenticacion), 403 (sin autorizacion), 404 (no encontrado), 500 (error interno del servidor).",
         "type": "ORDER"
       }
     ]

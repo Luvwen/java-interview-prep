@@ -6,41 +6,55 @@
     {
       "id": "collections-hierarchy",
       "title": "Jerarquia del framework",
-      "content": "El framework de colecciones tiene dos ramas: Collection e Iterable, y Map. Collection agrupa a List, Set y Queue. Map no hereda de Collection: maneja pares clave-valor.\n\nList es una secuencia ordenada que admite duplicados; sus implementaciones tipicas son ArrayList (basada en arreglo, acceso O(1) por indice, insercion O(n) en el medio) y LinkedList (doble enlace, insercion/eliminacion rapida en los extremos, acceso O(n)).\n\nSet no admite duplicados y no garantiza orden: HashSet (tabla hash, O(1) promedio, sin orden), LinkedHashSet (preserva orden de insercion) y TreeSet (orden natural o por Comparator, O(log n)).\n\nQueue modela una cola FIFO y su subinterfaz Deque modela doble extremo; ArrayDeque y LinkedList las implementan. Map guarda pares clave-valor: HashMap (sin orden), LinkedHashMap (orden de insercion) y TreeMap (claves ordenadas).\n\nEn entrevistas se valora poder comparar ArrayList vs LinkedList y HashMap vs TreeMap en terminos de complejidad y orden.",
+      "content": "El framework de colecciones tiene dos ramas principales: Collection e Iterable, y Map. Collection agrupa a List, Set y Queue. Map no hereda de Collection: maneja pares clave-valor y se accede por clave, no por indice.\n\nList es una secuencia ordenada que admite duplicados. ArrayList internamente es un arreglo dinamico (Object[]): acceso por indice O(1), insercion/eliminacion en el medio O(n) porque requiere desplazar elementos. LinkedList es una lista doblemente enlazada: insercion y eliminacion en ambos extremos O(1) si se tiene la referencia del nodo, pero acceso por indice O(n) porque debe recorrer desde el inicio o el fin. En la practica, ArrayList es preferible porque el acceso secuencial en memoria es mas rapido para el CPU cache (localidad de referencia).\n\nSet no admite duplicados. HashSet usa una tabla hash interna (basada en HashMap): O(1) promedio para add, remove y contains; no garantiza orden. LinkedHashSet extiende HashSet y agrega una lista doblemente enlazada que preserva el orden de insercion con un costo extra de memoria. TreeSet usa un TreeMap (arbol rojo-negro balanceado): O(log n) para add, remove y contains; mantiene orden natural o por Comparator.\n\nQueue modela una cola FIFO y su subinterfaz Deque modela doble extremo. ArrayDeque es preferible a LinkedList para Deque: es mas rapido en la practica porque usa un arreglo circular con redimensionamiento. PriorityQueue usa un arbol binario heap: ofrece peek y poll en O(1) y O(log n) respectivamente, no garantiza orden total.\n\nMap guarda pares clave-valor. HashMap: clave unica, O(1) promedio, permite una clave null. Desde Java 8, si un bucket supera 8 elementos, se convierte en arbol rojo-negro (O(log n)). LinkedHashMap preserva orden de insercion (o acceso con accessOrder=true). TreeMap usa arbol rojo-negro sobre las claves: O(log n) y orden natural o por Comparator. NavigableMap extiende SortedMap con metodos lowerKey, floorKey, ceilingKey y higherKey.\n\nConceptos avanzados: el ArrayList redimensiona internamente (factor de crecimiento 1.5x), lo que causa copias ocasionales. El LinkedList tiene overhead de memoria por los nodos (cada nodo guarda punteros prev y next). HashMap calcula el bucket con (hash & (n-1)) y maneja colisiones con listas enlazadas o arboles. El synchronizedMap envuelve cada operacion con synchronized, lo que serializa accesos; ConcurrentHashMap particiona los locks (segmentos en Java 7, cas en Java 8+).\n\nErrores comunes en entrevistas: confundir ArrayList con LinkedList sin justificar por que se elige uno; asumir que LinkedList es mas rapido sin considerar locality of reference; olvidar que HashMap no garantiza orden y TreeMap tiene O(log n); mencionar que HashSet no tiene duplicados pero no explicar que se basa en hashCode/equals.\n\nComparaciones: ArrayList vs LinkedList: ArrayList gana en lectura y uso general por localidad de cache; LinkedList solo es mejor si se inserta/elimina frecuentemente al inicio (pero ArrayList.add(0) es O(n)). LinkedList implementa Deque pero ArrayDeque es mas rapido. HashMap vs TreeMap: HashMap es O(1) promedio pero sin orden; TreeMap es O(log n) pero mantiene claves ordenadas y ofrece navegacion (navigableKeySet, subMap, headMap, tailMap). HashSet vs TreeSet: HashSet O(1) sin orden; TreeSet O(log n) con orden. LinkedHashSet vs HashSet: misma complejidad pero LinkedHashSet tiene overhead de memoria por la lista enlazada.",
       "examples": [
         "List<String> list = new ArrayList<>();",
         "Set<String> set = new HashSet<>();",
         "Map<String, Integer> map = new HashMap<>();",
-        "Queue<String> queue = new ArrayDeque<>();"
+        "Queue<String> queue = new ArrayDeque<>();",
+        "Deque<String> deque = new ArrayDeque<>(); deque.push(\"a\"); deque.peek();",
+        "PriorityQueue<Integer> pq = new PriorityQueue<>(); pq.add(3); pq.add(1); pq.poll(); // devuelve 1",
+        "TreeMap<String, Integer> tree = new TreeMap<>(); tree.firstKey(); tree.lastKey();"
       ]
     },
     {
       "id": "collections-equals",
       "title": "equals y hashCode",
-      "content": "HashSet, HashMap y las demas estructuras basadas en hash usan hashCode para encontrar el bucket y equals para confirmar igualdad. El contrato es: si dos objetos son iguales por equals, deben tener el mismo hashCode. Si se viola, el objeto 'desaparece' de la coleccion: se guarda en un bucket que luego no se encuentra.\n\nLas reglas de equals: reflexivo, simetrico, transitivo, consistente y no nulo (equals(null) es false). La regla de hashCode: consistente con equals mientras el objeto no cambie, y objetos iguales producen el mismo hashCode. Objetos distintos pueden tener el mismo hashCode (colision).\n\nSi una clase sobrescribe equals y no hashCode (o viceversa), se rompe el contrato. La forma segura de implementar ambos es usar los metodos de la libreria estandar, por ejemplo Objects.equals para equals y Objects.hash para hashCode, o el metodo Objects.hashCode. Los records generan equals y hashCode correctos automaticamente.\n\nUn detalle importante: si se usa un objeto mutable como clave de un HashMap y se modifica su hashCode despues de insertarlo, la clave queda perdida. Por eso las claves deben ser inmutables.",
+      "content": "HashSet, HashMap y las demas estructuras basadas en hash usan hashCode para encontrar el bucket y equals para confirmar igualdad. El contrato es: si dos objetos son iguales por equals, deben tener el mismo hashCode. Si se viola, el objeto 'desaparece' de la coleccion: se guarda en un bucket que luego no se encuentra.\n\nLas reglas de equals: reflexivo (x.equals(x) es true), simetrico (si x.equals(y) entonces y.equals(x)), transitivo (si x.equals(y) e y.equals(z) entonces x.equals(z)), consistente (mismo resultado siempre que no cambien los campos) y no nulo (equals(null) es false). La regla de hashCode: consistente con equals mientras el objeto no cambie, y objetos iguales producen el mismo hashCode. Objetos distintos pueden tener el mismo hashCode (colision), pero colisiones excesivas degradan el rendimiento a O(n).\n\nSi una clase sobrescribe equals y no hashCode (o viceversa), se rompe el contrato y el objeto no se encuentra en HashSet/HashMap. La forma segura de implementar ambos es usar Objects.equals para equals y Objects.hash para hashCode. Los records generan equals y hashCode correctos automaticamente. Los enums siempre son singleton, asi que equals/hashCode por defecto funcionan correctamente.\n\nUn detalle critico: si se usa un objeto mutable como clave de un HashMap y se modifica su hashCode despues de insertarlo, la clave queda perdida porque se busca en el bucket incorrecto. Por eso las claves deben ser inmutables o no deben modificarse despues de ser insertadas.\n\nConceptos avanzados: en Java 8, HashMap convierte buckets con mas de 8 elementos en arboles rojo-negro para mejorar la busqueda de O(n) a O(log n). El metodo hashCode de String usa el algoritmo de Horner (s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]) y se cachea. Objects.hash crea un array de Object con los campos y delega a Arrays.hashCode. Para campos tipo double/long, usar Double.hashCode y Long.hashCode, no el boxing a Double/Long.\n\nErrores comunes en entrevistas: olvidar que equals(null) debe retornar false; usar == en lugar de equals para comparaciones dentro de equals; usar instanceof sin negar el tipo exacto (deberia ser !(o instanceof MiClase)); no mantener los campos usados en equals/hashCode como inmutables.\n\nComparaciones: equals basado en campos vs equals basado en identidad: por defecto Object.equals usa ==, que compara referencias. En colecciones se necesita equals basado en campos. Comparable vs Comparator: Comparable define el orden natural dentro de la clase (metodo compareTo); Comparator es un objeto externo que define un criterio de orden alternativo. TreeMap usa Comparable por defecto o un Comparator proporcionado en el constructor.",
       "examples": [
         "@Override public int hashCode() { return Objects.hash(id, nombre); }",
-        "@Override public boolean equals(Object o) { if (this == o) return true; if (!(o instanceof Persona p)) return false; return id == p.id && Objects.equals(nombre, p.nombre); }"
+        "@Override public boolean equals(Object o) { if (this == o) return true; if (!(o instanceof Persona p)) return false; return id == p.id && Objects.equals(nombre, p.nombre); }",
+        "Set<Persona> set = new HashSet<>(); set.add(new Persona(1, \"Ana\")); set.contains(new Persona(1, \"Ana\")); // true si equals/hashCode estan bien",
+        "Map<String, List<String>> groups = map.computeIfAbsent(name, k -> new ArrayList<>());",
+        "list.stream().distinct().toList(); // usa equals/hashCode para eliminar duplicados"
       ]
     },
     {
       "id": "collections-immutability",
       "title": "Inmutabilidad",
-      "content": "Java ofrece formas de crear colecciones inmutables: List.of, Set.of y Map.of (desde Java 9), que lanzan UnsupportedOperationException si se intenta modificar. Tambien existe Collections.unmodifiableList que devuelve una vista inmutable de una lista mutable: es solo lectura, no una copia.\n\nLa diferencia clave: List.of crea una copia inmutable verdadera, mientras que Collections.unmodifiableList envuelve la lista original; si la lista original se modifica, la vista tambien cambia. Si se quiere una copia defensiva, conviene copiar: List.copyOf.\n\nLa inmutabilidad protege el estado y hace el codigo mas seguro en contextos concurrentes, porque un objeto que no cambia no tiene race conditions de lectura. Por eso se recomienda devolver copias inmutables al exponer colecciones internas.\n\nEl metodo stream() y el operador toList() del Stream API tambien producen listas inmutables desde Java 16. En entrevistas, saber explicar cuando se lanza UnsupportedOperationException demuestra manejo del framework.",
+      "content": "Java ofrece formas de crear colecciones inmutables: List.of, Set.of y Map.of (desde Java 9), que lanzan UnsupportedOperationException si se intenta modificar. Tambien existe Collections.unmodifiableList que devuelve una vista inmutable de una lista mutable.\n\nLa diferencia clave: List.of crea una copia inmutable real con sus propios elementos; Collections.unmodifiableList es una vista de solo lectura sobre la lista original. Si la lista original se modifica despues de envolverla, la vista refleja los cambios porque no es una copia. List.copyOf crea una copia inmutable de una coleccion existente. Si se necesita una copia defensiva inmutable, List.copyOf es la mejor opcion.\n\nLa inmutabilidad protege el estado y hace el codigo mas seguro en contextos concurrentes, porque un objeto que no cambia no tiene race conditions de lectura. Por eso se recomienda devolver copias inmutables al exponer colecciones internas de una clase. Las colecciones inmutables tambien son seguras para usar como claves de HashMap, porque su hashCode no cambia.\n\nEl metodo stream() y el operador toList() del Stream API tambien producen listas inmutables desde Java 16. List.of, Set.of y Map.of lanzan NullPointerException si se pasa null como argumento (a diferencia de las colecciones mutables). Collections.emptySet() es una coleccion inmutable vacia que no crea nueva instancia en cada llamada.\n\nConceptos avanzados: List.of con un solo elemento es una instancia singleton reutilizada. Las listas inmutables no permiten nulls: List.of(\"a\", null) lanza NullPointerException. Si se necesita una lista inmutable con nulls, se debe usar Collections.unmodifiableList(new ArrayList<>(Arrays.asList(\"a\", null))). Los wrappers de unmodifiable son solo vistas, no validan el estado interno.\n\nErrores comunes en entrevistas: confundir Collections.unmodifiableList con List.of; asumir que unmodifiableList crea una copia (es una vista); olvidar que List.of no permite nulls; no mencionar que la inmutabilidad protege contra concurrent modification.\n\nComparaciones: List.of vs Collections.unmodifiableList: List.of es una copia real inmutable, lanza NPE en null, es mas rapida porque no tiene referencia a la lista original. Collections.unmodifiableList es una vista, permite nulls, y refleja cambios de la lista subyacente. List.copyOf vs List.of: List.copyOf acepta una coleccion existente y crea una copia; List.of acepta varargs. ArrayList vs List.of: ArrayList es mutable y crece dinamicamente; List.of es inmutable con tamaño fijo. Para colecciones vacias, Collections.emptyList() reutiliza la misma instancia, mientras que List.of() crea una nueva.",
       "examples": [
         "List<String> fija = List.of(\"a\", \"b\"); // fija.add() lanza UnsupportedOperationException",
         "List<String> vista = Collections.unmodifiableList(original);",
-        "List<String> copia = List.copyOf(original);"
+        "List<String> copia = List.copyOf(original);",
+        "Set<String> inmutable = Set.of(\"x\", \"y\", \"z\");",
+        "Map<String, Integer> mapa = Map.of(\"a\", 1, \"b\", 2);",
+        "List<String> vacia = Collections.emptyList(); // reutiliza instancia",
+        "stream().toList(); // desde Java 16, produce lista inmutable"
       ]
     },
     {
       "id": "collections-operations",
       "title": "Operaciones tipicas y complejidad",
-      "content": "Dominar la complejidad de las operaciones ayuda a elegir la estructura correcta. ArrayList: get/contains/set O(n) en promedio (get por indice O(1)), add al final amortizado O(1), add en el medio O(n). LinkedList: get O(n), add al inicio/fin O(1). HashMap: put/get/containsKey O(1) promedio, O(n) en el peor caso con muchas colisiones (rebalancea a arboles en Java 8+). TreeMap: O(log n).\n\nPara eliminar elementos mientras se itera, usar iterator.remove() o removeIf de Collection; usar list.remove dentro de un for-each lanza ConcurrentModificationException, porque el iterador detecta modificaciones estructurales mediante el contador modCount.\n\nLa interfaz Collection ofrece utilidades: contains, removeAll, retainAll, size, isEmpty. El metodo removeIf acepta un Predicate. El metodo sort de List acepta un Comparator o el orden natural con Comparable.\n\nLas estructuras de Map ofrecen computeIfAbsent, merge y forEach, muy usados en problemas reales y presentes en ejercicios clasicos de conteo y agrupacion.",
+      "content": "Dominar la complejidad de las operaciones ayuda a elegir la estructura correcta. ArrayList: get por indice O(1), add al final amortizado O(1) (redimensiona cuando llena el arreglo), add en el medio o remove O(n) por desplazamiento. LinkedList: get O(n) porque recorre la lista, add al inicio/fin O(1), remove con referencia del nodo O(1). HashMap: put/get/containsKey O(1) promedio, O(n) peor caso si many colisiones (mejorado a O(log n) en Java 8+ con arbolizacion). TreeMap: O(log n) para put, get, containsKey, y navegacion ordenada.\n\nPara eliminar elementos mientras se itera, usar iterator.remove() o removeIf de Collection. Usar list.remove dentro de un for-each lanza ConcurrentModificationException, porque el iterador detecta modificaciones estructurales mediante el contador modCount. Este es un error tipico en entrevistas.\n\nLas estructuras de Map ofrecen metodos funcionales muy usados: computeIfAbsent(key, k -> crearValor) inserta solo si la clave no existe; merge(key, value, remappingFunction) combina valores existentes con nuevos; forEach acepta un BiConsumer. Estos metodos son la forma idiomatica de Java para resolver problemas de conteo y agrupacion.\n\nConcurrentHashMap: particionado de locks (Java 8+ usa CAS y synchronized a nivel de nodo, no a nivel de tabla), permite lecturas concurrentes sin lock y escrituras concurrentes en buckets distintos. Collections.synchronizedMap envuelve cada operacion con synchronized, lo que bloquea toda la mapa. CopyOnWriteArrayList crea una copia del arreglo en cada escritura, ideal para listas que se leen mucho y se escriben poco.\n\nConceptos avanzados: ArrayList.removeIf es O(n) porque recorre y desplaza. El removeIf de LinkedList es O(n) pero no desplaza, solo ajusta punteros. El ConcurrentModificationException se lanzan cuando el contador modCount cambia entre llamadas al iterador. El contador modCount es un campo de la clase AbstractList que se incrementa en cada modificacion estructural. El iterador guarda el valor esperado de modCount y lo compara antes de cada operacion.\n\nErrores comunes en entrevistas: usar for-each para eliminar elementos en lugar de iterator.remove() o removeIf; no conocer la complejidad exacta de las operaciones; asumir que HashMap es siempre O(1) sin mencionar el peor caso; confundir Collections.synchronizedMap con ConcurrentHashMap.\n\nComparaciones: ArrayList vs LinkedList: ArrayList gana en 99% de los casos por localidad de cache y simplicidad; LinkedList solo es mejor si se inserta frecuentemente al inicio (pero ArrayList.add(0) es O(n) y LinkedList.get(0) tambien es O(n)). HashMap vs TreeMap: HashMap O(1) sin orden, TreeMap O(log n) con orden y navegacion. ConcurrentHashMap vs synchronizedMap: ConcurrentHashMap permite mayor concurrencia (locks granulares vs un solo lock), no lanza ConcurrentModificationException en lecturas concurrentes, y ofrece metodos atomicos como putIfAbsent y compute. CopyOnWriteArrayList vs synchronizedList: CopyOnWriteArrayList es ideal para lecturas frecuentes y escrituras raras (sin lock en lecturas); synchronizedList bloquea todas las operaciones.",
       "examples": [
         "list.removeIf(s -> s.length() < 3);",
         "map.computeIfAbsent(key, k -> new ArrayList<>()).add(valor);",
-        "map.merge(key, 1, Integer::sum);"
+        "map.merge(key, 1, Integer::sum);",
+        "Iterator<String> it = list.iterator(); while (it.hasNext()) { if (it.next().length() < 3) it.remove(); }",
+        "ConcurrentHashMap<String, Integer> cmap = new ConcurrentHashMap<>();",
+        "cmap.putIfAbsent(\"key\", 1); cmap.merge(\"key\", 1, Integer::sum);",
+        "CopyOnWriteArrayList<String> cow = new CopyOnWriteArrayList<>(); cow.add(\"a\");"
       ]
     }
   ],
@@ -59,7 +73,7 @@
         "correctIndexes": [
           0
         ],
-        "explanation": "HashMap ofrece acceso O(1) promedio; en el peor caso con muchas colisiones puede degradarse a O(n).",
+        "explanation": "HashMap ofrece acceso O(1) promedio; en el peor caso con muchas colisiones puede degradarse a O(n), aunque en Java 8+ se arboliza a O(log n) si un bucket supera 8 elementos.",
         "type": "SINGLE"
       },
       {
@@ -74,7 +88,7 @@
         "correctIndexes": [
           1
         ],
-        "explanation": "Si equals es true pero hashCode difiere, la clave se busca en otro bucket y no se encuentra: se viola el contrato.",
+        "explanation": "Si equals es true pero hashCode difiere, la clave se busca en otro bucket y no se encuentra: se viola el contrato entre equals y hashCode.",
         "type": "SINGLE"
       },
       {
@@ -89,24 +103,23 @@
         "correctIndexes": [
           1
         ],
-        "explanation": "unmodifiableList es una vista: si la lista original cambia, la vista cambia. List.of es una copia inmutable real.",
+        "explanation": "unmodifiableList es una vista: si la lista original cambia, la vista tambien cambia. List.of crea una copia inmutable real con sus propios elementos.",
         "type": "SINGLE"
       },
       {
         "id": "col-q4",
-        "text": "Cuales implementaciones preservan orden?",
+        "text": "En un ArrayList, cual operacion es O(1)?",
         "options": [
-          "ArrayList y LinkedHashMap",
-          "HashSet",
-          "TreeSet",
-          "ArrayDeque"
+          "Add en el medio",
+          "Remove en el medio",
+          "Get por indice",
+          "Add al inicio"
         ],
         "correctIndexes": [
-          0,
           2
         ],
-        "explanation": "ArrayList preserva orden de insercion; TreeSet mantiene orden natural/por comparador; LinkedHashMap tambien preserva insercion.",
-        "type": "MULTIPLE"
+        "explanation": "El acceso por indice en un ArrayList es O(1) porque internamente es un arreglo. Las demas operaciones requieren desplazamiento de elementos (O(n)).",
+        "type": "SINGLE"
       },
       {
         "id": "col-q5",
@@ -118,7 +131,7 @@
         "correctIndexes": [
           0
         ],
-        "explanation": "Verdadero: HashMap admite una unica clave null y cualquier cantidad de valores null. Hashtable, en cambio, no permite null.",
+        "explanation": "Verdadero: HashMap admite una unica clave null (almacenada en el bucket 0) y cualquier cantidad de valores null. Hashtable y ConcurrentHashMap no permiten null en claves ni valores.",
         "type": "TRUE_FALSE"
       },
       {
@@ -131,11 +144,11 @@
         "correctIndexes": [
           1
         ],
-        "explanation": "Falso: el acceso por indice es O(1), pero insertar o eliminar en el medio requiere desplazar elementos (O(n)).",
+        "explanation": "Falso: el acceso por indice es O(1), pero insertar o eliminar en el medio requiere desplazar elementos (O(n)), y add al final es O(1) amortizado con redimensionamiento ocasional.",
         "type": "TRUE_FALSE"
       },
       {
-        "id": "col-q6",
+        "id": "col-q7",
         "text": "Ordena estas colecciones de la mas simple a la mas compleja en terminos de interfaz:",
         "options": [
           "Set",
@@ -149,7 +162,71 @@
           3,
           2
         ],
-        "explanation": "List es la mas basica, luego Set, Queue y Map.",
+        "explanation": "List es la interfaz mas basica (secuencia ordenada), luego Set (secuencia sin duplicados), Queue (cola FIFO/Deque) y Map (pares clave-valor, no hereda de Collection).",
+        "type": "ORDER"
+      },
+      {
+        "id": "col-q8",
+        "text": "Cuales son ventajas de ConcurrentHashMap sobre Collections.synchronizedMap?",
+        "options": [
+          "Permite lecturas concurrentes sin lock",
+          "Utiliza un solo lock para todas las operaciones",
+          "Permite escrituras concurrentes en buckets distintos",
+          "No lanza ConcurrentModificationException en lecturas concurrentes"
+        ],
+        "correctIndexes": [
+          0,
+          2,
+          3
+        ],
+        "explanation": "ConcurrentHashMap particiona los locks (a nivel de nodo en Java 8+), permitiendo lecturas sin lock y escrituras concurrentes en buckets distintos. Collections.synchronizedMap usa un solo lock para todas las operaciones.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "col-q9",
+        "text": "Cuales de estas colecciones producen ConcurrentModificationException al modificar durante iteracion?",
+        "options": [
+          "ArrayList con for-each",
+          "CopyOnWriteArrayList con for-each",
+          "HashMap con iterator.remove()",
+          "ConcurrentHashMap con iterador"
+        ],
+        "correctIndexes": [
+          0,
+          2
+        ],
+        "explanation": "ArrayList y HashMap (como colecciones no concurrentes) detectan modificaciones estructurales y lanzan ConcurrentModificationException. CopyOnWriteArrayList y ConcurrentHashMap son colecciones concurrentes que no lanzan esta excepcion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "col-q10",
+        "text": "LinkedHashMap preserva el orden de insercion de sus entradas.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: LinkedHashMap mantiene una lista doblemente enlazada que conecta las entradas en el orden en que fueron insertadas. Tambien soporta orden de acceso con el constructor accessOrder=true.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "col-q11",
+        "text": "Ordena estas estructuras de la que tiene menor overhead de memoria a la que tiene mayor overhead:",
+        "options": [
+          "ArrayList",
+          "LinkedList",
+          "HashMap",
+          "TreeMap"
+        ],
+        "correctIndexes": [
+          0,
+          3,
+          2,
+          1
+        ],
+        "explanation": "ArrayList tiene menor overhead (solo el arreglo). TreeMap tiene overhead por nodos del arbol rojo-negro pero es estructurado. HashMap tiene buckets mas nodos Entry. LinkedList tiene el mayor overhead: cada nodo guarda el dato, un puntero al anterior y uno al siguiente.",
         "type": "ORDER"
       }
     ]

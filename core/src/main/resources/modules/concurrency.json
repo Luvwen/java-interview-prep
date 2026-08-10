@@ -6,41 +6,53 @@
     {
       "id": "conc-threads",
       "title": "Hilos: Thread y Runnable",
-      "content": "Un hilo (thread) es una unidad de ejecucion independiente. Se crea implementando Runnable (lo recomendado) o extendiendo Thread. La forma moderna es usar el ExecutorService en lugar de crear hilos a mano.\n\nEl metodo run() contiene el trabajo del hilo. Llamar a start() lanza un nuevo hilo y ejecuta run() en el; llamar a run() directamente ejecuta el codigo en el hilo actual, sin crear uno nuevo. Este es un error clasico.\n\nEstados de un hilo: NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING y TERMINATED. Thread.sleep(long) pone el hilo en TIMED_WAITING y lanza InterruptedException, que hay que manejar. El patron recomendado ante interrupcion es propagarla o restaurar el flag con Thread.currentThread().interrupt().\n\nLa concurrencia no garantiza velocidad por si sola: con CPUs multicore puede acelerar, pero el costo de crear hilos y el cambio de contexto existen. La JVM moderna recomienda los virtual threads (Project Loom, Java 21) para tareas de I/O masivas.",
+      "content": "Un hilo (thread) es una unidad de ejecucion independiente. Se crea implementando Runnable (lo recomendado) o extendiendo Thread. La forma moderna es usar el ExecutorService en lugar de crear hilos a mano.\n\nEl metodo run() contiene el trabajo del hilo. Llamar a start() lanza un nuevo hilo y ejecuta run() en el; llamar a run() directamente ejecuta el codigo en el hilo actual, sin crear uno nuevo. Este es un error clasico.\n\nEstados de un hilo: NEW (creado pero no iniciado), RUNNABLE (listo para ejecutar o ejecutandose en el CPU), BLOCKED (esperando un monitor/lock), WAITING (esperando indefinidamente por otra accion como Object.wait()), TIMED_WAITING (esperando por un tiempo determinado como Thread.sleep()) y TERMINATED (finalizado). Thread.sleep(long) pone el hilo en TIMED_WAITING y lanza InterruptedException, que hay que manejar. El patron recomendado ante interrupcion es propagarla o restaurar el flag con Thread.currentThread().interrupt().\n\nLa concurrencia no garantiza velocidad por si sola: con CPUs multicore puede acelerar, pero el costo de crear hilos y el cambio de contexto existen. La JVM moderna recomienda los virtual threads (Project Loom, Java 21) para tareas de I/O masivas.\n\nConceptos avanzados:\n- El cambio de contexto (context switch) tiene un costo real en CPU: la JVM debe guardar y restaurar el estado del hilo, lo que consume ciclos de reloj. Demasiados hilos activos degradan el rendimiento por thrashing.\n- Los daemon threads son hilos de fondo que no impiden la salida de la JVM. Si todos los hilos no-daemon terminan, la JVM se apaga. Se crean con setDaemon(true) antes de start().\n- El metodo Thread.yield() es una sugerencia al scheduler para ceder tiempo de CPU, pero no es garantia ni determinista. Es casi nunca util en produccion.\n- Thread.interrupted() es estatico y limpia el flag de interrupcion del hilo actual. isInterrupted() es de instancia y no limpia el flag.\n- Virtual threads (Java 21): se crean con Thread.ofVirtual().start(runnable) o ExecutorService.newVirtualThreadPerTaskExecutor(). Son ultraligeros y se bloquean en el carrier thread, no consumiendo OS thread.\n\nErrores comunes en entrevistas:\n- Llamar run() en lugar de start() y creer que se esta usando concurrencia.\n- Creer que Thread.sleep() es preciso: la precision depende del scheduler del OS y puede variar.\n- Olvidar que un hilo en estado BLOCKED espera a que otro libere el lock (monitor), no a un evento externo.\n- Confundir InterruptedException con un error de compilacion: es checked y hay que manejarla o propagarla.\n- Creer que yield() fuerza el cambio de hilo: es solo una pista al scheduler.\n- No limpiar el flag de interrupcion despues de catchear InterruptedException, perdiendo la senal de parada.",
       "examples": [
         "new Thread(() -> System.out.println(\"hola\")).start();",
         "ExecutorService pool = Executors.newFixedThreadPool(4);",
-        "pool.submit(() -> tareaPesada());"
+        "pool.submit(() -> tareaPesada());",
+        "Runnable r = () -> { for (int i = 0; i < 5; i++) System.out.println(i); }; new Thread(r).start();",
+        "Thread t = new Thread(() -> { Thread.sleep(1000); }); t.setDaemon(true); t.start();",
+        "Thread.currentThread().interrupt(); // restaurar flag despues de catchear InterruptedException"
       ]
     },
     {
       "id": "conc-executors",
       "title": "ExecutorService",
-      "content": "El framework Executor desacopla la creacion de hilos de su ejecucion. ExecutorService representa un pool de hilos: enviamos tareas con submit (devuelve Future) o execute, y el pool las ejecuta reutilizando hilos.\n\nFactories tipicos: newFixedThreadPool(n) (n hilos fijos), newCachedThreadPool (hilos que se crean/reciclan segun demanda), newSingleThreadExecutor (un solo hilo serializa tareas) y newScheduledThreadPool (ejecucion programada).\n\nUn Future permite consultar el resultado (get bloquea hasta que este listo) o comprobar si termino (isDone). Con getTimeout, get se puede abortar. En Java 5+ se introduce CompletableFuture para encadenar tareas asincronas sin bloquear.\n\nRegla de oro: siempre apagar el pool con shutdown() (deja terminar las tareas en cola) o shutdownNow() (las interrumpe). No apagarlo deja hilos colgados que impiden terminar la aplicacion.",
+      "content": "El framework Executor desacopla la creacion de hilos de su ejecucion. ExecutorService representa un pool de hilos: enviamos tareas con submit (devuelve Future) o execute, y el pool las ejecuta reutilizando hilos.\n\nFactories tipicos: newFixedThreadPool(n) (n hilos fijos), newCachedThreadPool (hilos que se crean/reciclan segun demanda), newSingleThreadExecutor (un solo hilo serializa tareas) y newScheduledThreadPool (ejecucion programada).\n\nUn Future permite consultar el resultado (get bloquea hasta que este listo) o comprobar si termino (isDone). Con getTimeout, get se puede abortar. En Java 5+ se introduce CompletableFuture para encadenar tareas asincronas sin bloquear.\n\nRegla de oro: siempre apagar el pool con shutdown() (deja terminar las tareas en cola) o shutdownNow() (las interrumpe). No apagarlo deja hilos colgados que impiden terminar la aplicacion.\n\nConceptos avanzados:\n- shutdown() vs shutdownNow(): shutdown() permite terminar tareas ya iniciadas; shutdownNow() intenta interrumpirlas y retorna tareas pendientes.\n- awaitTermination(timeout, unit) bloquea hasta que todas las tareas terminen o se agote el timeout. Patron comun: shutdown() + awaitTermination(5, SECONDS) + shutdownNow() si no terminaron.\n- rejectedRejectedExecutionException: ocurre cuando el pool rechaza una tarea (queue llena o pool apagado). Se maneja con un RejectedExecutionHandler custom.\n- CompletableFuture.supplyAsync(() -> ...) retorna un Future con resultado; encadenar con thenApply, thenCompose, thenAccept. thenCompose es para tareas dependientes (evita Niveles de anidamiento).\n- allOf(CompletableFuture...) espera a que completen todos; anyOf() espera al primero.\n- Thread pools fijos vs cached: fijos limitan concurrencia y evitan saturar el OS; cached crean hilos bajo demanda pero pueden causar OOM si las tareas son lentas.\n\nErrores comunes en entrevistas:\n- No llamar shutdown() y dejar hilos daemon colgando, impidiendo la salida de la JVM.\n- Usar execute() cuando se necesita el Future: execute() no retorna nada.\n- Creer que Future.get() es no-bloqueante: bloquea hasta que el resultado este listo.\n- Confundir CompletableFuture.thenApply (transforma el resultado) con thenAccept (consume sin retorno).\n- Olvidar manejar excepciones en CompletableFuture: use exceptionally() o handle() para evitar excepciones silenciadas.\n- Usar Executors.newCachedThreadPool() en produccion sin control de concurrencia maxima.",
       "examples": [
         "Future<Integer> f = pool.submit(() -> 42);",
         "int resultado = f.get();",
-        "pool.shutdown();"
+        "pool.shutdown();",
+        "CompletableFuture<String> cf = CompletableFuture.supplyAsync(() -> \"hola\").thenApply(s -> s.toUpperCase());",
+        "pool.shutdown(); pool.awaitTermination(5, TimeUnit.SECONDS); pool.shutdownNow();",
+        "ExecutorService fixed = Executors.newFixedThreadPool(4); // limita a 4 hilos concurrentes"
       ]
     },
     {
       "id": "conc-synchronization",
       "title": "Sincronizacion y secciones criticas",
-      "content": "Cuando varios hilos comparten estado mutable, hay carreras (race conditions). La sincronizacion protege las secciones criticas para que un hilo no observe estados intermedios de otro. La palabra clave synchronized bloquea un monitor (lock): sobre un metodo de instancia bloquea la instancia (this), sobre un metodo static bloquea el Class, y sobre un bloque bloquea el objeto indicado.\n\nEl coste es la exclusividad: solo un hilo entra a la seccion a la vez, el resto espera (BLOCKED). Sincronizar de mas degrada el rendimiento y puede producir interbloqueos (deadlock) si los hilos esperan locks en orden circular.\n\nvolatile garantiza visibilidad (que los cambios de un hilo sean vistos por otros) pero NO atomicidad. Para operaciones compuestas (como i++) no sirve. Para contadores atomicos se usan las clases del paquete java.util.concurrent.atomic: AtomicInteger, etc.\n\nEl bloqueo intrinseco es reentrante: un hilo que ya tiene el monitor puede volver a adquirirlo. Para mas control existen los locks explicitos del paquete java.util.concurrent.locks: ReentrantLock con tryLock, etc.",
+      "content": "Cuando varios hilos comparten estado mutable, hay carreras (race conditions). La sincronizacion protege las secciones criticas para que un hilo no observe estados intermedios de otro. La palabra clave synchronized bloquea un monitor (lock): sobre un metodo de instancia bloquea la instancia (this), sobre un metodo static bloquea el Class, y sobre un bloque bloquea el objeto indicado.\n\nEl coste es la exclusividad: solo un hilo entra a la seccion a la vez, el resto espera (BLOCKED). Sincronizar de mas degrada el rendimiento y puede producir interbloqueos (deadlock) si los hilos esperan locks en orden circular.\n\nvolatile garantiza visibilidad (que los cambios de un hilo sean vistos por otros) pero NO atomicidad. Para operaciones compuestas (como i++) no sirve. Para contadores atomicos se usan las clases del paquete java.util.concurrent.atomic: AtomicInteger, etc.\n\nEl bloqueo intrinseco es reentrante: un hilo que ya tiene el monitor puede volver a adquirirlo. Para mas control existen los locks explicitos del paquete java.util.concurrent.locks: ReentrantLock con tryLock, lockInterruptibly, etc.\n\nConceptos avanzados:\n- synchronized es reentrante: si un hilo posee el monitor de un objeto, puede volver a entrar a cualquier bloque sincronizado sobre el mismo objeto. Esto permite metodos sincronizados que llaman a otros sincronizados.\n- ReentrantLock vs synchronized: ReentrantLock ofrece tryLock (intentar sin bloquear), lockInterruptibly (permitir interrupcion mientras espera), y timeout. Synchronized no ofrece estas opciones.\n- Monitor (intrinsic lock): cada objeto tiene un monitor asociado. synchronized adquiere y libera el monitor automaticamente. ReentrantLock lo hace explicitamente con lock()/unlock() (siempre en finally).\n- El patron de condicion (Condition) con ReentrantLock permite await/signal granular: newCondition() crea una cola de espera especifica, a diferencia de wait/notify que usa la cola del objeto.\n- Thread starvation: un hilo puede ser perpetuamente preterido por el scheduler si otros hilos siempre tienen prioridad o si el lock es injusto. ReentrantLock puede crearse con fairness=true para garantizar orden FIFO.\n\nErrores comunes en entrevistas:\n- Creer que synchronized bloquea todo el objeto: bloquea el monitor, no la instancia entera. Otros metodos no-synchronized pueden ejecutarse.\n- Olvidar que synchronized sobre un metodo static bloquea el objeto Class, no la instancia.\n- No usar try/finally con ReentrantLock: si ocurre una excepcion antes de unlock(), el lock queda permanentemente adquirido.\n- Creer que volatile reemplaza a synchronized: volatile no protege operaciones compuestas (i++).\n- Confundir wait() con sleep(): wait() libera el monitor y espera notify(); sleep() no libera nada.\n- Creer que notify() despierta a todos los hilos: solo despierta a uno (el que elija el scheduler). Usar notifyAll() para despertar a todos.",
       "examples": [
         "synchronized (this) { contador++; }",
         "private volatile boolean activo;",
-        "AtomicInteger contador = new AtomicInteger(); contador.incrementAndGet();"
+        "AtomicInteger contador = new AtomicInteger(); contador.incrementAndGet();",
+        "ReentrantLock lock = new ReentrantLock(); lock.lock(); try { // seccion critica } finally { lock.unlock(); }",
+        "if (lock.tryLock(1, TimeUnit.SECONDS)) { try { /* trabajo */ } finally { lock.unlock(); } }",
+        "synchronized (MiClase.class) { // bloque sobre el Class, no la instancia }"
       ]
     },
     {
       "id": "conc-threadsafety",
       "title": "Seguridad en hilos (thread safety)",
-      "content": "Una clase es thread-safe si se comporta correctamente bajo acceso concurrente. Las colecciones del paquete java.util.concurrent son la primera opcion: ConcurrentHashMap, CopyOnWriteArrayList, BlockingQueue (LinkedBlockingQueue, ArrayBlockingQueue). Las colecciones clasicas (HashMap, ArrayList) no son thread-safe.\n\nCollections.synchronizedList(list) devuelve una version sincronizada, pero cada operacion individual esta sincronizada, no la secuencia: iterar sigue siendo peligroso salvo que se sincronice sobre la coleccion. ConcurrentHashMap, en cambio, esta disenado para alta concurrencia y evita bloqueo global.\n\nLa inmutabilidad es la estrategia mas simple para thread safety: un objeto inmutable es seguro por construccion (lo que conecta con el tema de inmutabilidad de colecciones). Tambien ayuda el thread confinement: no compartir el objeto entre hilos.\n\nEl modelo de memoria de Java (JMM) define las garantias de visibilidad: volatile, synchronized, locks y las clases atomicas crean happens-before edges que ordenan las operaciones entre hilos.",
+      "content": "Una clase es thread-safe si se comporta correctamente bajo acceso concurrente. Las colecciones del paquete java.util.concurrent son la primera opcion: ConcurrentHashMap, CopyOnWriteArrayList, BlockingQueue (LinkedBlockingQueue, ArrayBlockingQueue). Las colecciones clasicas (HashMap, ArrayList) no son thread-safe.\n\nCollections.synchronizedList(list) devuelve una version sincronizada, pero cada operacion individual esta sincronizada, no la secuencia: iterar sigue siendo peligroso salvo que se sincronice sobre la coleccion. ConcurrentHashMap, en cambio, esta disenado para alta concurrencia y evita bloqueo global.\n\nLa inmutabilidad es la estrategia mas simple para thread safety: un objeto inmutable es seguro por construccion (lo que conecta con el tema de inmutabilidad de colecciones). Tambien ayuda el thread confinement: no compartir el objeto entre hilos.\n\nEl modelo de memoria de Java (JMM) define las garantias de visibilidad: volatile, synchronized, locks y las clases atomicas crean happens-before edges que ordenan las operaciones entre hilos.\n\nConceptos avanzados:\n- ConcurrentHashMap usa segment locking (Java 7) o CAS + synchronized por nodo (Java 8+): permite concurrente lectura-escritura sin bloqueo global. size() es eventual pero O(n).\n- CopyOnWriteArrayList: crea una copia del array interno en cada escritura. Ideal para listas donde se lee mucho y se escribe poco. Iterator no falla si hay modificaciones.\n- AtomicReference, AtomicBoolean, LongAdder: alternativas a volatile para actualizaciones atomicas sin bloqueo. LongAdder es mas rapido que AtomicLong en alta concurrencia por su estrategia de celularidad.\n- happens-before: una escritura a un volatile ocurre-before la lectura subsiguiente de ese volatile. Esto garantiza visibilidad sin synchronized.\n- Thread confinement (stack confinement): variables locales son thread-safe porque viven en el stack del hilo. Unmutable objects tambien son inherently thread-safe.\n- publish/escape: un objeto se publica cuando se hace accesible a otros hilos. Un objeto escapa si se expone antes de estar completamente construido (constructor que publica this).\n\nErrores comunes en entrevistas:\n- Creer que Collections.synchronizedList es thread-safe para iteracion: no lo es, hay que sincronizar manualmente.\n- Usar HashMap concurrente sin sincronizacion y esperar consistencia.\n- Confundir CopyOnWriteArrayList con una lista rapida: es lenta para escrituras frecuentes.\n- Creer que volatile convierte una operacion en atomica: i++ sigue siendo unsafe.\n- Olvidar el patron de check-then-act: if (!map.containsKey(k)) map.put(k, v); no es atomico.\n- No considerar publish/escape en constructores: this puede escapar si el constructor publica el objeto antes de inicializarlo.",
       "examples": [
         "ConcurrentHashMap<String, Integer> mapa = new ConcurrentHashMap<>();",
         "BlockingQueue<String> cola = new ArrayBlockingQueue<>(10);",
-        "// synchronized sobre Collections.synchronizedList al iterar"
+        "synchronized (lista) { for (String s : lista) System.out.println(s); }",
+        "AtomicLong counter = new AtomicLong(); counter.incrementAndGet();",
+        "LongAdder adder = new LongAdder(); adder.increment(); long total = adder.sum();",
+        "private final List<String> items = List.of(\"a\", \"b\"); // inmutable, thread-safe"
       ]
     }
   ],
@@ -135,7 +147,7 @@
         "type": "TRUE_FALSE"
       },
       {
-        "id": "cc-q6",
+        "id": "cn-q7",
         "text": "Ordena los mecanismos de sincronizacion de menor a mayor nivel de abstraccion:",
         "options": [
           "synchronized",
@@ -150,6 +162,68 @@
           3
         ],
         "explanation": "synchronized es el mas basico, luego ReentrantLock, Semaphore y ExecutorService.",
+        "type": "ORDER"
+      },
+      {
+        "id": "cn-q8",
+        "text": "Cuales son los 6 estados posibles de un hilo en Java?",
+        "options": [
+          "NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, TERMINATED",
+          "CREATED, READY, RUNNING, WAITING, SLEEPING, FINISHED",
+          "NEW, ACTIVE, BLOCKED, PAUSED, TIMED_PAUSED, DEAD",
+          "INIT, RUNNABLE, WAITING, SLEEPING, TERMINATED, DEAD"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Los 6 estados del Thread.State enum son: NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING y TERMINATED. Thread.getState() retorna el estado actual.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cn-q9",
+        "text": "Que diferencia(s) hay entre synchronized y ReentrantLock?",
+        "options": [
+          "synchronized es reentrante y ReentrantLock no",
+          "ReentrantLock permite tryLock con timeout, synchronized no",
+          "ReentrantLock soporta fairness (orden FIFO), synchronized no",
+          "synchronized es mas rapido siempre que ReentrantLock"
+        ],
+        "correctIndexes": [
+          1,
+          2
+        ],
+        "explanation": "ReentrantLock ofrece tryLock, lockInterruptibly y fairness. Synchronized tambien es reentrante. ReentrantLock no es inherentemente mas rapido, pero ofrece mas control.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "cn-q10",
+        "text": "El metodo shutdownNow() de ExecutorService garantiza que todas las tareas en ejecucion se interrumpan inmediatamente.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: shutdownNow() intenta interrumpir las tareas en ejecucion (via Thread.interrupt) pero no puede forzar su finalizacion. Las tareas que ignoran la interrupcion pueden seguir ejecutandose. Retorna las tareas pendientes que no se iniciaron.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cn-q11",
+        "text": "Ordena las clases atomicas de menor a mayor granularidad de operacion:",
+        "options": [
+          "AtomicBoolean",
+          "AtomicInteger",
+          "AtomicLong",
+          "AtomicReference"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "AtomicBoolean opera sobre un boolean (1 bit logico), AtomicInteger sobre int (32 bits), AtomicLong sobre long (64 bits) y AtomicReference sobre un objeto generico (variable tamano). El orden refleja la complejidad y costo relativo de la operacion.",
         "type": "ORDER"
       }
     ]

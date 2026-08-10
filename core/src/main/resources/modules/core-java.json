@@ -6,52 +6,71 @@
     {
       "id": "core-primitives",
       "title": "Tipos primitivos y envoltorios",
-      "content": "Java tiene 8 tipos primitivos: byte, short, int, long, float, double, char y boolean. Los primitivos se almacenan por valor directamente en la variable, no como objetos. La JVM usa 32 bits para un int y 64 bits para un long, mientras que float y double siguen el estandar IEEE 754.\n\nCada tipo primitivo tiene una clase envoltorio (wrapper): Byte, Short, Integer, Long, Float, Double, Character y Boolean. Los wrappers son objetos inmutables que se usan cuando se necesita un objeto (por ejemplo, dentro de una coleccion como List<Integer>) y ofrecen metodos de utilidad como Integer.parseInt. Java realiza autoboxing y unboxing de forma automatica al convertir entre primitivo y wrapper.\n\nUn detalle que se pregunta mucho en entrevistas: para valores enteros entre -128 y 127, Integer.valueOf devuelve instancias cacheadas, por lo que dos Integer con el mismo valor dentro de ese rango comparados con == dan true; fuera del rango, == compara referencias y da false. La regla general es comparar wrappers con equals, nunca con ==.\n\nEl operador == sobre primitivos compara valores; sobre objetos compara referencias (si apuntan al mismo objeto). Esta distincion es causa frecuente de errores y de preguntas en procesos de seleccion.",
+      "content": "Java tiene 8 tipos primitivos: byte, short, int, long, float, double, char y boolean. Los primitivos se almacenan por valor directamente en la variable, no como objetos. La JVM usa 32 bits para un int y 64 bits para un long, mientras que float y double siguen el estandar IEEE 754.\n\nCada tipo primitivo tiene una clase envoltorio (wrapper): Byte, Short, Integer, Long, Float, Double, Character y Boolean. Los wrappers son objetos inmutables que se usan cuando se necesita un objeto (por ejemplo, dentro de una coleccion como List<Integer>) y ofrecen metodos de utilidad como Integer.parseInt. Java realiza autoboxing y unboxing de forma automatica al convertir entre primitivo y wrapper.\n\nUn detalle que se pregunta mucho en entrevistas: para valores enteros entre -128 y 127, Integer.valueOf devuelve instancias cacheadas, por lo que dos Integer con el mismo valor dentro de ese rango comparados con == dan true; fuera del rango, == compara referencias y da false. La regla general es comparar wrappers con equals, nunca con ==.\n\nEl operador == sobre primitivos compara valores; sobre objetos compara referencias (si apuntan al mismo objeto). Esta distincion es causa frecuente de errores y de preguntas en procesos de seleccion.\n\nConceptos avanzados:\n- El rango de cache de Integer se puede ampliar mediante el sistema -XX:AutoBoxCacheMax, pero no es portable ni recomendado.\n- El autoboxing puede generar NullPointerException si se intenta unboxear un Integer null a int.\n- Float y Double tienen valores especiales: NaN, POSITIVE_INFINITY, NEGATIVE_INFINITY. Comparaciones con NaN siempre retornan false, incluyendo NaN == NaN.\n- char en Java es un tipo sin signo de 16 bits (0 a 65535), por lo que no es apto para todos los caracteres Unicode, aunque supplementary characters se manejan con surrogate pairs.\n- La diferencia entre BigDecimal y double para calculos financieros: BigDecimal evita problemas de precision que surgen con punto flotante.\n\nErrores comunes en entrevistas:\n- Comparar Integer con == fuera del rango de cache y asumir que da true.\n- Olvidar que Long.valueOf tambien tiene cache (-128 a 127) igual que Integer.\n- Confundir autoboxing con creacion de objetos: Integer x = 5; no crea un objeto nuevo si el valor esta en cache.\n- Usar double para dinero sin pensar en precision; usar BigDecimal en su lugar.",
       "examples": [
         "int max = Integer.MAX_VALUE;",
         "List<Integer> nums = List.of(1, 2, 3);",
         "Integer a = 127; Integer b = 127; // a == b es true (cache)",
-        "Integer c = 200; Integer d = 200; // c == d es false; usar c.equals(d)"
+        "Integer c = 200; Integer d = 200; // c == d es false; usar c.equals(d)",
+        "Integer e = null; int f = e; // NullPointerException en unboxing",
+        "Double d1 = Double.NaN; Double d2 = Double.NaN; // d1.equals(d2) es true, d1 == d2 es false",
+        "long refL = 100L; Long wrapL = refL; // autoboxing; Long.valueOf(100L)"
       ]
     },
     {
       "id": "core-references",
       "title": "Valores vs referencias",
-      "content": "En Java, los argumentos siempre se pasan por valor. Para tipos primitivos se copia el valor; para objetos se copia la referencia, no el objeto. Esto significa que dentro de un metodo no se puede reasignar la variable del llamador, pero si se pueden mutar los campos del objeto apuntado.\n\nEste concepto suele confundirse con 'pasar por referencia'. La pregunta tipica de entrevista: 'como se pasan los parametros en Java?' La respuesta correcta es: siempre por valor, y en el caso de objetos el valor es la referencia al objeto.\n\nEl operador new reserva memoria en el heap y devuelve la referencia. Las variables locales que guardan referencias viven en el stack, pero los objetos a los que apuntan viven en el heap y los administra el garbage collector.",
+      "content": "En Java, los argumentos siempre se pasan por valor. Para tipos primitivos se copia el valor; para objetos se copia la referencia, no el objeto. Esto significa que dentro de un metodo no se puede reasignar la variable del llamador, pero si se pueden mutar los campos del objeto apuntado.\n\nEste concepto suele confundirse con 'pasar por referencia'. La pregunta tipica de entrevista: 'como se pasan los parametros en Java?' La respuesta correcta es: siempre por valor, y en el caso de objetos el valor es la referencia al objeto.\n\nEl operador new reserva memoria en el heap y devuelve la referencia. Las variables locales que guardan referencias viven en el stack, pero los objetos a los que apuntan viven en el heap y los administra el garbage collector.\n\nConceptos avanzados:\n- El identityHashCode (System.identityHashCode) es unico por objeto y se usa para implementar equals/hashCode en clases que no heredan de Object.\n- Los WeakReference y SoftReference permiten mantener referencias a objetos que el GC puede reciclar, util en caches.\n- Los metodos varargs se tratan como arreglos internamente: String... args equivale a String[] args.\n- Cuando se retorna un objeto de un metodo, se retorna una copia de la referencia, no el objeto; el llamador comparte el mismo objeto.\n- La inmutabilidad de String y los intern pool significan que String s1 = \"abc\" y String s2 = \"abc\" comparten la misma instancia en el pool, pero new String(\"abc\") siempre crea una nueva.\n\nErrores comunes en entrevistas:\n- Afirmar que Java pasa por referencia: es incorrecto, siempre es por valor.\n- Creer que reasignar un parametro dentro del metodo afecta al llamador.\n- Confundir la copia de referencia con la copia del objeto (shallow vs deep copy).",
       "examples": [
         "void cambiar(StringBuilder sb) { sb.append('X'); } // muta el objeto",
         "void reasignar(StringBuilder sb) { sb = new StringBuilder(); } // no afecta al llamador",
-        "String s1 = new String(\"a\"); String s2 = new String(\"a\"); // s1 == s2 es false"
+        "String s1 = new String(\"a\"); String s2 = new String(\"a\"); // s1 == s2 es false",
+        "String s3 = \"abc\"; String s4 = \"abc\"; // s3 == s4 es true (String pool)",
+        "void swap(int a, int b) { int t = a; a = b; b = t; } // no funciona en el llamador",
+        "List<String> original = new ArrayList<>(); List<String> copia = original; copia.add(\"x\"); // original tambien cambia",
+        "String[] arr = {\"a\", \"b\"}; procesar(arr); // arr se pasa por valor (copia de la referencia)"
       ]
     },
     {
       "id": "core-modifiers",
       "title": "Modificadores de acceso",
-      "content": "Java define cuatro niveles de acceso: public (visible desde cualquier clase), protected (visible en el mismo paquete y en subclases), package-private o default (sin modificador, visible solo en el mismo paquete) y private (visible solo dentro de la clase).\n\nLa visibilidad protege la encapsulacion: los campos de una clase se declaran private y se exponen mediante metodos getter y setter, o mejor, mediante comportamiento. Un error clasico en entrevistas es creer que protected permite acceso desde cualquier clase del mismo paquete y desde subclases en otros paquetes (eso es correcto) pero olvidar que ademas aplica dentro del mismo paquete.\n\nOtros modificadores: static (pertenece a la clase, no a la instancia), final (no reasignable en variables, no heredable en clases, no sobrescribible en metodos), abstract (clase o metodo sin implementacion) y transient/volatile/synchronized (tema del modulo de concurrencia).",
+      "content": "Java define cuatro niveles de acceso: public (visible desde cualquier clase), protected (visible en el mismo paquete y en subclases), package-private o default (sin modificador, visible solo en el mismo paquete) y private (visible solo dentro de la clase).\n\nLa visibilidad protege la encapsulacion: los campos de una clase se declaran private y se exponen mediante metodos getter y setter, o mejor, mediante comportamiento. Un error clasico en entrevistas es creer que protected permite acceso desde cualquier clase del mismo paquete y desde subclases en otros paquetes (eso es correcto) pero olvidar que ademas aplica dentro del mismo paquete.\n\nOtros modificadores: static (pertenece a la clase, no a la instancia), final (no reasignable en variables, no heredable en clases, no sobrescribible en metodos), abstract (clase o metodo sin implementacion) y transient/volatile/synchronized (tema del modulo de concurrencia).\n\nConceptos avanzados:\n- final en variables de objeto: no puede reasignarse, pero el objeto interno si puede mutarse (un final List puede tener elementos agregados).\n- final en metodos: evita override. En clases, evita herencia. Esto puede mejorar performance por devirtualization.\n- static final fields: constantes de compilacion si el valor es literal, en cuyo caso el compilador inlininga el valor.\n- transient: excluye un campo de la serializacion; no afecta al comportamiento en runtime.\n- volatile: garantiza visibilidad entre threads pero no atomicidad; se usa con VolatileBoolean o AtomicReference.\n\nErrores comunes en entrevistas:\n- Creer que protected = solo subclases: tambien incluye acceso dentro del mismo paquete.\n- Olvidar que default (sin modificador) es package-private, no \"protegido\".\n- Confundir final con immutable: un campo final puede contener un objeto mutable.\n- Creer que private evita acceso via reflexion: la reflexion puede acceder a campos privados.",
       "examples": [
         "public class Cuenta { private double saldo; public double getSaldo() { return saldo; } }",
         "protected void helper() { } // visible en paquete y en subclases",
-        "public static final int MAX = 10; // constante de clase"
+        "public static final int MAX = 10; // constante de clase",
+        "class Paquete { int paq = 1; } // package-private: solo en el mismo paquete",
+        "final List<String> items = new ArrayList<>(); items.add(\"x\"); // OK: la referencia es final, el objeto se muta",
+        "public final void noOverride() { } // las subclases no pueden sobrescribir este metodo",
+        "static class Factory { static Factory create() { return new Factory(); } } // metodo estatico de fabrica"
       ]
     },
     {
       "id": "core-flow",
       "title": "Control de flujo",
-      "content": "Java soporta if/else, switch, while, do-while, for y for-each. Desde Java 14, el switch puede usarse como expresion con sintaxis de flecha (->), sin necesidad de break, y devolver un valor. Tambien existe el pattern matching para instanceof que combina comprobacion de tipo con declaracion de variable.\n\nEl for-each (enhanced for) itera sobre arreglos y sobre cualquier objeto que implemente Iterable, como las colecciones. Para modificar una coleccion mientras se itera hay que usar un Iterator con su metodo remove, o streams.\n\nUn detalle importante: en un switch clasico con case apilados, si falta el break, la ejecucion 'cae' (fall-through) al siguiente case. La sintaxis de flecha elimina este riesgo, por lo que es la recomendada en codigo nuevo.",
+      "content": "Java soporta if/else, switch, while, do-while, for y for-each. Desde Java 14, el switch puede usarse como expresion con sintaxis de flecha (->), sin necesidad de break, y devolver un valor. Tambien existe el pattern matching para instanceof que combina comprobacion de tipo con declaracion de variable.\n\nEl for-each (enhanced for) itera sobre arreglos y sobre cualquier objeto que implemente Iterable, como las colecciones. Para modificar una coleccion mientras se itera hay que usar un Iterator con su metodo remove, o streams.\n\nUn detalle importante: en un switch clasico con case apilados, si falta el break, la ejecucion 'cae' (fall-through) al siguiente case. La sintaxis de flecha elimina este riesgo, por lo que es la recomendada en codigo nuevo.\n\nConceptos avanzados:\n- El switch expression con yield permite retornar valores desde un bloque de codigo (con llaves) dentro del switch.\n- Pattern matching for switch (Java 21+): permite usar patrones como case String s, case Integer i directamente en switch.\n- El operador ternario (cond ? a : b) es una expresion, no una sentencia; se puede anidar pero reduce legibilidad.\n- do-while es el unico bucle que garantiza al menos una ejecucion del cuerpo.\n- break con label permite salir de bucles anidados; continue con label salta al inicio del bucle etiquetado.\n- Enhanced for con Collections: el compilador lo transforma en un Iterator; ConcurrentModificationException si se modifica la coleccion.\n\nErrores comunes en entrevistas:\n- Olvidar break en switch clasico y no prever fall-through.\n- Confundir switch expression (devuelve valor) con switch statement (no devuelve valor).\n- Usar enhanced for para eliminar elementos de una coleccion (usar Iterator.remove o removeIf).\n- Creer que switch funciona con double o long: solo con char, byte, short, int, String y enums.",
       "examples": [
         "String dia = switch (num) { case 1 -> \"lunes\"; default -> \"otro\"; };",
         "if (obj instanceof String s) { System.out.println(s.toUpperCase()); }",
-        "for (String item : lista) { System.out.println(item); }"
+        "for (String item : lista) { System.out.println(item); }",
+        "String tipo = switch (codigo) { case 1 -> \"admin\"; case 2 -> \"user\"; default -> throw new IllegalArgumentException(); };",
+        "int total = 0; for (int i = 0; i < lista.size(); i++) { total += lista.get(i); }",
+        "Iterator<Integer> it = nums.iterator(); while (it.hasNext()) { if (it.next() < 0) it.remove(); }",
+        "switch (color) { case RED -> 1; case GREEN, BLUE -> 2; } // multiples constantes en un case"
       ]
     },
     {
       "id": "core-exceptions",
       "title": "Excepciones",
-      "content": "Las excepciones en Java forman una jerarquia: Throwable es la raiz, con dos ramas: Error (problemas graves de la JVM, como OutOfMemoryError, que no se deben capturar) y Exception. Dentro de Exception estan las checked exceptions (la compilacion obliga a declararlas o capturarlas) y RuntimeException (unchecked, no obliga, cubren errores de programacion como NullPointerException o IllegalArgumentException).\n\nLa regla de oro: usar checked exceptions para condiciones recuperables y esperables, y unchecked para errores de programacion. En la practica moderna, muchas API prefieren excepciones unchecked.\n\nEl bloque try-with-resources cierra automaticamente recursos que implementan AutoCloseable, evitando fugas y eliminando la necesidad de finally para cerrar archivos, conexiones o streams. Cada recurso se cierra en orden inverso al de declaracion.\n\nSolo se debe capturar una excepcion si se puede hacer algo util con ella. Capturar Exception generico o peor aun, excepciones y seguir de largo, escribe deuda tecnica. Si se re-lanza, se usa throw y se puede usar la sintaxis de multi-catch con la barra (|).",
+      "content": "Las excepciones en Java forman una jerarquia: Throwable es la raiz, con dos ramas: Error (problemas graves de la JVM, como OutOfMemoryError, que no se deben capturar) y Exception. Dentro de Exception estan las checked exceptions (la compilacion obliga a declararlas o capturarlas) y RuntimeException (unchecked, no obliga, cubren errores de programacion como NullPointerException o IllegalArgumentException).\n\nLa regla de oro: usar checked exceptions para condiciones recuperables y esperables, y unchecked para errores de programacion. En la practica moderna, muchas API prefieren excepciones unchecked.\n\nEl bloque try-with-resources cierra automaticamente recursos que implementan AutoCloseable, evitando fugas y eliminando la necesidad de finally para cerrar archivos, conexiones o streams. Cada recurso se cierra en orden inverso al de declaracion.\n\nSolo se debe capturar una excepcion si se puede hacer algo util con ella. Capturar Exception generico o peor aun, excepciones y seguir de largo, escribe deuda tecnica. Si se re-lanza, se usa throw y se puede usar la sintaxis de multi-catch con la barra (|).\n\nConceptos avanzados:\n- multi-catch (Java 7+): permite capturar multiples excepciones en un solo catch: catch (IOException | SQLException e). Dentro del bloque, e es effectively final.\n- try-with-resources permite declarar multiples recursos; se cierran en orden inverso. Si ambos lanzan excepciones, las secundarias se agregan como suppressed.\n- finally se ejecuta incluso si hay return, pero si finally contiene return, sobreescribe el return del try. Esto es un error comun.\n- AutoCloseable vs Closeable: AutoCloseable permite checked exceptions en close(), Closeable lanza IOException.\n- El patron de 'try-finally sin catch' es valido: permite propagar la excepcion mientras se garantiza la limpieza.\n- stackTrace en Excepciones: Throwable.getStackTrace() retorna un arreglo de StackTraceElement; util para logs.\n\nErrores comunes en entrevistas:\n- Capturar Exception generico en lugar de tipos especificos.\n- Olvidar que finally se ejecuta incluso con return; peor aun, usar return dentro de finally.\n- No usar try-with-resources y escribir finally manual con riesgo de olvidar cerrar.\n- Creer que finally no se ejecuta si hay System.exit() o un Error: es correcto, no se ejecuta.\n- Capturar Throwable sin pensar: incluye Error, que no se debe manejar.",
       "examples": [
         "try (BufferedReader br = new BufferedReader(new FileReader(\"f.txt\"))) { br.readLine(); }",
         "try { metodoQueLanza(); } catch (IOException | SQLException e) { log(e); }",
-        "if (monto <= 0) { throw new IllegalArgumentException(\"Monto invalido\"); }"
+        "if (monto <= 0) { throw new IllegalArgumentException(\"Monto invalido\"); }",
+        "try (var conn = DriverManager.getConnection(url); var stmt = conn.prepareStatement(sql)) { stmt.execute(); }",
+        "catch (Exception e) { throw new RuntimeException(\"fallo\", e); } // wrapping checked en unchecked",
+        "try { int r = 10 / 0; } catch (ArithmeticException e) { System.out.println(\"division por cero\"); }",
+        "finally { recurso.close(); } // patron clasico sin try-with-resources"
       ]
     }
   ],
@@ -162,6 +181,69 @@
           3
         ],
         "explanation": "byte=1, short=2, int=4, long=8 bytes.",
+        "type": "ORDER"
+      },
+      {
+        "id": "cj-q8",
+        "text": "Cuales de las siguientes afirmaciones sobre try-with-resources son correctas?",
+        "options": [
+          "Cierra los recursos en orden inverso al de declaracion",
+          "Requiere que el recurso implemente AutoCloseable",
+          "Puede declarar multiples recursos separados por punto y coma",
+          "No genera suppressed exceptions si un recurso falla al cerrar"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "try-with-resources cierra en orden inverso, requiere AutoCloseable y soporta multiples recursos. Si un close lanza excepcion, se agrega como suppressed a la excepcion principal.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "cj-q9",
+        "text": "Cual de los siguientes tipos NO es valido como tipo de un switch expression en Java?",
+        "options": [
+          "String",
+          "int",
+          "double",
+          "enum"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "El switch no soporta double ni long. Solo acepta char, byte, short, int, String y enums.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q10",
+        "text": "El bloque finally en Java siempre se ejecuta, incluso si hay un return dentro del bloque try.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: finally se ejecuta siempre, incluso con return. Sin embargo, si finally contiene su propio return, este sobreescribe el return del try.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cj-q11",
+        "text": "Ordena la jerarquia de excepciones de mayor a menor especificidad:",
+        "options": [
+          "Throwable",
+          "Exception",
+          "RuntimeException",
+          "NullPointerException"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "Throwable es la raiz, Exception es su subclase, RuntimeException extiende Exception, y NullPointerException extiende RuntimeException.",
         "type": "ORDER"
       }
     ]

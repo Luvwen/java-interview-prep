@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
+import {
+  Box, Button, Flex, Heading, Progress, Spinner, Text, VStack, Badge, SimpleGrid,
+} from "@chakra-ui/react";
 import { api } from "../api";
+import { colors } from "../colors";
 import type { Attempt } from "../types";
 
-interface ModuleStats {
-  moduleId: string;
-  title: string;
-  correct: number;
-  wrong: number;
-  bestPercent: number;
-  avgPercent: number;
-  avgTimeSeconds: number;
-  attempts: number;
-}
+interface ModuleStats { moduleId: string; title: string; correct: number; wrong: number; bestPercent: number; avgPercent: number; avgTimeSeconds: number; attempts: number; }
 
 function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
   const [stats, setStats] = useState<Record<string, ModuleStats> | null>(null);
@@ -20,21 +15,13 @@ function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/stats").then((r) => r.json()),
-      fetch("/api/streak").then((r) => r.json()),
-      api.getProgress(),
-    ])
-      .then(([statsData, streakData, progress]) => {
-        setStats(statsData);
-        setStreak(streakData);
-        setAttempts(progress.attempts ?? []);
-      })
+    Promise.all([api.getStats(), api.getStreak(), api.getProgress()])
+      .then(([statsData, streakData, progress]) => { setStats(statsData); setStreak(streakData); setAttempts(progress.attempts ?? []); })
       .catch((err: Error) => setError(err.message));
   }, []);
 
-  if (error) return <p className="error">{error}</p>;
-  if (!stats) return <p className="hint">Cargando estadisticas...</p>;
+  if (error) return <Text color={colors.error}>{error}</Text>;
+  if (!stats) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
 
   const entries = Object.values(stats);
   const totalCorrect = entries.reduce((s, e) => s + e.correct, 0);
@@ -42,73 +29,59 @@ function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }
   const totalAttempts = entries.reduce((s, e) => s + e.attempts, 0);
 
   return (
-    <section>
-      <h2>Estadisticas</h2>
+    <Box>
+      <Heading size="lg" mb={6}>Estadisticas</Heading>
+      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} mb={8}>
+        {[
+          { value: totalAttempts, label: "Intentos totales" },
+          { value: totalCorrect, label: "Correctas" },
+          { value: totalWrong, label: "Incorrectas" },
+          { value: streak?.current ?? 0, label: "Racha (dias)" },
+        ].map((stat) => (
+          <Box key={stat.label} bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="10px" p={4} textAlign="center">
+            <Text fontSize="1.6rem" fontWeight="700" color={colors.accent}>{stat.value}</Text>
+            <Text fontSize="sm" color={colors.textMuted}>{stat.label}</Text>
+          </Box>
+        ))}
+      </SimpleGrid>
 
-      <div className="stats-summary">
-        <div className="stat-card">
-          <span className="stat-value">{totalAttempts}</span>
-          <span className="stat-label">Intentos totales</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-value">{totalCorrect}</span>
-          <span className="stat-label">Correctas</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-value">{totalWrong}</span>
-          <span className="stat-label">Incorrectas</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-value">{streak?.current ?? 0}</span>
-          <span className="stat-label">Racha (dias)</span>
-        </div>
-      </div>
-
-      <h3>Por modulo</h3>
-      <ul className="stats-list">
+      <Heading size="md" mb={4}>Por modulo</Heading>
+      <VStack align="stretch" spacing={3} mb={8}>
         {entries.map((stat) => {
           const total = stat.correct + stat.wrong;
           const percent = total > 0 ? Math.round((stat.correct * 100) / total) : 0;
           const weak = percent < 60 && total > 0;
           return (
-            <li key={stat.moduleId} className={weak ? "stat-weak" : ""}>
-              <div className="stat-header">
-                <button className="link" onClick={() => onOpenModule(stat.moduleId)}>
-                  {stat.title}
-                </button>
-                {weak && <span className="badge badge-weak">Debil</span>}
-                <span className="stat-attempts">{stat.attempts} intentos</span>
-              </div>
-              <div className="stat-bar-container">
-                <div className="stat-bar">
-                  <div className="stat-bar-fill" style={{ width: `${percent}%` }} />
-                </div>
-                <span className="stat-percent">{percent}%</span>
-              </div>
-            </li>
+            <Box key={stat.moduleId} bg={colors.surface} border="1px solid" borderColor={weak ? colors.error : colors.border} borderRadius="10px" p={4}>
+              <Flex align="center" gap={2} mb={2}>
+                <Button variant="link" color={colors.accent} size="sm" onClick={() => onOpenModule(stat.moduleId)}>{stat.title}</Button>
+                {weak && <Badge colorScheme="red" fontSize="xs">Debil</Badge>}
+                <Text ml="auto" fontSize="xs" color={colors.textMuted}>{stat.attempts} intentos</Text>
+              </Flex>
+              <Flex align="center" gap={3}>
+                <Progress value={percent} size="sm" colorScheme="green" borderRadius="full" flex={1} bg={colors.surfaceHover} />
+                <Text fontSize="sm" color={colors.textMuted} minW="36px" textAlign="right">{percent}%</Text>
+              </Flex>
+            </Box>
           );
         })}
-      </ul>
+      </VStack>
 
       {attempts.length > 0 && (
         <>
-          <h3>Intentos recientes</h3>
-          <ul className="attempts-list">
+          <Heading size="md" mb={4}>Intentos recientes</Heading>
+          <VStack align="stretch" spacing={2}>
             {attempts.slice(-10).reverse().map((attempt, i) => (
-              <li key={i}>
-                <span className={`attempt-mode ${attempt.passed ? "passed" : "failed"}`}>
-                  {attempt.mode}
-                </span>
-                <span>
-                  {attempt.score}/{attempt.total}
-                </span>
-                <span className="hint">{attempt.date}</span>
-              </li>
+              <Flex key={i} align="center" gap={3} bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="8px" px={4} py={3}>
+                <Badge colorScheme={attempt.passed ? "green" : "red"} textTransform="uppercase" fontSize="xs">{attempt.mode}</Badge>
+                <Text>{attempt.score}/{attempt.total}</Text>
+                <Text ml="auto" fontSize="sm" color={colors.textMuted}>{attempt.date}</Text>
+              </Flex>
             ))}
-          </ul>
+          </VStack>
         </>
       )}
-    </section>
+    </Box>
   );
 }
 
