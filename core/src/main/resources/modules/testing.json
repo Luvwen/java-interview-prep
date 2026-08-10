@@ -1,0 +1,160 @@
+{
+  "id": "testing",
+  "title": "Testing",
+  "description": "Testing de software en Java: JUnit 5, asserts, ciclo TDD, mocks con Mockito y tests de integracion. Las empresas esperan que un desarrollador sepa escribir tests confiables.",
+  "topics": [
+    {
+      "id": "test-junit5",
+      "title": "JUnit 5 (Jupiter)",
+      "content": "JUnit 5 es el framework de testing estandar en Java. Se estructura en Jupiter (la API nueva), Vintage (para correr tests JUnit 4) y Platform (la base de lanzamiento). Un test es un metodo anotado con @Test dentro de una clase de test, y el resultado se valida con asserts de la clase Assertions: assertEquals, assertTrue, assertNotNull, assertThrows, entre otros.\n\nEl ciclo de vida se controla con anotaciones: @BeforeAll/@AfterAll (static, se ejecutan una vez por clase) y @BeforeEach/@AfterEach (antes y despues de cada test). Para verificar que un metodo lanza una excepcion se usa assertThrows con un lambda, y se debe comprobar ademas el tipo exacto de la excepcion.\n\nPara probar distintos valores de entrada existe la parametrizacion: @ParameterizedTest con @ValueSource, @CsvSource o @MethodSource, que ejecuta el mismo test varias veces con datos distintos. Esto evita duplicar codigo y documenta casos limite.\n\nLa convencion de nombres es importante: el metodo describe el comportamiento esperado, no el codigo probado. Tambien se recomienda que cada test sea independiente (no compartir estado) y que verifique UNA cosa a la vez para que los fallos sean diagnosticables.",
+      "examples": [
+        "assertEquals(4, calculadora.sumar(2, 2));",
+        "@Test void lanzaErrorSiMontoEsNegativo() { assertThrows(IllegalArgumentException.class, () -> cuenta.debitar(-1)); }",
+        "@BeforeEach void setUp() { cuenta = new Cuenta(); }",
+        "@ParameterizedTest\n@CsvSource({\"1,1,2\", \"2,3,5\"})\nvoid sumaCorrecta(int a, int b, int esperado) { assertEquals(esperado, a + b); }"
+      ]
+    },
+    {
+      "id": "test-tdd",
+      "title": "TDD: red, green, refactor",
+      "content": "Test-Driven Development (TDD) es una practica que invierte el orden habitual: se escribe primero el test que falla (red), despues el minimo codigo para que pase (green) y finalmente se mejora el codigo sin cambiar comportamiento (refactor). El ciclo se repite en pasos pequenos.\n\nLa idea fuerza es que el test es el diseno del comportamiento: obliga a pensar en la interfaz publica y en los casos limite antes de implementar. Tambien da una red de seguridad que permite refactorizar con confianza.\n\nLas tres reglas de TDD (Uncle Bob) resumen la practica: no escribir codigo de produccion sin un test que falle; no escribir mas de un test que falle a la vez; no escribir mas codigo del necesario para que el test pase.\n\nEn entrevistas puede preguntarse que ventajas aporta TDD (menos bugs, diseno mas limpio, refactors seguros) y que criticas recibe (costo inicial, dificil de aplicar sobre codigo legacy sin tests). Lo importante es demostrar que se entiende el ciclo y como escribir tests que guien la implementacion.",
+      "examples": [
+        "// 1. RED\n@Test void descuentoDelDiezPorciento() { assertEquals(90, precio.finalConDescuento(100)); }",
+        "// 2. GREEN\npublic int finalConDescuento(int precio) { return (int) (precio * 0.9); }",
+        "// 3. REFACTOR\npublic int finalConDescuento(int precio) { return Math.round(precio * DESCUENTO); }",
+        "// Ciclo repetido por cada caso: limite, borde, excepcion"
+      ]
+    },
+    {
+      "id": "test-mocks",
+      "title": "Mocks con Mockito",
+      "content": "Los tests unitarios prueban una unidad de codigo aislada. Cuando esa unidad depende de otras (repositorios, clientes HTTP, servicios externos), se sustituyen con dobles: mocks, stubs o spies. El framework mas usado en Java es Mockito.\n\nUn mock se crea con Mockito.mock() o con la anotacion @Mock (y @ExtendWith(MockitoExtension.class)). Para definir comportamiento se usa when(mock.metodo(args)).thenReturn(valor), y para verificar interacciones verify(mock).metodo(args). Una buena practica es usar ArgumentMatchers (any(), eq(...)) y nunca mockear lo que no hace falta.\n\nLa regla de oro: no verificar comportamiento de mocks en exceso (over-mocking hace tests fragiles); se verifican las interacciones que son parte del contrato (por ejemplo, que el servicio guardo el resultado).\n\nEn entrevistas se distingue mock (verifica interacciones) de stub (solo devuelve datos preparados). Mockito permite ambas. Tambien se pregunta que pasa cuando se llama un metodo de un mock sin definir: devuelve el default del tipo (null, 0, lista vacia), lo que causa fallos silenciosos si no se configura.",
+      "examples": [
+        "@ExtendWith(MockitoExtension.class)\nclass ServicioTest {\n  @Mock Repositorio repo;\n  @InjectMocks Servicio servicio;",
+        "when(repo.findById(1L)).thenReturn(Optional.of(cuenta));",
+        "verify(repo).save(any(Cuenta.class));",
+        "when(cliente.get(any())).thenThrow(new RuntimeException(\"timeout\")); // excepcion simulada"
+      ]
+    },
+    {
+      "id": "test-integration",
+      "title": "Tests unitarios vs de integracion",
+      "content": "Los tests unitarios prueban una clase de forma aislada con dobles, son rapidos y se ejecutan constantemente. Los tests de integracion prueban la colaboracion real entre componentes (base de datos, contexto de Spring, servicios HTTP) y validan que las piezas encajan.\n\nEn Spring Boot, los tests de integracion usan @SpringBootTest para levantar el contexto completo de la aplicacion, y @AutoConfigureMockMvc para probar los controllers a traves del DispatcherServlet con peticiones HTTP simuladas (MockMvc). Para no ensuciar una base real, se usan bases en memoria (H2), testcontainers o transacciones con @Transactional que se revierten.\n\nUna piramide de testing bien formada tiene muchos tests unitarios, menos de integracion y pocos end-to-end. La razon es costo y velocidad: los tests end-to-end son lentos y fragiles, asi que se reservan para flujos criticos.\n\nEn entrevistas es frecuente preguntar cuando conviene usar MockMvc (validar status, headers y cuerpo JSON de una API) y la diferencia con @WebMvcTest (corta el contexto a la capa web) o @DataJpaTest (solo la capa de persistencia).",
+      "examples": [
+        "@SpringBootTest\n@AutoConfigureMockMvc\nclass ApiTest {\n  @Autowired MockMvc mockMvc;",
+        "mockMvc.perform(get(\"/api/cuentas/1\"))\n  .andExpect(status().isOk())\n  .andExpect(jsonPath(\"$.saldo\").value(100));",
+        "@WebMvcTest(CuentaController.class) // solo la capa web",
+        "@DataJpaTest // solo repositorios + base en memoria"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "testing",
+    "questions": [
+      {
+        "id": "te-q1",
+        "text": "Cual es el ciclo del desarrollo dirigido por tests (TDD)?",
+        "options": [
+          "Refactor, green, red",
+          "Red, green, refactor",
+          "Green, red, refactor",
+          "Red, refactor, green"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "El ciclo TDD es red (test que falla), green (minimo codigo para que pase) y refactor (mejorar sin cambiar comportamiento).",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q2",
+        "text": "Que verifica la anotacion assertThrows de JUnit 5?",
+        "options": [
+          "Que un metodo retorne null",
+          "Que un metodo tarde menos de un umbral",
+          "Que el ejecutable lanza una excepcion del tipo indicado",
+          "Que una condicion sea true"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "assertThrows ejecuta el lambda y pasa si lanza una excepcion del tipo especificado.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q3",
+        "text": "En Mockito, que diferencia hay entre un mock y un stub?",
+        "options": [
+          "El mock verifica interacciones; el stub solo devuelve datos preparados",
+          "El stub se usa solo en Spring",
+          "Son exactamente lo mismo",
+          "El mock no puede devolver valores"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "El stub prepara respuestas para aislar la prueba; el mock ademas permite verificar que las interacciones ocurrieron.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q4",
+        "text": "Que anotaciones de JUnit 5 se ejecutan una sola vez por clase?",
+        "options": [
+          "@BeforeEach y @AfterEach",
+          "@BeforeAll y @AfterAll",
+          "@Test y @ParameterizedTest",
+          "@Disabled y @Timeout"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "@BeforeAll y @AfterAll son static y corren una vez por clase; @BeforeEach/@AfterEach corren por cada test.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q5",
+        "text": "En JUnit 5, @BeforeAll se ejecuta una sola vez antes de todos los tests de la clase.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: @BeforeAll es un metodo static que corre una unica vez al inicio de la clase de test.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "te-q6",
+        "text": "Un test que siempre pasa sin importar el codigo probado es una buena practica de testing.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: un test que no puede fallar no verifica nada. Los tests deben probar comportamiento real y fallar si este se rompe.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "tst-q6",
+        "text": "Ordena las fases del TDD:",
+        "options": [
+          "Refactorizar",
+          "Escribir test que falle",
+          "Escribir codigo que pase",
+          "Verificar test"
+        ],
+        "correctIndexes": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "explanation": "Primero el test que falle, luego codigo que pase, verificar y refactorizar.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

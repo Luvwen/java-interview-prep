@@ -1,0 +1,155 @@
+{
+  "id": "jvm",
+  "title": "JVM y memoria",
+  "description": "Como funciona la maquina virtual de Java: areas de memoria, garbage collector, classloader y tipos de referencia. Preguntas frecuentes para senior y arquitectos.",
+  "topics": [
+    {
+      "id": "jvm-memory-areas",
+      "title": "Stack vs Heap",
+      "content": "La JVM divide la memoria en dos areas principales. El stack (pila) es por hilo: guarda las variables locales, los parametros y las referencias, y cada llamada a metodo empuja un frame. Crecer el stack hacia abajo produce StackOverflowError (tipico con recursion infinita).\n\nEl heap es compartido por todos los hilos: guarda los objetos y arreglos creados con new. Es la memoria que administra el garbage collector y donde se generan los OutOfMemoryError cuando se agota.\n\nAdemas existen el Metaspace (metadatos de clases, antes PermGen), el area de codigo compilado (JIT) y las constantes. Una variable primitiva local vive en el stack; un objeto vive en el heap y solo su referencia viaja en el stack.\n\nPregunta clasica: 'donde viven los objetos?'. Los objetos y arreglos viven en el heap; las variables locales primitivas y las referencias viven en el stack; el estado static vive en el Metaspace (los objetos referenciados, en el heap).",
+      "examples": [
+        "// en stack: int i = 5; String ref;\n// en heap: new String(\"x\"), el objeto Persona creado con new",
+        "// StackOverflowError por recursion infinita: metodo() -> metodo() -> ..."
+      ]
+    },
+    {
+      "id": "jvm-gc",
+      "title": "Garbage collector",
+      "content": "El garbage collector libera automaticamente la memoria de los objetos que ya no son alcanzables desde las raices (GC roots: hilos, variables static, stack, registros). El programador no debe (ni puede de forma fiable) forzar el GC: System.gc() solo sugiere, no garantiza.\n\nEl GC generacional se basa en que la mayoria de los objetos mueren jovenes. Divide el heap en jovenes (Young: Eden + Survivors S0/S1) y viejos (Old). Los objetos que sobreviven suficientes ciclos se promueven a Old. Los algoritmos modernos son: G1 (default desde Java 9, regiones con pausas acotadas), ZGC (pausas muy bajas, Java 15+) y Shenandoah.\n\nLos fallos: OutOfMemoryError con 'Java heap space' indica heap lleno; con 'GC overhead limit exceeded', que el GC gasto casi todo el tiempo sin liberar. Se configuran con -Xmx (tamano maximo del heap) y -Xms (inicial).\n\nLas fugas de memoria (memory leaks) en Java existen aunque haya GC: colecciones estaticas que crecen sin limite, listeners no desregistrados, claves en HashMap sin remover, o la clase ClassLoader que retiene la clase. Herramientas como el heap dump y visualvm ayudan a diagnosticarlas.",
+      "examples": [
+        "// -Xmx512m -Xms256m",
+        "// Fuga tipica: Map estatico donde se agrega pero nunca se remueve"
+      ]
+    },
+    {
+      "id": "jvm-classloader",
+      "title": "Classloader y ejecucion",
+      "content": "Un classloader carga las clases .class en la JVM bajo demanda. La jerarquia clasica es parent-first: Bootstrap (nucleo, rt), Platform (modulos JDK) y App (classpath de la aplicacion). Cada clase conoce su loader; la igualdad de clases exige mismo nombre Y mismo loader.\n\nEl flujo de ejecucion de un programa: el compilador (javac) genera bytecode .class; la JVM lo valida y el JIT lo compila a codigo nativo en caliente (HotSpot). Tambien existe la interpretacion como fase inicial. La JVM lee el main, carga la clase, inicializa los static y ejecuta.\n\nJava 21 introduce los virtual threads y mejoras del runtime. El orden de carga y el parent-first delegation se preguntan en entrevistas de nivel senior, junto con problemas de 'classpath hell' por versiones duplicadas de la misma clase.\n\nLa compilacion a bytecode explica por que Java es portable: el bytecode se ejecuta en cualquier JVM (Write Once, Run Anywhere). Y por que la reflexion, la instrumentacion y las herramientas de profiling funcionan sobre las clases cargadas.",
+      "examples": [
+        "java -jar app.jar // la JVM carga Main, inicializa, ejecuta main()",
+        "Class.forName(\"com.ejemplo.MiClase\") // carga explicita bajo demanda"
+      ]
+    },
+    {
+      "id": "jvm-references",
+      "title": "Tipos de referencia",
+      "content": "Java ofrece cuatro tipos de referencia en el paquete java.lang.ref: Fuerte (strong), Debil (WeakReference), Suave (SoftReference) y Fantasma (PhantomReference). Una referencia fuerte impide la recoleccion mientras sea alcanzable.\n\nWeakReference no impide que el objeto sea recolectado; la clase WeakHashMap usa este mecanismo: sus claves se recolectan si no hay referencias fuertes fuera del mapa. Se usa para caches y para evitar fugas en mapas.\n\nSoftReference se recolecta solo cuando la JVM necesita memoria (antes de OutOfMemoryError), util para caches grandes de datos costosos de reconstruir. PhantomReference permite acciones posteriores a la recoleccion, junto con ReferenceQueue.\n\nPregunta tipica: 'diferencia entre weak y soft?'. Weak se recolecta en el proximo ciclo GC; Soft solo cuando la memoria escasea. La eleccion depende de si se prefiere frescura (weak) o retencion mientras alcance la memoria (soft).",
+      "examples": [
+        "WeakReference<String> ref = new WeakReference<>(new String(\"x\"));",
+        "WeakHashMap<String, byte[]> cache = new WeakHashMap<>();",
+        "SoftReference<Imagen> img = new SoftReference<>(cargarImagen());"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "jvm",
+    "questions": [
+      {
+        "id": "jvm-q1",
+        "text": "Donde vive un objeto creado con new?",
+        "options": [
+          "En el stack",
+          "En el heap",
+          "En el Metaspace",
+          "En el registro de la CPU"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Los objetos y arreglos creados con new viven en el heap, compartido por todos los hilos.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "jvm-q2",
+        "text": "Que hace System.gc()?",
+        "options": [
+          "Garantiza la ejecucion inmediata del GC",
+          "Sugiere a la JVM ejecutar el GC, sin garantia",
+          "Borra todos los objetos del heap",
+          "Detiene la JVM"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "System.gc() es una sugerencia; la JVM decide si y cuando ejecutar el garbage collector.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "jvm-q3",
+        "text": "Cuales afirmaciones sobre tipos de referencia son correctas?",
+        "options": [
+          "WeakReference no impide la recoleccion del objeto",
+          "SoftReference se recolecta solo cuando la memoria escasea",
+          "Una referencia fuerte siempre impide la recoleccion mientras sea alcanzable",
+          "PhantomReference mantiene el objeto vivo para siempre"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Weak no impide la recoleccion, Soft la evita solo si hay memoria, y la referencia fuerte impide la recoleccion mientras sea alcanzable. PhantomReference se usa para acciones posteriores, no mantiene vivo el objeto.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "jvm-q4",
+        "text": "Que error indica recursion infinita o stack agotado?",
+        "options": [
+          "OutOfMemoryError: Java heap space",
+          "StackOverflowError",
+          "ClassNotFoundException",
+          "IllegalStateException"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "StackOverflowError se produce cuando el stack de un hilo se agota, tipicamente por recursion sin condicion de corte.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "jvm-q5",
+        "text": "El garbage collector libera los objetos del heap que ya no tienen referencias alcanzables.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: los objetos inalcanzables son candidatos a ser recolectados; la referencia fuerte impide la recoleccion mientras exista.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "jvm-q6",
+        "text": "OutOfMemoryError es una excepcion checked que debe declararse en el throws del metodo.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: OutOfMemoryError es un Error (subclase de Throwable), no una excepcion checked ni runtime; no se debe declarar ni capturar.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "jvm-q6",
+        "text": "Ordena las areas de memoria de la JVM segun su ciclo de vida:",
+        "options": [
+          "Stack (por metodo)",
+          "Heap (objetos)",
+          "Method Area (clases)",
+          "PC Register (por hilo)"
+        ],
+        "correctIndexes": [
+          0,
+          3,
+          2,
+          1
+        ],
+        "explanation": "Stack y PC Register son por hilo (corto), Method Area es por clase, Heap vive durante toda la ejecucion.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

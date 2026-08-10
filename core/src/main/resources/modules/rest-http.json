@@ -1,0 +1,162 @@
+{
+  "id": "rest-http",
+  "title": "REST y HTTP",
+  "description": "El protocolo HTTP, los principios de diseno REST, verbos y codigos de estado, JSON y buenas practicas para construir APIs. Fundamentos para cualquier entrevista de backend.",
+  "topics": [
+    {
+      "id": "http-basics",
+      "title": "HTTP: peticiones y respuestas",
+      "content": "HTTP es un protocolo de peticion/respuesta sin estado sobre TCP. Una peticion tiene metodo, URL, cabeceras y opcionalmente cuerpo; una respuesta tiene codigo de estado, cabeceras y cuerpo.\n\nLos metodos mas importantes: GET (leer, sin efectos secundarios, no debe llevar cuerpo), POST (crear o enviar datos), PUT (reemplazar un recurso completo), PATCH (modificacion parcial) y DELETE (eliminar). GET, PUT y DELETE son idempotentes: repetirlos produce el mismo resultado; POST no lo es.\n\nLas cabeceras clave: Content-Type (formato del cuerpo, p. ej. application/json), Accept (formato que el cliente acepta), Authorization (credenciales) y Cache-Control (politicas de cache).\n\nEl protocolo es sin estado (stateless): cada peticion es independiente y el servidor no recuerda interacciones previas; la sesion, si existe, se maneja con tokens o cookies. Esta propiedad es central en diseno REST y en la escala horizontal de servidores.",
+      "examples": [
+        "GET /api/cuentas/1 HTTP/1.1\nAccept: application/json",
+        "POST /api/cuentas HTTP/1.1\nContent-Type: application/json\n\n{\"nombre\": \"Ana\"}",
+        "PUT /api/cuentas/1   -> reemplaza el recurso completo (idempotente)",
+        "PATCH /api/cuentas/1  -> modifica solo algunos campos"
+      ]
+    },
+    {
+      "id": "http-status",
+      "title": "Codigos de estado",
+      "content": "Los codigos de estado resumen el resultado de una peticion en cinco familias. La 1xx son informativas, la 2xx exito, la 3xx redirecciones, la 4xx errores del cliente y la 5xx errores del servidor.\n\nLos mas usados: 200 OK (exito generico), 201 Created (recurso creado, suele incluir Location), 204 No Content (exito sin cuerpo), 400 Bad Request (peticion mal formada), 401 Unauthorized (sin autenticacion), 403 Forbidden (autenticado sin permisos), 404 Not Found (recurso inexistente), 409 Conflict (estado incompatible), 422 Unprocessable Entity (validacion de negocio fallida) y 500 Internal Server Error.\n\nEs importante distinguir 401 de 403 (autenticacion vs autorizacion) y 400 de 422 (sintaxis vs semantica de negocio). Elegir el codigo correcto hace la API expresiva y es una pregunta frecuente en entrevistas.\n\nTambien se usa 301 (movido permanentemente) y 304 (no modificado, para cache). Los codigos 5xx nunca deben usarse para errores esperables del cliente, y un 500 siempre debe loguearse en el servidor.",
+      "examples": [
+        "201 Created -> creacion exitosa de un recurso",
+        "204 No Content -> operacion exitosa sin cuerpo (p. ej. DELETE)",
+        "401 Unauthorized -> falta autenticacion; 403 Forbidden -> falta autorizacion",
+        "404 Not Found -> recurso inexistente"
+      ]
+    },
+    {
+      "id": "rest-design",
+      "title": "Diseno de APIs REST",
+      "content": "REST (Representational State Transfer) es un estilo arquitectonico que trata los datos como recursos identificados por URLs, manipulados con los verbos HTTP y representados en JSON (o XML). Las APIs bien disenadas son predecibles y faciles de consumir.\n\nBuenas practicas: recursos en plural y en sustantivos (/api/cuentas, /api/cuentas/1), verbos HTTP para las operaciones (no /api/crearCuenta), anidacion limitada (/api/cuentas/1/transacciones), versionado (/api/v1/...), paginacion para listas (page, size) y filtros via query params.\n\nEl principio de uniformidad dice que el mismo verbo significa lo mismo en toda la API. Ademas, una API REST es sin estado: cada peticion lleva toda la informacion que necesita. La relacion entre recursos se expone con identificadores (hypermedia/HATEOAS es un nivel avanzado).\n\nErrores comunes en entrevistas: diseñar una API basada en acciones ('/api/enviarEmail'), no usar el codigo HTTP adecuado, devolver siempre 200 con un flag de error en el cuerpo, o exponer detalles internos del servidor en los mensajes de error.",
+      "examples": [
+        "GET /api/cuentas?page=2&size=20          -> lista paginada",
+        "POST /api/cuentas                         -> crea (201 Created)",
+        "GET /api/cuentas/1/transacciones         -> recursos anidados",
+        "DELETE /api/cuentas/1                     -> elimina (204 No Content)"
+      ]
+    },
+    {
+      "id": "rest-json",
+      "title": "JSON y serializacion",
+      "content": "JSON (JavaScript Object Notation) es el formato de intercambio por defecto de las APIs. Es texto con dos estructuras: objetos (pares clave/valor) y arreglos. En Java se serializa y deserializa con Jackson (u otra libreria) hacia/desde DTOs o records.\n\nUn DTO (Data Transfer Object) es la forma de representar un recurso en la API: se separa del modelo de dominio para no exponer campos internos (como passwords o detalles de persistencia) ni acoplar la API a la estructura interna. Los records de Java son ideales para esto.\n\nBuenas practicas: nombres de campos en camelCase o snake_case (consistente), no exponer campos que el cliente no necesita, usar tipos correctos (numeros como numeros, no strings), fechas en ISO 8601 y mensajes de error con estructura uniforme.\n\nEn entrevistas suele preguntarse como se maneja la serializacion de null (omision vs null explicito), como se configuran nombres alternativos con Jackson (@JsonProperty) y por que los records simplifican el contrato. El ciclo completo: peticion JSON -> DTO -> servicio -> DTO -> respuesta JSON.",
+      "examples": [
+        "{\n  \"id\": 1,\n  \"nombre\": \"Ana\",\n  \"saldo\": 1250.50,\n  \"activa\": true\n}",
+        "record CuentaDto(Long id, String nombre, double saldo, boolean activa) { }",
+        "@JsonProperty(\"customer_id\")\nprivate Long customerId;",
+        "// Error estandar\n{\"status\": 404, \"message\": \"Cuenta no encontrada\"}"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "rest-http",
+    "questions": [
+      {
+        "id": "rh-q1",
+        "text": "Cual de los siguientes metodos HTTP es idempotente?",
+        "options": [
+          "POST",
+          "PATCH",
+          "DELETE",
+          "Ninguno"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "DELETE es idempotente: repetirlo produce el mismo resultado (el recurso ya no existe). POST no lo es.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q2",
+        "text": "Que codigo HTTP indica que el cliente esta autenticado pero no tiene permisos para el recurso?",
+        "options": [
+          "401 Unauthorized",
+          "403 Forbidden",
+          "400 Bad Request",
+          "409 Conflict"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "403 Forbidden indica autorizacion insuficiente; 401 indica que falta autenticacion.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q3",
+        "text": "Cuales son buenas practicas al disenar una API REST?",
+        "options": [
+          "Recursos en plural y sustantivos",
+          "Usar verbos HTTP para las operaciones",
+          "Versionar la API",
+          "Poner acciones en la URL como /api/enviarEmail"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "REST usa recursos en sustantivos y verbos HTTP; versionar es buena practica. Las acciones en la URL son una anti-practica.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "rh-q4",
+        "text": "Que codigo es el adecuado tras crear correctamente un recurso?",
+        "options": [
+          "200 OK",
+          "201 Created",
+          "204 No Content",
+          "202 Accepted"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "201 Created es el codigo estandar para una creacion exitosa.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q5",
+        "text": "GET es un metodo HTTP seguro e idempotente.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: GET no modifica el estado del servidor (seguro) y repetirlo produce el mismo resultado (idempotente).",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "rh-q6",
+        "text": "201 Created es el codigo correcto para actualizar un recurso existente.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: 201 se usa para la creacion de recursos; para actualizar se usa 200 OK (o 204 No Content).",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "rest-q6",
+        "text": "Ordena los verbos HTTP de menos a mas persistente:",
+        "options": [
+          "GET",
+          "POST",
+          "PUT",
+          "DELETE"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "GET (lectura), POST (creacion), PUT (actualizacion), DELETE (eliminacion).",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

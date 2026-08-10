@@ -1,0 +1,157 @@
+{
+  "id": "collections",
+  "title": "Colecciones",
+  "description": "El framework de colecciones: List, Set, Map, Queue, el contrato equals/hashCode y la inmutabilidad. Tema central de las pruebas tecnicas de Java.",
+  "topics": [
+    {
+      "id": "collections-hierarchy",
+      "title": "Jerarquia del framework",
+      "content": "El framework de colecciones tiene dos ramas: Collection e Iterable, y Map. Collection agrupa a List, Set y Queue. Map no hereda de Collection: maneja pares clave-valor.\n\nList es una secuencia ordenada que admite duplicados; sus implementaciones tipicas son ArrayList (basada en arreglo, acceso O(1) por indice, insercion O(n) en el medio) y LinkedList (doble enlace, insercion/eliminacion rapida en los extremos, acceso O(n)).\n\nSet no admite duplicados y no garantiza orden: HashSet (tabla hash, O(1) promedio, sin orden), LinkedHashSet (preserva orden de insercion) y TreeSet (orden natural o por Comparator, O(log n)).\n\nQueue modela una cola FIFO y su subinterfaz Deque modela doble extremo; ArrayDeque y LinkedList las implementan. Map guarda pares clave-valor: HashMap (sin orden), LinkedHashMap (orden de insercion) y TreeMap (claves ordenadas).\n\nEn entrevistas se valora poder comparar ArrayList vs LinkedList y HashMap vs TreeMap en terminos de complejidad y orden.",
+      "examples": [
+        "List<String> list = new ArrayList<>();",
+        "Set<String> set = new HashSet<>();",
+        "Map<String, Integer> map = new HashMap<>();",
+        "Queue<String> queue = new ArrayDeque<>();"
+      ]
+    },
+    {
+      "id": "collections-equals",
+      "title": "equals y hashCode",
+      "content": "HashSet, HashMap y las demas estructuras basadas en hash usan hashCode para encontrar el bucket y equals para confirmar igualdad. El contrato es: si dos objetos son iguales por equals, deben tener el mismo hashCode. Si se viola, el objeto 'desaparece' de la coleccion: se guarda en un bucket que luego no se encuentra.\n\nLas reglas de equals: reflexivo, simetrico, transitivo, consistente y no nulo (equals(null) es false). La regla de hashCode: consistente con equals mientras el objeto no cambie, y objetos iguales producen el mismo hashCode. Objetos distintos pueden tener el mismo hashCode (colision).\n\nSi una clase sobrescribe equals y no hashCode (o viceversa), se rompe el contrato. La forma segura de implementar ambos es usar los metodos de la libreria estandar, por ejemplo Objects.equals para equals y Objects.hash para hashCode, o el metodo Objects.hashCode. Los records generan equals y hashCode correctos automaticamente.\n\nUn detalle importante: si se usa un objeto mutable como clave de un HashMap y se modifica su hashCode despues de insertarlo, la clave queda perdida. Por eso las claves deben ser inmutables.",
+      "examples": [
+        "@Override public int hashCode() { return Objects.hash(id, nombre); }",
+        "@Override public boolean equals(Object o) { if (this == o) return true; if (!(o instanceof Persona p)) return false; return id == p.id && Objects.equals(nombre, p.nombre); }"
+      ]
+    },
+    {
+      "id": "collections-immutability",
+      "title": "Inmutabilidad",
+      "content": "Java ofrece formas de crear colecciones inmutables: List.of, Set.of y Map.of (desde Java 9), que lanzan UnsupportedOperationException si se intenta modificar. Tambien existe Collections.unmodifiableList que devuelve una vista inmutable de una lista mutable: es solo lectura, no una copia.\n\nLa diferencia clave: List.of crea una copia inmutable verdadera, mientras que Collections.unmodifiableList envuelve la lista original; si la lista original se modifica, la vista tambien cambia. Si se quiere una copia defensiva, conviene copiar: List.copyOf.\n\nLa inmutabilidad protege el estado y hace el codigo mas seguro en contextos concurrentes, porque un objeto que no cambia no tiene race conditions de lectura. Por eso se recomienda devolver copias inmutables al exponer colecciones internas.\n\nEl metodo stream() y el operador toList() del Stream API tambien producen listas inmutables desde Java 16. En entrevistas, saber explicar cuando se lanza UnsupportedOperationException demuestra manejo del framework.",
+      "examples": [
+        "List<String> fija = List.of(\"a\", \"b\"); // fija.add() lanza UnsupportedOperationException",
+        "List<String> vista = Collections.unmodifiableList(original);",
+        "List<String> copia = List.copyOf(original);"
+      ]
+    },
+    {
+      "id": "collections-operations",
+      "title": "Operaciones tipicas y complejidad",
+      "content": "Dominar la complejidad de las operaciones ayuda a elegir la estructura correcta. ArrayList: get/contains/set O(n) en promedio (get por indice O(1)), add al final amortizado O(1), add en el medio O(n). LinkedList: get O(n), add al inicio/fin O(1). HashMap: put/get/containsKey O(1) promedio, O(n) en el peor caso con muchas colisiones (rebalancea a arboles en Java 8+). TreeMap: O(log n).\n\nPara eliminar elementos mientras se itera, usar iterator.remove() o removeIf de Collection; usar list.remove dentro de un for-each lanza ConcurrentModificationException, porque el iterador detecta modificaciones estructurales mediante el contador modCount.\n\nLa interfaz Collection ofrece utilidades: contains, removeAll, retainAll, size, isEmpty. El metodo removeIf acepta un Predicate. El metodo sort de List acepta un Comparator o el orden natural con Comparable.\n\nLas estructuras de Map ofrecen computeIfAbsent, merge y forEach, muy usados en problemas reales y presentes en ejercicios clasicos de conteo y agrupacion.",
+      "examples": [
+        "list.removeIf(s -> s.length() < 3);",
+        "map.computeIfAbsent(key, k -> new ArrayList<>()).add(valor);",
+        "map.merge(key, 1, Integer::sum);"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "collections",
+    "questions": [
+      {
+        "id": "col-q1",
+        "text": "Cual es la complejidad promedio de get por clave en un HashMap?",
+        "options": [
+          "O(1)",
+          "O(log n)",
+          "O(n)",
+          "O(n log n)"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "HashMap ofrece acceso O(1) promedio; en el peor caso con muchas colisiones puede degradarse a O(n).",
+        "type": "SINGLE"
+      },
+      {
+        "id": "col-q2",
+        "text": "Que ocurre si sobrescribo equals pero no hashCode en una clase usada como clave de HashMap?",
+        "options": [
+          "Funciona igual, hashCode no importa",
+          "Puede romperse la busqueda: el objeto se guarda en un bucket que no se vuelve a encontrar",
+          "Error de compilacion",
+          "La JVM genera el hashCode automaticamente siempre"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Si equals es true pero hashCode difiere, la clave se busca en otro bucket y no se encuentra: se viola el contrato.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "col-q3",
+        "text": "Cual es la diferencia entre List.of(...) y Collections.unmodifiableList(original)?",
+        "options": [
+          "Son identicos",
+          "List.of crea una copia inmutable; unmodifiableList es una vista de solo lectura de la lista original",
+          "unmodifiableList crea una copia y List.of una vista",
+          "Ambos permiten modificar si se usa reflection"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "unmodifiableList es una vista: si la lista original cambia, la vista cambia. List.of es una copia inmutable real.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "col-q4",
+        "text": "Cuales implementaciones preservan orden?",
+        "options": [
+          "ArrayList y LinkedHashMap",
+          "HashSet",
+          "TreeSet",
+          "ArrayDeque"
+        ],
+        "correctIndexes": [
+          0,
+          2
+        ],
+        "explanation": "ArrayList preserva orden de insercion; TreeSet mantiene orden natural/por comparador; LinkedHashMap tambien preserva insercion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "col-q5",
+        "text": "HashMap permite una clave null y multiples valores null.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: HashMap admite una unica clave null y cualquier cantidad de valores null. Hashtable, en cambio, no permite null.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "col-q6",
+        "text": "Todas las operaciones de ArrayList tienen complejidad O(1).",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: el acceso por indice es O(1), pero insertar o eliminar en el medio requiere desplazar elementos (O(n)).",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "col-q6",
+        "text": "Ordena estas colecciones de la mas simple a la mas compleja en terminos de interfaz:",
+        "options": [
+          "Set",
+          "List",
+          "Map",
+          "Queue"
+        ],
+        "correctIndexes": [
+          1,
+          0,
+          3,
+          2
+        ],
+        "explanation": "List es la mas basica, luego Set, Queue y Map.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

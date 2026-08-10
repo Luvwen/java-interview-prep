@@ -1,0 +1,169 @@
+{
+  "id": "core-java",
+  "title": "Core Java",
+  "description": "Fundamentos del lenguaje: tipos, referencias, modificadores, control de flujo y manejo de excepciones. Es la base sobre la que se apoyan todos los demas modulos.",
+  "topics": [
+    {
+      "id": "core-primitives",
+      "title": "Tipos primitivos y envoltorios",
+      "content": "Java tiene 8 tipos primitivos: byte, short, int, long, float, double, char y boolean. Los primitivos se almacenan por valor directamente en la variable, no como objetos. La JVM usa 32 bits para un int y 64 bits para un long, mientras que float y double siguen el estandar IEEE 754.\n\nCada tipo primitivo tiene una clase envoltorio (wrapper): Byte, Short, Integer, Long, Float, Double, Character y Boolean. Los wrappers son objetos inmutables que se usan cuando se necesita un objeto (por ejemplo, dentro de una coleccion como List<Integer>) y ofrecen metodos de utilidad como Integer.parseInt. Java realiza autoboxing y unboxing de forma automatica al convertir entre primitivo y wrapper.\n\nUn detalle que se pregunta mucho en entrevistas: para valores enteros entre -128 y 127, Integer.valueOf devuelve instancias cacheadas, por lo que dos Integer con el mismo valor dentro de ese rango comparados con == dan true; fuera del rango, == compara referencias y da false. La regla general es comparar wrappers con equals, nunca con ==.\n\nEl operador == sobre primitivos compara valores; sobre objetos compara referencias (si apuntan al mismo objeto). Esta distincion es causa frecuente de errores y de preguntas en procesos de seleccion.",
+      "examples": [
+        "int max = Integer.MAX_VALUE;",
+        "List<Integer> nums = List.of(1, 2, 3);",
+        "Integer a = 127; Integer b = 127; // a == b es true (cache)",
+        "Integer c = 200; Integer d = 200; // c == d es false; usar c.equals(d)"
+      ]
+    },
+    {
+      "id": "core-references",
+      "title": "Valores vs referencias",
+      "content": "En Java, los argumentos siempre se pasan por valor. Para tipos primitivos se copia el valor; para objetos se copia la referencia, no el objeto. Esto significa que dentro de un metodo no se puede reasignar la variable del llamador, pero si se pueden mutar los campos del objeto apuntado.\n\nEste concepto suele confundirse con 'pasar por referencia'. La pregunta tipica de entrevista: 'como se pasan los parametros en Java?' La respuesta correcta es: siempre por valor, y en el caso de objetos el valor es la referencia al objeto.\n\nEl operador new reserva memoria en el heap y devuelve la referencia. Las variables locales que guardan referencias viven en el stack, pero los objetos a los que apuntan viven en el heap y los administra el garbage collector.",
+      "examples": [
+        "void cambiar(StringBuilder sb) { sb.append('X'); } // muta el objeto",
+        "void reasignar(StringBuilder sb) { sb = new StringBuilder(); } // no afecta al llamador",
+        "String s1 = new String(\"a\"); String s2 = new String(\"a\"); // s1 == s2 es false"
+      ]
+    },
+    {
+      "id": "core-modifiers",
+      "title": "Modificadores de acceso",
+      "content": "Java define cuatro niveles de acceso: public (visible desde cualquier clase), protected (visible en el mismo paquete y en subclases), package-private o default (sin modificador, visible solo en el mismo paquete) y private (visible solo dentro de la clase).\n\nLa visibilidad protege la encapsulacion: los campos de una clase se declaran private y se exponen mediante metodos getter y setter, o mejor, mediante comportamiento. Un error clasico en entrevistas es creer que protected permite acceso desde cualquier clase del mismo paquete y desde subclases en otros paquetes (eso es correcto) pero olvidar que ademas aplica dentro del mismo paquete.\n\nOtros modificadores: static (pertenece a la clase, no a la instancia), final (no reasignable en variables, no heredable en clases, no sobrescribible en metodos), abstract (clase o metodo sin implementacion) y transient/volatile/synchronized (tema del modulo de concurrencia).",
+      "examples": [
+        "public class Cuenta { private double saldo; public double getSaldo() { return saldo; } }",
+        "protected void helper() { } // visible en paquete y en subclases",
+        "public static final int MAX = 10; // constante de clase"
+      ]
+    },
+    {
+      "id": "core-flow",
+      "title": "Control de flujo",
+      "content": "Java soporta if/else, switch, while, do-while, for y for-each. Desde Java 14, el switch puede usarse como expresion con sintaxis de flecha (->), sin necesidad de break, y devolver un valor. Tambien existe el pattern matching para instanceof que combina comprobacion de tipo con declaracion de variable.\n\nEl for-each (enhanced for) itera sobre arreglos y sobre cualquier objeto que implemente Iterable, como las colecciones. Para modificar una coleccion mientras se itera hay que usar un Iterator con su metodo remove, o streams.\n\nUn detalle importante: en un switch clasico con case apilados, si falta el break, la ejecucion 'cae' (fall-through) al siguiente case. La sintaxis de flecha elimina este riesgo, por lo que es la recomendada en codigo nuevo.",
+      "examples": [
+        "String dia = switch (num) { case 1 -> \"lunes\"; default -> \"otro\"; };",
+        "if (obj instanceof String s) { System.out.println(s.toUpperCase()); }",
+        "for (String item : lista) { System.out.println(item); }"
+      ]
+    },
+    {
+      "id": "core-exceptions",
+      "title": "Excepciones",
+      "content": "Las excepciones en Java forman una jerarquia: Throwable es la raiz, con dos ramas: Error (problemas graves de la JVM, como OutOfMemoryError, que no se deben capturar) y Exception. Dentro de Exception estan las checked exceptions (la compilacion obliga a declararlas o capturarlas) y RuntimeException (unchecked, no obliga, cubren errores de programacion como NullPointerException o IllegalArgumentException).\n\nLa regla de oro: usar checked exceptions para condiciones recuperables y esperables, y unchecked para errores de programacion. En la practica moderna, muchas API prefieren excepciones unchecked.\n\nEl bloque try-with-resources cierra automaticamente recursos que implementan AutoCloseable, evitando fugas y eliminando la necesidad de finally para cerrar archivos, conexiones o streams. Cada recurso se cierra en orden inverso al de declaracion.\n\nSolo se debe capturar una excepcion si se puede hacer algo util con ella. Capturar Exception generico o peor aun, excepciones y seguir de largo, escribe deuda tecnica. Si se re-lanza, se usa throw y se puede usar la sintaxis de multi-catch con la barra (|).",
+      "examples": [
+        "try (BufferedReader br = new BufferedReader(new FileReader(\"f.txt\"))) { br.readLine(); }",
+        "try { metodoQueLanza(); } catch (IOException | SQLException e) { log(e); }",
+        "if (monto <= 0) { throw new IllegalArgumentException(\"Monto invalido\"); }"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "core-java",
+    "questions": [
+      {
+        "id": "cj-q1",
+        "text": "En Java, los parametros de tipo objeto en un metodo se pasan...",
+        "options": [
+          "por referencia, por lo que se puede reasignar la variable del llamador",
+          "por valor: se copia la referencia al objeto",
+          "por valor: se copia el objeto completo",
+          "depende del modificador del metodo"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Todos los parametros se pasan por valor. En objetos, el valor es la referencia; por eso se puede mutar el objeto pero no reasignar la variable del llamador.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q2",
+        "text": "Que retorna la comparacion Integer a = 127; Integer b = 127; a == b?",
+        "options": [
+          "true, por el cache de Integer entre -128 y 127",
+          "false, porque == siempre compara referencias",
+          "true, porque Integer compara por valor con ==",
+          "Error de compilacion"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Integer.valueOf cachea los valores entre -128 y 127, por lo que ambas variables apuntan a la misma instancia y == da true.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q3",
+        "text": "Cuales de los siguientes son modificadores de acceso en Java?",
+        "options": [
+          "public",
+          "private",
+          "static",
+          "protected"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          3
+        ],
+        "explanation": "Los modificadores de acceso son public, protected, package-private (default) y private. static es un modificador de otra categoria.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "cj-q4",
+        "text": "Cual es el comportamiento correcto ante un Error (como OutOfMemoryError)?",
+        "options": [
+          "Capturarlo siempre para que el programa no termine",
+          "No capturarlo: son problemas graves de la JVM",
+          "Declararlo en el throws del metodo",
+          "Convertirlo a RuntimeException"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Los Error representan condiciones graves no recuperables de la JVM y no se deben capturar.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q5",
+        "text": "En Java, todos los parametros de un metodo se pasan por valor.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Correcto: los parametros siempre se pasan por valor. En el caso de objetos, el valor es la referencia al objeto, lo que permite mutarlo pero no reasignar la variable del llamador.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cj-q6",
+        "text": "Integer a = 200; Integer b = 200; la expresion a == b siempre evalua a true.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: el cache de Integer.valueOf cubre de -128 a 127. Para 200, == compara referencias y da false; se debe usar equals.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cj-q7",
+        "text": "Ordena los tipos primitivos de menor a mayor tamano en memoria:",
+        "options": [
+          "byte (1 byte)",
+          "short (2 bytes)",
+          "int (4 bytes)",
+          "long (8 bytes)"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "byte=1, short=2, int=4, long=8 bytes.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

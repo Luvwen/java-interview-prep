@@ -1,0 +1,156 @@
+{
+  "id": "streams",
+  "title": "Streams y lambdas",
+  "description": "Programacion funcional en Java: lambdas, interfaces funcionales, Optional y el Stream API. Muy presente en entrevistas modernas y en codigo real.",
+  "topics": [
+    {
+      "id": "streams-lambdas",
+      "title": "Lambdas e interfaces funcionales",
+      "content": "Una lambda es una funcion anonima: (parametros) -> cuerpo. Es una forma concisa de implementar una interfaz funcional, que es una interfaz con un unico metodo abstracto (SAM, Single Abstract Method). Puede tener metodos default y static adicionales.\n\nLas interfaces funcionales mas usadas estan en java.util.function: Predicate<T> (boolean test(T)), Function<T,R> (R apply(T)), Consumer<T> (void accept(T)), Supplier<T> (T get()) y BiFunction<T,U,R>. Tambien las versiones con primitivos como IntPredicate para evitar autoboxing.\n\n@FunctionalInterface es una anotacion opcional que hace que el compilador verifique que la interfaz tiene un unico metodo abstracto. Usarla en interfaces propias evita romper el contrato por accidente.\n\nUna lambda captura variables locales efectivamente finales (effectively final): no pueden cambiar despues de su inicializacion. Intentar modificar una variable capturada dentro de una lambda es un error de compilacion.",
+      "examples": [
+        "Predicate<String> largo = s -> s.length() > 5;",
+        "Function<Integer, String> toString = Object::toString; // method reference",
+        "@FunctionalInterface interface Validador { boolean validar(String v); }"
+      ]
+    },
+    {
+      "id": "streams-pipeline",
+      "title": "Operaciones de pipeline",
+      "content": "Un Stream es una secuencia de elementos que se procesa con operaciones encadenadas: operaciones intermedias (lazy, devuelven un nuevo stream) y una operacion terminal (eager, produce el resultado y cierra el stream). Sin operacion terminal, el pipeline no ejecuta nada.\n\nOperaciones intermedias tipicas: filter (Predicate), map (Function), flatMap (Function que devuelve un stream, aplana estructuras), peek, distinct, sorted, limit y skip. Operaciones terminales: forEach, collect (reducir a coleccion), count, anyMatch/allMatch/noneMatch, findFirst/findAny, reduce y toList.\n\nLa evaluacion es lazy y por demanda: las operaciones intermedias se encadenan y se ejecutan solo lo necesario para satisfacer la terminal. Por eso findFirst puede no procesar toda la secuencia. En streams paralelos (parallelStream) el procesamiento es concurrente y el orden de resultados puede variar.\n\nCollectors ofrece collect(Collectors.toList()), groupingBy, joining, summarizingInt, partitioningBy y mas. Desde Java 16, toList() del propio stream es la forma mas simple para una lista inmutable.",
+      "examples": [
+        "nombres.stream().filter(s -> s.length() > 3).map(String::toUpperCase).sorted().toList()",
+        "Map<String, List<Persona>> porCiudad = personas.stream().collect(Collectors.groupingBy(Persona::ciudad));",
+        "int total = nums.stream().mapToInt(Integer::intValue).sum();"
+      ]
+    },
+    {
+      "id": "streams-optional",
+      "title": "Optional",
+      "content": "Optional<T> es un contenedor que puede tener un valor o estar vacio. Su proposito es comunicar la ausencia de valor de forma explicita, evitando null y los NullPointerException. Se usa tipicamente como retorno de metodos que pueden no tener resultado.\n\nMetodos de creacion: Optional.of (valor no nulo), Optional.ofNullable (admite null) y Optional.empty. Metodos de consumo: isPresent, isEmpty, get (peligroso: lanza NoSuchElementException si esta vacio), orElse, orElseGet (Supplier, se evalua de forma lazy) y orElseThrow.\n\nLa forma funcional recomendada es orElseGet y map/filter/ifPresent en vez de encadenar if (o.isPresent()). La diferencia entre orElse y orElseGet: orElse evalua el argumento siempre, aunque el Optional no este vacio; orElseGet solo lo evalua si esta vacio. Si el valor por defecto es costoso, conviene orElseGet.\n\nOptional no es Serializable, no es una coleccion, y no esta pensado como campo de una entidad ni como parametro. Su uso principal es el valor de retorno. Abusar de Optional (por ejemplo, en campos o parametros) se considera antipatron en muchas guias de estilo.",
+      "examples": [
+        "return Optional.ofNullable(buscarPorId(id));",
+        "String nombre = opt.orElseGet(() -> \"anonimo\");",
+        "opt.map(Persona::edad).filter(e -> e > 18).ifPresent(System.out::println);"
+      ]
+    },
+    {
+      "id": "streams-common-mistakes",
+      "title": "Errores comunes",
+      "content": "Uno de los errores mas frecuentes es reutilizar un stream: un stream ya consumido por una operacion terminal no se puede volver a recorrer y lanza IllegalStateException. La solucion es crear un nuevo stream por operacion.\n\nOtro error clasico es usar stream() sobre un null o esperar orden en streams paralelos. Tambien se abusa de Optional.get() sin verificar isPresent, y de orElse con valores costosos en vez de orElseGet.\n\nLos streams no modifican la coleccion de origen: son procesamiento de datos, no mutacion. Si se necesita modificar, se recopila el resultado con collect o toList en una nueva estructura.\n\nEl uso de streams no siempre es lo mas legible: para transformaciones simples de una coleccion, un for tradicional puede ser mas claro. En entrevistas, saber explicar cuando usar streams y cuando no demuestra buen criterio, no solo sintaxis.",
+      "examples": [
+        "Stream<String> s = list.stream(); long n = s.count(); // s ya esta consumido",
+        "long n2 = list.stream().count(); // correcto: nuevo stream por pipeline"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "streams",
+    "questions": [
+      {
+        "id": "st-q1",
+        "text": "Que sucede si un Stream ya consumido por una operacion terminal se reutiliza?",
+        "options": [
+          "Se vuelve a procesar desde cero",
+          "Lanza IllegalStateException",
+          "Devuelve un stream vacio",
+          "No compila"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Un stream consumido no se puede reutilizar: lanza IllegalStateException. Hay que crear un nuevo stream.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "st-q2",
+        "text": "Que diferencia hay entre Optional.orElse(x) y Optional.orElseGet(() -> x)?",
+        "options": [
+          "Ninguna, son equivalentes",
+          "orElse evalua x siempre; orElseGet solo si el Optional esta vacio",
+          "orElseGet evalua siempre; orElse solo si esta vacio",
+          "orElse lanza si esta vacio"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "orElse evalua el argumento de forma eager (siempre), mientras que orElseGet es lazy y solo evalua si el Optional esta vacio.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "st-q3",
+        "text": "Cuales son operaciones terminales de un Stream?",
+        "options": [
+          "map",
+          "collect",
+          "filter",
+          "reduce"
+        ],
+        "correctIndexes": [
+          1,
+          3
+        ],
+        "explanation": "collect y reduce son terminales (producen el resultado y cierran el stream). map y filter son intermedias.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "st-q4",
+        "text": "Una interfaz funcional es una interfaz que...",
+        "options": [
+          "no tiene metodos",
+          "tiene exactamente un metodo abstracto (SAM)",
+          "tiene al menos dos metodos abstractos",
+          "extiende Object"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Una interfaz funcional tiene un unico metodo abstracto; puede tener metodos default y static.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "st-q5",
+        "text": "Un Stream solo se puede consumir una vez: tras una operacion terminal no se puede reutilizar.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: los Streams son consumibles; una vez aplicada una operacion terminal, el stream queda cerrado y lanzar otra operacion produce IllegalStateException.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "st-q6",
+        "text": "Las operaciones de un Stream pueden modificar la coleccion de origen.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: un Stream no muta la fuente; las operaciones intermedias devuelven nuevos streams y la fuente original permanece intacta.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "st-q6",
+        "text": "Ordena las etapas de un pipeline de Streams:",
+        "options": [
+          "Terminal (collect, forEach)",
+          "Intermedia (filter, map)",
+          "Fuente (collection, array)",
+          "Creacion del Stream"
+        ],
+        "correctIndexes": [
+          3,
+          2,
+          1,
+          0
+        ],
+        "explanation": "Primero se crea el Stream, luego la fuente, etapas intermedias y finalmente la operacion terminal.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

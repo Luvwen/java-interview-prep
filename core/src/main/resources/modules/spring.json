@@ -1,0 +1,162 @@
+{
+  "id": "spring",
+  "title": "Spring",
+  "description": "El framework mas usado en backend Java: inversion de control, inyeccion de dependencias, beans, Spring Boot con autoconfiguracion y controllers REST. Bloque casi obligatorio en entrevistas para backend.",
+  "topics": [
+    {
+      "id": "spring-ioc-di",
+      "title": "IoC e inyeccion de dependencias",
+      "content": "Spring se construye sobre el principio de inversion de control (IoC): en lugar de que cada clase cree sus dependencias con new, el contenedor de Spring las crea y las inyecta. La inyeccion de dependencias (DI) es el patron que materializa IoC: una clase recibe sus dependencias en lugar de construirlas, lo que desacopla el codigo y lo hace testeable.\n\nLa forma mas recomendada de inyectar es por constructor: se declara un campo final y un constructor que lo recibe. Spring usa ese constructor automaticamente (desde Spring 4.3, si hay un solo constructor no hace falta anotarlo). La inyeccion por campo con @Autowired o por setter esta en desuso para la mayoria de los casos, porque dificulta los tests y oculta dependencias.\n\nUna dependencia se define como bean cuando Spring la detecta con anotaciones de estereotipo (@Component, @Service, @Repository, @Controller) o se declara explicitamente en una clase de configuracion @Configuration con metodos @Bean. Cuando hay mas de un candidato para un tipo, se usa @Qualifier para desambiguar.\n\nLa DI es un tema recurrente en entrevistas: suele preguntarse por que es preferible sobre instanciar manualmente, que tipos de inyeccion existen, y la diferencia entre @Component y @Bean (anotaciones de estereotipo con escaneo de paquetes vs definicion declarativa en configuracion).",
+      "examples": [
+        "@Service\npublic class CuentaService {\n    private final CuentaRepository repo;\n    public CuentaService(CuentaRepository repo) { this.repo = repo; }\n}",
+        "@Configuration\npublic class AppConfig {\n    @Bean\n    public DataSource dataSource() { return new HikariDataSource(); }\n}",
+        "@Component\npublic class EmailService { ... }",
+        "@Autowired\n@Qualifier(\"mysql\")\nprivate DataSource ds; // inyeccion por campo (no recomendada)"
+      ]
+    },
+    {
+      "id": "spring-beans",
+      "title": "Ciclo de vida de los beans",
+      "content": "Un bean de Spring atraviesa un ciclo de vida: instanciacion, inyeccion de dependencias, inicializacion y destruccion. El alcance (scope) define cuantas instancias existen: singleton (una sola por contenedor, el default), prototype (una nueva por cada inyeccion o getBean), y en aplicaciones web ademas request y session.\n\nPor defecto, los beans de una aplicacion Spring son singleton y se crean de forma perezosa o eager segun la configuracion. Es importante recordar que 'singleton' en Spring significa una instancia por contenedor, no por JVM; en aplicaciones web esto normalmente es suficiente.\n\nLos beans de tipo interfaz se resuelven por el tipo declarado, y el orden de inicializacion respeta las dependencias (Spring ordena el grafo). Cuando se necesita ejecutar logica al iniciar o destruir un bean, se pueden usar interfaces de ciclo de vida como InitializingBean o anotaciones @PostConstruct/@PreDestroy (esta ultima en desuso desde Spring 6 / Jakarta EE).\n\nEn entrevistas suele preguntarse que pasa si dos beans implementan la misma interfaz y se inyectan por tipo: lanza NoUniqueBeanDefinitionException, y se resuelve con @Primary o @Qualifier.",
+      "examples": [
+        "@Component\npublic class AppRunner {\n    @PostConstruct\n    void init() { System.out.println(\"Arrancando\"); }\n}",
+        "@Scope(\"prototype\")\n@Component\npublic class CarritoCompra { }",
+        "@Bean\npublic ExecutorService executor() {\n    return Executors.newFixedThreadPool(4);\n} // bean de tipo interfaz",
+        "@Primary\n@Component\npublic class MongoRepo implements Repo { } // gana sobre otras implementaciones"
+      ]
+    },
+    {
+      "id": "spring-boot",
+      "title": "Spring Boot: autoconfiguracion y starters",
+      "content": "Spring Boot elimina gran parte de la configuracion manual de Spring. Se basa en tres ideas: starters (dependencias agrupadas y versionadas, como spring-boot-starter-web), autoconfiguracion (clases @Configuration condicionadas que configuran beans segun las dependencias presentes en el classpath) y la convencion sobre configuracion con application.properties o application.yml.\n\nLa autoconfiguracion usa anotaciones condicionales como @ConditionalOnClass o @ConditionalOnMissingBean: si el classpath contiene spring-web, por ejemplo, Boot levanta un DispatcherServlet y un Tomcat embebido sin configuracion manual. Esto permite arrancar una aplicacion con un simple main que llama a SpringApplication.run.\n\nEl punto de entrada lleva @SpringBootApplication, que combina @SpringBootConfiguration, @EnableAutoConfiguration y @ComponentScan del paquete raiz hacia abajo. Por eso es importante que la clase principal este en el paquete mas alto: si se pone en otro paquete, el escaneo no encuentra los componentes.\n\nEn entrevistas se pregunta el proposito de cada anotacion de @SpringBootApplication, que diferencia hay con Spring Framework (Boot es una capa de convenciones sobre Spring Core), y como se personaliza la autoconfiguracion (propiedades, exclusiones con exclude o excludeName).",
+      "examples": [
+        "@SpringBootApplication\npublic class App { public static void main(String[] a) { SpringApplication.run(App.class, a); } }",
+        "# application.yml\nserver:\n  port: 8080",
+        "spring-boot-starter-web: <groupId>org.springframework.boot</groupId>",
+        "@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)"
+      ]
+    },
+    {
+      "id": "spring-web",
+      "title": "Controllers REST",
+      "content": "Spring MVC expone endpoints HTTP mediante controllers: clases anotadas con @RestController que combina @Controller y @ResponseBody, de modo que los objetos retornados se serializan a JSON automaticamente (con Jackson) en el cuerpo de la respuesta.\n\nLos mapeos de rutas se declaran con @GetMapping, @PostMapping, @PutMapping, @DeleteMapping o el generico @RequestMapping. Los parametros de la URL se capturan con @PathVariable, los de query con @RequestParam y el cuerpo JSON con @RequestBody (deserializado a un objeto DTO).\n\nEl manejo de errores se centraliza con @RestControllerAdvice y @ExceptionHandler: se capturan excepciones especificas y se responde con codigos HTTP correctos y un cuerpo de error estandar. Devolver excepciones HTTP crudas o retornar 200 siempre es una anti-practica.\n\nEs muy comun preguntar la diferencia entre @Controller y @RestController, como se valida la entrada (@Valid con anotaciones jakarta.validation) y la diferencia entre @ResponseStatus y ResponseEntity para controlar el codigo HTTP. La inversion de dependencias permite que el controller delegue en un servicio y que la logica de negocio quede fuera de la capa web.",
+      "examples": [
+        "@RestController\n@RequestMapping(\"/api/cuentas\")\npublic class CuentaController {\n    @GetMapping(\"/{id}\")\n    public CuentaDto findById(@PathVariable(\"id\") Long id) { ... }\n}",
+        "@PostMapping\npublic ResponseEntity<CuentaDto> crear(@Valid @RequestBody CuentaRequest req) { ... }",
+        "@RestControllerAdvice\npublic class ErrorHandler {\n    @ExceptionHandler(CuentaNoEncontrada.class)\n    @ResponseStatus(HttpStatus.NOT_FOUND)\n    public ApiError handle(...) { ... }\n}",
+        "@PutMapping(\"/{id}\")\npublic ResponseEntity<CuentaDto> actualizar(@PathVariable Long id, @RequestBody CuentaRequest req) { ... }"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "spring",
+    "questions": [
+      {
+        "id": "sp-q1",
+        "text": "Cual es la forma recomendada de inyeccion de dependencias en Spring?",
+        "options": [
+          "Por campo con @Autowired",
+          "Por setter con @Autowired",
+          "Por constructor",
+          "Instanciando la dependencia con new"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "La inyeccion por constructor es la recomendada: los campos son final, las dependencias quedan explicitas y el bean es facilmente testeable.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q2",
+        "text": "Que anotacion compone @SpringBootApplication?",
+        "options": [
+          "@SpringBootConfiguration",
+          "@EnableAutoConfiguration",
+          "@ComponentScan",
+          "@EnableWebMvc"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "@SpringBootApplication combina @SpringBootConfiguration, @EnableAutoConfiguration y @ComponentScan del paquete raiz.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "sp-q3",
+        "text": "Que ocurre si dos beans implementan la misma interfaz y se inyecta por tipo sin desambiguar?",
+        "options": [
+          "Spring elige al azar",
+          "Se inyecta el primero declarado",
+          "Lanza NoUniqueBeanDefinitionException",
+          "Lanza un error de compilacion"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "Sin @Primary ni @Qualifier, Spring no sabe cual elegir y lanza NoUniqueBeanDefinitionException en tiempo de ejecucion.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q4",
+        "text": "Cual es el scope por defecto de un bean en una aplicacion Spring?",
+        "options": [
+          "prototype",
+          "singleton",
+          "request",
+          "session"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "El default es singleton: una instancia por contenedor de Spring.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q5",
+        "text": "El scope por defecto de un bean en Spring es singleton.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: por defecto Spring crea una unica instancia del bean por contenedor (ApplicationContext).",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "sp-q6",
+        "text": "La inyeccion por campo (field injection) es la tecnica recomendada en la mayoria de los casos.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: se recomienda inyeccion por constructor (obliga dependencias explicitas, facilita el testing); la field injection oculta dependencias.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "sp-q6",
+        "text": "Ordena las etapas del ciclo de vida de un bean de Spring:",
+        "options": [
+          "@PostConstruct",
+          "Instantiation",
+          "@PreDestroy",
+          "Dependency Injection"
+        ],
+        "correctIndexes": [
+          1,
+          3,
+          0,
+          2
+        ],
+        "explanation": "Primero instantiation, luego DI, @PostConstruct y finalmente @PreDestroy.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "id": "concurrency",
+  "title": "Concurrencia",
+  "description": "Hilos, ejecucion concurrente, sincronizacion, volatile, synchronized y locks. Tema avanzado y diferenciador en entrevistas de Java.",
+  "topics": [
+    {
+      "id": "conc-threads",
+      "title": "Hilos: Thread y Runnable",
+      "content": "Un hilo (thread) es una unidad de ejecucion independiente. Se crea implementando Runnable (lo recomendado) o extendiendo Thread. La forma moderna es usar el ExecutorService en lugar de crear hilos a mano.\n\nEl metodo run() contiene el trabajo del hilo. Llamar a start() lanza un nuevo hilo y ejecuta run() en el; llamar a run() directamente ejecuta el codigo en el hilo actual, sin crear uno nuevo. Este es un error clasico.\n\nEstados de un hilo: NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING y TERMINATED. Thread.sleep(long) pone el hilo en TIMED_WAITING y lanza InterruptedException, que hay que manejar. El patron recomendado ante interrupcion es propagarla o restaurar el flag con Thread.currentThread().interrupt().\n\nLa concurrencia no garantiza velocidad por si sola: con CPUs multicore puede acelerar, pero el costo de crear hilos y el cambio de contexto existen. La JVM moderna recomienda los virtual threads (Project Loom, Java 21) para tareas de I/O masivas.",
+      "examples": [
+        "new Thread(() -> System.out.println(\"hola\")).start();",
+        "ExecutorService pool = Executors.newFixedThreadPool(4);",
+        "pool.submit(() -> tareaPesada());"
+      ]
+    },
+    {
+      "id": "conc-executors",
+      "title": "ExecutorService",
+      "content": "El framework Executor desacopla la creacion de hilos de su ejecucion. ExecutorService representa un pool de hilos: enviamos tareas con submit (devuelve Future) o execute, y el pool las ejecuta reutilizando hilos.\n\nFactories tipicos: newFixedThreadPool(n) (n hilos fijos), newCachedThreadPool (hilos que se crean/reciclan segun demanda), newSingleThreadExecutor (un solo hilo serializa tareas) y newScheduledThreadPool (ejecucion programada).\n\nUn Future permite consultar el resultado (get bloquea hasta que este listo) o comprobar si termino (isDone). Con getTimeout, get se puede abortar. En Java 5+ se introduce CompletableFuture para encadenar tareas asincronas sin bloquear.\n\nRegla de oro: siempre apagar el pool con shutdown() (deja terminar las tareas en cola) o shutdownNow() (las interrumpe). No apagarlo deja hilos colgados que impiden terminar la aplicacion.",
+      "examples": [
+        "Future<Integer> f = pool.submit(() -> 42);",
+        "int resultado = f.get();",
+        "pool.shutdown();"
+      ]
+    },
+    {
+      "id": "conc-synchronization",
+      "title": "Sincronizacion y secciones criticas",
+      "content": "Cuando varios hilos comparten estado mutable, hay carreras (race conditions). La sincronizacion protege las secciones criticas para que un hilo no observe estados intermedios de otro. La palabra clave synchronized bloquea un monitor (lock): sobre un metodo de instancia bloquea la instancia (this), sobre un metodo static bloquea el Class, y sobre un bloque bloquea el objeto indicado.\n\nEl coste es la exclusividad: solo un hilo entra a la seccion a la vez, el resto espera (BLOCKED). Sincronizar de mas degrada el rendimiento y puede producir interbloqueos (deadlock) si los hilos esperan locks en orden circular.\n\nvolatile garantiza visibilidad (que los cambios de un hilo sean vistos por otros) pero NO atomicidad. Para operaciones compuestas (como i++) no sirve. Para contadores atomicos se usan las clases del paquete java.util.concurrent.atomic: AtomicInteger, etc.\n\nEl bloqueo intrinseco es reentrante: un hilo que ya tiene el monitor puede volver a adquirirlo. Para mas control existen los locks explicitos del paquete java.util.concurrent.locks: ReentrantLock con tryLock, etc.",
+      "examples": [
+        "synchronized (this) { contador++; }",
+        "private volatile boolean activo;",
+        "AtomicInteger contador = new AtomicInteger(); contador.incrementAndGet();"
+      ]
+    },
+    {
+      "id": "conc-threadsafety",
+      "title": "Seguridad en hilos (thread safety)",
+      "content": "Una clase es thread-safe si se comporta correctamente bajo acceso concurrente. Las colecciones del paquete java.util.concurrent son la primera opcion: ConcurrentHashMap, CopyOnWriteArrayList, BlockingQueue (LinkedBlockingQueue, ArrayBlockingQueue). Las colecciones clasicas (HashMap, ArrayList) no son thread-safe.\n\nCollections.synchronizedList(list) devuelve una version sincronizada, pero cada operacion individual esta sincronizada, no la secuencia: iterar sigue siendo peligroso salvo que se sincronice sobre la coleccion. ConcurrentHashMap, en cambio, esta disenado para alta concurrencia y evita bloqueo global.\n\nLa inmutabilidad es la estrategia mas simple para thread safety: un objeto inmutable es seguro por construccion (lo que conecta con el tema de inmutabilidad de colecciones). Tambien ayuda el thread confinement: no compartir el objeto entre hilos.\n\nEl modelo de memoria de Java (JMM) define las garantias de visibilidad: volatile, synchronized, locks y las clases atomicas crean happens-before edges que ordenan las operaciones entre hilos.",
+      "examples": [
+        "ConcurrentHashMap<String, Integer> mapa = new ConcurrentHashMap<>();",
+        "BlockingQueue<String> cola = new ArrayBlockingQueue<>(10);",
+        "// synchronized sobre Collections.synchronizedList al iterar"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "concurrency",
+    "questions": [
+      {
+        "id": "cn-q1",
+        "text": "Que hace exactamente volatile en Java?",
+        "options": [
+          "Garantiza atomicidad sobre operaciones compuestas",
+          "Garantiza visibilidad entre hilos, pero no atomicidad",
+          "Serializa metodos",
+          "Crea una copia del objeto por hilo"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "volatile garantiza visibilidad (happens-before de lectura/escritura) pero no atomicidad; para operaciones compuestas se usan atomicos o synchronized.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cn-q2",
+        "text": "Por que es un error llamar thread.run() en lugar de thread.start()?",
+        "options": [
+          "run() lanza una excepcion",
+          "run() no compila",
+          "run() ejecuta el codigo en el hilo actual, sin crear un hilo nuevo",
+          "run() crea dos hilos"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "start() lanza un nuevo hilo que ejecuta run(); run() directo ejecuta en el hilo que llama.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cn-q3",
+        "text": "Cuales estructuras son seguras para uso concurrente?",
+        "options": [
+          "HashMap",
+          "ConcurrentHashMap",
+          "ArrayList",
+          "CopyOnWriteArrayList"
+        ],
+        "correctIndexes": [
+          1,
+          3
+        ],
+        "explanation": "ConcurrentHashMap y CopyOnWriteArrayList son del paquete java.util.concurrent y son thread-safe; HashMap y ArrayList no lo son.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "cn-q4",
+        "text": "Que recomienda Java 21 para manejar muchas tareas de I/O concurrentes?",
+        "options": [
+          "Un hilo por tarea, siempre",
+          "Los virtual threads (Project Loom)",
+          "Volatile en todos los campos",
+          "Thread.sleep antes de cada tarea"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Los virtual threads de Java 21 permiten millones de tareas de I/O concurrentes con costo minimo.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cn-q5",
+        "text": "Un bloque synchronized garantiza exclusion mutua sobre el lock del objeto.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: synchronized adquiere el monitor del objeto (o de la clase en metodos static), impidiendo que otros hilos entren al mismo bloque.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cn-q6",
+        "text": "Declarar un campo como volatile garantiza que operaciones como i++ sean atomicas.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: volatile garantiza visibilidad entre hilos, pero i++ es leer-modificar-escribir y no es atomico; para eso se usa synchronized o clases atomicas.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cc-q6",
+        "text": "Ordena los mecanismos de sincronizacion de menor a mayor nivel de abstraccion:",
+        "options": [
+          "synchronized",
+          "ReentrantLock",
+          "Semaphore",
+          "ExecutorService"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "synchronized es el mas basico, luego ReentrantLock, Semaphore y ExecutorService.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

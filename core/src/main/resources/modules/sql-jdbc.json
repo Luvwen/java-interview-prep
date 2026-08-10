@@ -1,0 +1,156 @@
+{
+  "id": "sql-jdbc",
+  "title": "SQL y JDBC",
+  "description": "Acceso a bases de datos relacionales desde Java: consultas SQL, joins, transacciones y JDBC con PreparedStatement. Imprescindible para entrevistas backend.",
+  "topics": [
+    {
+      "id": "sql-basics",
+      "title": "Queries basicas",
+      "content": "SQL es el lenguaje declarativo de las bases relacionales. Las operaciones CRUD se expresan con INSERT, SELECT, UPDATE y DELETE. La clausula WHERE filtra filas; ORDER BY ordena; LIMIT acota el resultado.\n\nSELECT proyecta columnas y filas; DISTINCT elimina duplicados; el alias AS mejora la legibilidad. Las funciones de agregacion (COUNT, SUM, AVG, MIN, MAX) resumen grupos y suelen combinarse con GROUP BY. La condicion HAVING filtra despues de agregar (WHERE filtra filas antes de agrupar).\n\nEl orden logico de ejecucion de un SELECT es: FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY -> LIMIT. Conocer este orden resuelve preguntas trampa sobre WHERE vs HAVING.\n\nEn entrevistas se pide escribir queries por nivel de complejidad: la segunda mas vendida, el segundo mas alto por departamento, contar por grupo, o eliminar duplicados dejando la fila mas reciente. Practicar estos patrones es clave.",
+      "examples": [
+        "SELECT nombre, salario FROM empleados WHERE salario > 3000 ORDER BY salario DESC;",
+        "SELECT dept_id, COUNT(*) AS total FROM empleados GROUP BY dept_id HAVING COUNT(*) > 5;",
+        "INSERT INTO empleados (nombre, salario) VALUES ('Ana', 4500);"
+      ]
+    },
+    {
+      "id": "sql-joins",
+      "title": "Joins",
+      "content": "Un JOIN combina filas de dos o mas tablas usando una condicion. INNER JOIN devuelve solo las filas que coinciden en ambas tablas. LEFT JOIN (o LEFT OUTER) devuelve todas las filas de la izquierda y las coincidencias de la derecha, con NULL donde no hay coincidencia. RIGHT JOIN es el espejo, y FULL OUTER JOIN devuelve todas las filas de ambas.\n\nLa diferencia INNER vs LEFT es una de las preguntas mas frecuentes: con INNER se pierden las filas sin correspondencia; con LEFT se conservan las de la izquierda.\n\nCROSS JOIN produce el producto cartesiano; SELF JOIN combina una tabla consigo misma (tipico para jerarquias como empleado-supervisor). La sintaxis moderna prefiere el JOIN explicito en lugar de enumerar tablas en FROM con comas y condiciones en WHERE.\n\nLa clave de rendimiento son los indices: JOIN sobre columnas indexadas es mucho mas rapido. En entrevistas se valora mencionar los indices al hablar de joins lentos.",
+      "examples": [
+        "SELECT e.nombre, d.nombre FROM empleados e INNER JOIN departamentos d ON e.dept_id = d.id;",
+        "SELECT e.nombre, j.nombre FROM empleados e LEFT JOIN empleados j ON e.jefe_id = j.id;",
+        "SELECT e.nombre, d.nombre FROM empleados e LEFT JOIN departamentos d ON e.dept_id = d.id;"
+      ]
+    },
+    {
+      "id": "sql-transactions",
+      "title": "Transacciones",
+      "content": "Una transaccion agrupa varias operaciones que se confirman (COMMIT) o revierten (ROLLBACK) como una unidad atomica. El acronimo ACID define sus garantias: Atomicidad (todo o nada), Consistencia (estado valido), Aislamiento (las transacciones no se interfieren) y Durabilidad (lo confirmado persiste).\n\nEl aislamiento se controla con niveles: READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ y SERIALIZABLE. Cada nivel previene anomalias como dirty reads (leer datos no confirmados), non-repeatable reads y phantom reads. Mas aislamiento = menos concurrencia.\n\nEl control de concurrencia se apoya en locks y en MVCC (Multi-Version Concurrency Control), usado por PostgreSQL para lecturas sin bloqueo. En entrevistas, saber explicar dirty read o deadlock demuestra dominio.\n\nUn deadlock es un ciclo de espera entre transacciones por locks: la base detecta uno y aborta una de ellas. Se evita accediendo a los recursos en un orden consistente.",
+      "examples": [
+        "BEGIN; UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1; COMMIT;",
+        "BEGIN; UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1; ROLLBACK;"
+      ]
+    },
+    {
+      "id": "jdbc-prepared",
+      "title": "JDBC y PreparedStatement",
+      "content": "JDBC es la API estandar de Java para acceder a bases de datos. El flujo es: registrar el driver, abrir una conexion (DriverManager.getConnection), crear un statement, ejecutarlo y procesar el ResultSet. Los recursos se cierran con try-with-resources porque Connection, Statement y ResultSet implementan AutoCloseable.\n\nPreparedStatement es la forma correcta de enviar parametros: se escriben marcadores (?) y se enlazan con setString, setInt, etc. Ventajas: evita la inyeccion SQL (los parametros no se concatenan con la query), mejora el rendimiento por precompilacion y hace el codigo mas legible.\n\nConcatenar valores en un String para armar SQL es una vulnerabilidad de inyeccion SQL: un usuario podria cerrar la query e inyectar codigo (por ejemplo, ' OR '1'='1). La regla de oro es usar siempre PreparedStatement para valores de datos; la concatenacion solo para nombres de tablas/columnas si fuera imprescindible (y aun asi validados).\n\nLas transacciones en JDBC se controlan con connection.setAutoCommit(false), connection.commit() y connection.rollback(), con try-catch para revertir ante error. Es un punto que se pregunta mucho en tests tecnicos.",
+      "examples": [
+        "try (Connection c = DriverManager.getConnection(url, user, pass); PreparedStatement ps = c.prepareStatement(\"SELECT * FROM empleados WHERE salario > ?\")) { ps.setInt(1, 3000); ResultSet rs = ps.executeQuery(); }",
+        "c.setAutoCommit(false); try { ...; c.commit(); } catch (Exception e) { c.rollback(); throw e; }"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "sql-jdbc",
+    "questions": [
+      {
+        "id": "sql-q1",
+        "text": "Cual es la diferencia entre INNER JOIN y LEFT JOIN?",
+        "options": [
+          "Son identicos",
+          "INNER devuelve solo coincidencias; LEFT ademas conserva todas las filas de la tabla izquierda con NULL a la derecha",
+          "LEFT devuelve solo coincidencias y INNER conserva la izquierda",
+          "INNER es mas rapido siempre"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "INNER JOIN descarta filas sin correspondencia; LEFT JOIN conserva las filas de la izquierda y rellena con NULL.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sql-q2",
+        "text": "Donde se filtra una condicion sobre el resultado de una agregacion (COUNT, SUM)?",
+        "options": [
+          "En WHERE",
+          "En HAVING",
+          "En ORDER BY",
+          "En SELECT"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "HAVING filtra despues de agrupar y agregar; WHERE filtra filas antes de agrupar.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sql-q3",
+        "text": "Cuales son beneficios de usar PreparedStatement frente a concatenar strings?",
+        "options": [
+          "Evita la inyeccion SQL",
+          "Permite precompilacion y mejor rendimiento",
+          "Evita cualquier consulta",
+          "Hace el codigo mas legible"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          3
+        ],
+        "explanation": "PreparedStatement separa la query de los datos (evita inyeccion), precompila la consulta y es mas legible.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "sql-q4",
+        "text": "Que garantiza la 'A' de ACID (Atomicidad)?",
+        "options": [
+          "Que las operaciones persistan despues del COMMIT",
+          "Que la transaccion se ejecute completa o se revierta por completo",
+          "Que no haya accesos concurrentes",
+          "Que las consultas sean rapidas"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "La atomicidad garantiza que la transaccion se aplique en su totalidad (COMMIT) o se revierta entera (ROLLBACK), sin estados intermedios.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sql-q5",
+        "text": "PreparedStatement separa la consulta de los datos, lo que evita la inyeccion SQL.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: los parametros se envian por separado de la query y se escapan, impidiendo que datos del usuario se interpreten como SQL.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "sql-q6",
+        "text": "Despues de ejecutar COMMIT, la transaccion puede revertirse con ROLLBACK.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: una vez hecho COMMIT los cambios son permanentes; ROLLBACK solo aplica antes de commitear o si la transaccion falla.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "sql-q6",
+        "text": "Ordena las clausulas SQL en el orden correcto de un SELECT:",
+        "options": [
+          "WHERE",
+          "SELECT",
+          "FROM",
+          "ORDER BY"
+        ],
+        "correctIndexes": [
+          1,
+          2,
+          0,
+          3
+        ],
+        "explanation": "El orden correcto es SELECT, FROM, WHERE, ORDER BY.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

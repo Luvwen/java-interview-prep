@@ -1,0 +1,162 @@
+{
+  "id": "git",
+  "title": "Git",
+  "description": "Control de versiones con Git: flujo de trabajo, comandos esenciales, branching, merge y rebase, y como colaborar en equipo. Habilidad esperada en casi cualquier entrevista de desarrollo.",
+  "topics": [
+    {
+      "id": "git-basics",
+      "title": "Conceptos y flujo basico",
+      "content": "Git es un sistema de control de versiones distribuido: cada copia del repositorio tiene toda la historia, no solo el estado actual. El estado de un archivo se representa en tres areas: working directory (archivos modificados), staging area o index (cambios preparados con git add) y repositorio local (commits con git commit).\n\nEl flujo basico es: git status (ver estado), git add (preparar cambios), git commit -m 'mensaje' (guardar un punto en la historia) y git push (subir al remoto). Cada commit apunta a su padre, formando un grafo aciclico de la historia. El commit es una instantanea del estado del repositorio, no un diff.\n\nLos mensajes de commit deben ser descriptivos y en imperativo ('Fix npe on login'). Un buen mensaje cuenta que cambio y por que, y muchas organizaciones siguen convenciones como Conventional Commits (feat:, fix:, chore:).\n\nEn entrevistas se pregunta la diferencia entre git (local, distribuido) y SVN/CVS (centralizado), el proposito del .gitignore (excluir artefactos que no deben versionarse, como target/ o node_modules) y por que conviene hacer commits pequenos y logicos.",
+      "examples": [
+        "git status",
+        "git add src/Main.java && git commit -m \"Fix null pointer on login\"",
+        "git push origin main",
+        "# .gitignore\ntarget/\nnode_modules/\n*.log"
+      ]
+    },
+    {
+      "id": "git-branching",
+      "title": "Ramas y fusion",
+      "content": "Las ramas permiten trabajar en paralelo sin pisar el trabajo de otros. Crear una rama es mover un puntero a un commit; es una operacion liviana. El flujo tipico: git branch feature-x, git checkout feature-x (o git switch), trabajar, y luego integrar a la rama principal.\n\nGit merge integra los cambios de una rama a la actual. Si las ramas tocaron archivos distintos, el merge es automatico (fast-forward o merge commit); si tocaron las mismas lineas, se produce un conflicto que debe resolverse manualmente, decidiendo que contenido conservar y haciendo luego git add + git commit.\n\nGit rebase reescribe la historia: reaplica los commits de una rama sobre la punta de otra, dejando una linea historica limpia. La diferencia clave con merge: merge preserva el contexto real de las ramas; rebase la linealiza. La regla de oro: no rebasear ramas compartidas, porque reescribe commits que otros ya tienen.\n\nEn entrevistas se compara merge vs rebase y se pregunta como resolver un conflicto o como deshacer un cambio: git revert (commit que revierte, seguro para historia compartida) vs git reset (mueve el puntero, peligroso si se compartio).",
+      "examples": [
+        "git checkout -b feature/login && git push -u origin feature/login",
+        "git merge feature/login",
+        "git rebase main   # reaplica commits sobre main",
+        "git revert abc1234  # nuevo commit que deshace el cambio"
+      ]
+    },
+    {
+      "id": "git-workflow",
+      "title": "Flujos de trabajo en equipo",
+      "content": "En un equipo se usan flujos estandar que organizan como llegan los cambios al codigo. El mas comun es Git Flow o sus variantes simplificadas como GitHub Flow: rama main estable, ramas de feature cortas, y la integracion via pull request (PR).\n\nUn pull request es una propuesta de cambio que se revisa, se discute y se valida antes de integrar. La buena practica es: rama por feature, commits pequenos, PR pequeno, descripcion clara y code review. La CI (integracion continua) corre los tests en cada PR, y el codigo se integra solo cuando pasa.\n\nEl stash permite guardar cambios sin hacer commit para cambiar de contexto: git stash y luego git stash pop. Tambien es util git log --oneline para ver la historia resumida y git diff para revisar cambios antes de commitear.\n\nEn entrevistas se suele preguntar el flujo completo de una feature (crear rama, commit, push, PR, merge) y como recuperarse de errores comunes: commit equivocado (git commit --amend), archivo en staging sin querer (git restore --staged) y cambios perdidos (git reflog).",
+      "examples": [
+        "git stash && git switch main && git stash pop",
+        "git log --oneline --graph --all",
+        "git diff        # cambios sin stagear",
+        "git restore --staged src/App.java   # quitar del staging"
+      ]
+    },
+    {
+      "id": "git-remote",
+      "title": "Remotos y colaboracion",
+      "content": "El repositorio remoto es la copia compartida (GitHub, GitLab, Bitbucket) con la que se sincronizan los locales. Los comandos esenciales: git clone (copiar un repositorio), git fetch (traer cambios del remoto sin aplicarlos), git pull (fetch + merge) y git push (subir commits locales).\n\nLos remotos se gestionan con git remote: git remote -v muestra las URLs, y git remote add origin <url> asocia el repositorio local al remoto. La rama principal suele llamarse main o master.\n\nUn error comun: hacer push de una rama cuyo historial divergio del remoto. La solucion es git pull --rebase para reaplicar los commits locales sobre la version remota y despues push. Si otro colega modifico la misma rama, puede ser necesario forzar con push -f solo en ramas personales.\n\nLas buenas practicas de colaboracion incluyen mantener la rama principal siempre verde (build y tests pasando), usar protected branches (no se puede pushear directo a main, se exige PR) y mensajes claros. En entrevistas se distingue git fetch (no modifica el working tree) de git pull (si lo modifica).",
+      "examples": [
+        "git clone https://github.com/usuario/repo.git",
+        "git remote -v",
+        "git pull --rebase origin main",
+        "git push origin feature/login"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "git",
+    "questions": [
+      {
+        "id": "gi-q1",
+        "text": "Que diferencia hay entre git merge y git rebase?",
+        "options": [
+          "Merge reescribe la historia; rebase crea un merge commit",
+          "Rebase reaplica los commits sobre otra punta y linealiza la historia; merge preserva el contexto de las ramas",
+          "Son exactamente iguales",
+          "Rebase solo funciona con remotos"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Rebase reaplica commits y linealiza la historia; merge conserva el grafo real de las ramas.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "gi-q2",
+        "text": "Que comando deshace un cambio en la historia compartida de forma segura?",
+        "options": [
+          "git reset --hard",
+          "git revert",
+          "git checkout",
+          "git stash"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "git revert crea un commit que deshace el cambio sin reescribir historia, seguro para ramas compartidas.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "gi-q3",
+        "text": "Cuales son buenas practicas al trabajar en equipo con Git?",
+        "options": [
+          "Ramas de feature cortas y PRs pequenos",
+          "Commits pequenos y descriptivos",
+          "Mantener main siempre verde",
+          "Pushear directo a main sin revision"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Las buenas practicas son ramas cortas, commits pequenos y main estable con revision via PR; pushear directo a main es lo contrario.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "gi-q4",
+        "text": "Que hace exactamente git fetch?",
+        "options": [
+          "Trae los cambios del remoto y los aplica al working tree",
+          "Trae los cambios del remoto sin aplicarlos",
+          "Sube los commits locales al remoto",
+          "Elimina ramas remotas"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "git fetch descarga los cambios del remoto sin modificar el working tree; git pull hace fetch + merge.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "gi-q5",
+        "text": "git fetch descarga cambios del remoto sin modificar el working tree.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: fetch actualiza las referencias remotas en local; aplicar los cambios al working tree requiere merge o pull.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "gi-q6",
+        "text": "git reset --hard es una operacion que nunca pone en riesgo el trabajo local.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: reset --hard descarta cambios en el working tree y el index, y los commits no referenciados pueden perderse. Es una operacion destructiva.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "git-q6",
+        "text": "Ordena los pasos del flujo de trabajo basico de Git:",
+        "options": [
+          "git commit",
+          "git add",
+          "git push",
+          "git checkout -b feature"
+        ],
+        "correctIndexes": [
+          3,
+          1,
+          0,
+          2
+        ],
+        "explanation": "Primero crear rama, luego add, commit y push.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+[
+  "core-java.json",
+  "poo.json",
+  "collections.json",
+  "streams.json",
+  "concurrency.json",
+  "jvm.json",
+  "sql-jdbc.json",
+  "spring.json",
+  "testing.json",
+  "design-patterns.json",
+  "rest-http.json",
+  "git.json"
+]

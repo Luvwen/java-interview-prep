@@ -1,0 +1,164 @@
+{
+  "id": "design-patterns",
+  "title": "Patrones de diseno",
+  "description": "Soluciones reutilizables a problemas clasicos de diseno OO, clasificados en creacionales, estructurales y de comportamiento, con ejemplos en Java y uso real en frameworks como Spring.",
+  "topics": [
+    {
+      "id": "dp-creational",
+      "title": "Patrones creacionales",
+      "content": "Los patrones creacionales abstraen el proceso de creacion de objetos, haciendo al sistema independiente de como se construyen, componen y representan. Los mas preguntados en entrevistas son Singleton, Factory Method, Abstract Factory y Builder.\n\nSingleton garantiza una unica instancia. En Java, la forma correcta y segura en concurrente es el enum con un unico valor o la clase con campo static final; la version 'perezosa' con synchronized doble-check es el ejemplo que mas se pide explicar.\n\nFactory Method define una interfaz para crear objetos y deja que las subclases decidan que clase instanciar. Builder separa la construccion de un objeto complejo de su representacion, permitiendo parametros opcionales de forma legible (muy usado para objetos con muchos atributos, y es el patron detras de cosas como StringBuilder).\n\nEl analisis para entrevistas: en lugar de memorizar, conviene saber CUANDO se usa cada uno. Singleton cuando se necesita una unica instancia global (configuracion, pool de conexiones); Factory cuando la creacion depende de condiciones; Builder cuando el objeto tiene muchos atributos y hay que evitar constructores telescopicos.",
+      "examples": [
+        "public enum Config { INSTANCE; public String get(String key) { ... } } // Singleton thread-safe",
+        "interface VehiculoFactory { Vehiculo crear(); }\nclass AutoFactory implements VehiculoFactory { public Vehiculo crear() { return new Auto(); } }",
+        "new Cliente.Nuevo().nombre(\"Ana\").email(\"a@x.com\").build(); // Builder",
+        "StringBuilder sb = new StringBuilder().append(\"a\").append(\"b\"); // Builder en la JDK"
+      ]
+    },
+    {
+      "id": "dp-structural",
+      "title": "Patrones estructurales",
+      "content": "Los patrones estructurales se ocupan de como se componen clases y objetos para formar estructuras mas grandes. Los clasicos de entrevista son Adapter, Decorator, Proxy y Composite.\n\nAdapter convierte la interfaz de una clase en otra que el cliente espera, sin tocar ninguna de las dos. Un caso real: adaptar una libreria externa a la interfaz propia del proyecto.\n\nDecorator agrega responsabilidades a un objeto de forma dinamica y transparente, envuelviendolo. En la JDK se ve en java.io: BufferedInputStream envuelve a FileInputStream y suma funcionalidad. Es el patron de los 'wrappers'. Se implementa componiendo: la clase decoradora implementa la misma interfaz y delega, anadiendo comportamiento.\n\nProxy controla el acceso a un objeto real: lazy loading, cache, control de acceso o logging, manteniendo la misma interfaz. En Java existe el proxy dinamico (java.lang.reflect.Proxy) y los proxies de Spring AOP.\n\nEn entrevistas se suele distinguir Adapter (cambia la interfaz) de Decorator (agrega comportamiento manteniendo la interfaz) y de Proxy (controla el acceso). El mismo diagrama puede confundir; la INTENCION es la diferencia.",
+      "examples": [
+        "class LectorXmlAdapter implements Repositorio { private LectorXml externo; ... } // Adapter",
+        "class CifradoStream extends Stream { private Stream base; ... } // Decorator",
+        "class ProxyService implements Servicio { private Servicio real; void llamar() { log(); real.llamar(); } }",
+        "BufferedInputStream bis = new BufferedInputStream(new FileInputStream(\"f.bin\")); // Decorator JDK"
+      ]
+    },
+    {
+      "id": "dp-behavioral",
+      "title": "Patrones de comportamiento",
+      "content": "Los patrones de comportamiento tratan algoritmos y la asignacion de responsabilidades entre objetos. Los mas relevantes para entrevistas son Strategy, Observer, Template Method y State.\n\nStrategy define una familia de algoritmos encapsulados e intercambiables: se declara una interfaz de estrategia y se inyecta la implementacion concreta. En Java moderno se usa muchisimo con lambdas: una interfaz funcional es la estrategia. Ejemplo clasico: metodos de pago (tarjeta, cripto) intercambiables.\n\nObserver define una relacion de uno-a-muchos: cuando el sujeto cambia, notifica a todos sus observadores. La JDK lo abandono en favor de la programacion funcional, pero el concepto esta detras de listeners, events y reactive streams.\n\nTemplate Method define el esqueleto de un algoritmo en un metodo y deja pasos concretos a las subclases. Se usa mucho en frameworks: el framework define el flujo y el desarrollador implementa los hooks (en Spring, por ejemplo, los callbacks de JdbcTemplate).\n\nState permite que un objeto cambie su comportamiento segun su estado interno, encapsulando cada estado en una clase. Es la base de las maquinas de estados y se confunde con Strategy: State cambia el algoritmo cuando cambia el estado; Strategy lo elige el cliente.",
+      "examples": [
+        "interface EstrategiaPago { void pagar(int monto); }\nclass PagoTarjeta implements EstrategiaPago { public void pagar(int m) { ... } } // Strategy",
+        "lista.stream().sorted(Comparator.reverseOrder()); // Strategy con lambda",
+        "abstract class Pedido { final void procesar() { validar(); cobrar(); enviar(); } abstract void cobrar(); } // Template",
+        "interface Observer { void notificar(); } // Observer"
+      ]
+    },
+    {
+      "id": "dp-solid",
+      "title": "Principios SOLID",
+      "content": "SOLID son cinco principios de diseno orientado a objetos que complementan a los patrones y se preguntan con mucha frecuencia: Single Responsibility (una clase una responsabilidad), Open/Closed (abierta a extension, cerrada a modificacion), Liskov Substitution (las subclases deben ser sustituibles por su base), Interface Segregation (interfaces pequenas y especificas) y Dependency Inversion (depender de abstracciones, no de concretos).\n\nDependency Inversion es la base de la inyeccion de dependencias: el codigo de alto nivel depende de interfaces (abstracciones) y las implementaciones concretas se inyectan. En Spring, esto se traduce en inyectar por interfaz y usar @Qualifier/@Primary para elegir la implementacion.\n\nOpen/Closed se logra con polimorfismo y composicion: en lugar de modificar una clase existente para agregar un caso, se agrega una nueva implementacion de la interfaz (por eso Strategy es tan usado).\n\nLiskov es el mas sutil: si una subclase rompe el contrato de la base (por ejemplo, lanzar excepciones que la base no declara), el polimorfismo falla. Un ejemplo de violacion clasico es la jerarquia Cuadrado/Hereda de Rectangulo.\n\nEn entrevistas se suele pedir explicar cada principio con un ejemplo de violacion y su correccion. Saber aplicar SOLID demuestra madurez de diseno mas alla de conocer frameworks.",
+      "examples": [
+        "// Single Responsibility: separar validacion de persistencia",
+        "class ValidadorCuenta { ... }  class CuentaRepository { ... }",
+        "// Dependency Inversion\nclass Servicio { private final Repo repo; Servicio(Repo repo) { this.repo = repo; } }",
+        "// Open/Closed: agregar un reporte sin tocar el existente\ninterface Reporte { void generar(); }\nclass PdfReporte implements Reporte { ... }\nclass CsvReporte implements Reporte { ... }",
+        "// Liskov: no romper el contrato\nif (x instanceof Rectangulo r) r.setAncho(2);"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "design-patterns",
+    "questions": [
+      {
+        "id": "dp-q1",
+        "text": "Cual es la implementacion de Singleton mas segura en un entorno concurrente en Java?",
+        "options": [
+          "Un campo estatico publico mutable",
+          "Un enum con un unico valor",
+          "Double-check locking sin volatile",
+          "Un metodo estatico que crea una instancia en cada llamada"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "El enum con un unico valor garantiza instancia unica de forma nativa y thread-safe; las alternativas manuales requieren cuidado con la visibilidad.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q2",
+        "text": "Que patron agrega responsabilidades a un objeto de forma dinamica envolviendolo?",
+        "options": [
+          "Adapter",
+          "Proxy",
+          "Decorator",
+          "Singleton"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "Decorator envuelve el objeto y agrega comportamiento manteniendo la interfaz, como BufferedInputStream sobre FileInputStream.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q3",
+        "text": "Cuales son principios SOLID?",
+        "options": [
+          "Single Responsibility",
+          "Open/Closed",
+          "Liskov Substitution",
+          "Dependency Inversion"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "Los cinco principios SOLID son Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation y Dependency Inversion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "dp-q4",
+        "text": "Que patron define una familia de algoritmos intercambiables inyectando la implementacion concreta?",
+        "options": [
+          "Strategy",
+          "Observer",
+          "Builder",
+          "Composite"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Strategy encapsula algoritmos en una interfaz y los intercambia por composicion; en Java moderno se implementa con lambdas.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q5",
+        "text": "El patron Singleton garantiza, en su variante basica, una unica instancia por JVM.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: el constructor privado y el acceso estatico aseguran una unica instancia (en la variante basica, sin considerar classloaders ni serializacion).",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "dp-q6",
+        "text": "El patron Adapter sirve para construir un objeto paso a paso con metodos encadenados.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: eso describe al Builder. Adapter convierte la interfaz de una clase en otra interfaz esperada por el cliente.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "dp-q6",
+        "text": "Ordena estos patrones creacionales del mas basico al mas complejo:",
+        "options": [
+          "Singleton",
+          "Factory Method",
+          "Builder",
+          "Abstract Factory"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          3,
+          2
+        ],
+        "explanation": "Singleton es el mas simple, luego Factory Method, Abstract Factory y Builder.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

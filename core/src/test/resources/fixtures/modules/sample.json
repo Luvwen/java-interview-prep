@@ -1,0 +1,42 @@
+{
+  "id": "sample",
+  "title": "Sample Module",
+  "description": "Modulo de ejemplo para tests.",
+  "topics": [
+    {
+      "id": "topic-1",
+      "title": "Primer tema",
+      "content": "Contenido extenso del primer tema.\n\nSegundo parrafo del primer tema.",
+      "examples": [
+        "public static void main(String[] args) {}"
+      ]
+    },
+    {
+      "id": "topic-2",
+      "title": "Segundo tema",
+      "content": "Contenido del segundo tema.",
+      "examples": []
+    }
+  ],
+  "quiz": {
+    "id": "sample",
+    "questions": [
+      {
+        "id": "q1",
+        "text": "¿Cual es la respuesta correcta?",
+        "options": ["A", "B", "C"],
+        "correctIndexes": [1],
+        "explanation": "Porque B.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "q2",
+        "text": "¿Cuales son correctas?",
+        "options": ["X", "Y", "Z"],
+        "correctIndexes": [0, 2],
+        "explanation": "X y Z.",
+        "type": "MULTIPLE"
+      }
+    ]
+  }
+}
