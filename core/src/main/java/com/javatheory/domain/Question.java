@@ -6,11 +6,18 @@ import java.util.Set;
 
 public record Question(String id, String text, List<String> options,
                        List<Integer> correctIndexes, String explanation, QuestionType type,
-                       String codeTemplate, List<String> blanks, String code) {
+                       String codeTemplate, List<String> blanks, String code,
+                       String difficulty, String moduleId) {
 
     public Question(String id, String text, List<String> options,
                     List<Integer> correctIndexes, String explanation, QuestionType type) {
-        this(id, text, options, correctIndexes, explanation, type, null, null, null);
+        this(id, text, options, correctIndexes, explanation, type, null, null, null, null, null);
+    }
+
+    public Question(String id, String text, List<String> options,
+                    List<Integer> correctIndexes, String explanation, QuestionType type,
+                    String codeTemplate, List<String> blanks, String code) {
+        this(id, text, options, correctIndexes, explanation, type, codeTemplate, blanks, code, null, null);
     }
 
     public boolean isCorrect(Set<Integer> selected) {

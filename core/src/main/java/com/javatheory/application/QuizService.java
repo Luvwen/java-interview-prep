@@ -31,6 +31,25 @@ public class QuizService {
         return moduleService.findQuiz(moduleId);
     }
 
+    public Optional<Quiz> activityQuiz(String moduleId, String difficulty, List<String> moduleIds) {
+        return moduleService.findQuiz(moduleId).flatMap(quiz -> {
+            List<Question> filtered = quiz.questions().stream()
+                    .filter(q -> difficulty == null || difficulty.isEmpty()
+                            || difficulty.equalsIgnoreCase(q.difficulty()))
+                    .filter(q -> moduleIds == null || moduleIds.isEmpty()
+                            || (q.moduleId() != null && moduleIds.contains(q.moduleId())))
+                    .collect(Collectors.toList());
+
+            if (filtered.isEmpty()) {
+                return Optional.empty();
+            }
+
+            Collections.shuffle(filtered);
+            int count = Math.min(10, filtered.size());
+            return Optional.of(new Quiz(quiz.id(), new ArrayList<>(filtered.subList(0, count))));
+        });
+    }
+
     public QuizResult evaluate(Quiz quiz, List<Set<Integer>> answers) {
         List<Question> questions = quiz.questions();
         int total = questions.size();

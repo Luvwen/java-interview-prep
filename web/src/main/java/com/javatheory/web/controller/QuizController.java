@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
@@ -36,7 +37,17 @@ public class QuizController {
     }
 
     @GetMapping
-    public ResponseEntity<QuizResponse> getQuiz(@PathVariable("moduleId") String moduleId) {
+    public ResponseEntity<QuizResponse> getQuiz(
+            @PathVariable("moduleId") String moduleId,
+            @RequestParam(required = false) String difficulty,
+            @RequestParam(required = false) List<String> moduleIds) {
+
+        if (isActivityModule(moduleId)) {
+            return quizService.activityQuiz(moduleId, difficulty, moduleIds)
+                    .map(quiz -> ResponseEntity.ok(toResponse(quiz)))
+                    .orElseGet(() -> ResponseEntity.badRequest().build());
+        }
+
         return quizService.quizForModule(moduleId)
                 .map(quiz -> ResponseEntity.ok(toResponse(quiz)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -50,11 +61,16 @@ public class QuizController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    private boolean isActivityModule(String moduleId) {
+        return "code-fill".equals(moduleId) || "bug-hunt".equals(moduleId);
+    }
+
     private QuizResponse toResponse(Quiz quiz) {
         List<QuizQuestionDto> questions = quiz.questions().stream()
                 .map(question -> new QuizQuestionDto(question.id(), question.text(),
                         question.options(), question.type(),
-                        question.codeTemplate(), question.blanks(), question.code()))
+                        question.codeTemplate(), question.blanks(), question.code(),
+                        question.difficulty(), question.moduleId()))
                 .toList();
         return new QuizResponse(quiz.id(), questions);
     }

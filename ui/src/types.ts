@@ -32,6 +32,8 @@ export interface QuizQuestion {
   blanks?: string[];
   code?: string;
   explanation?: string;
+  difficulty?: string;
+  moduleId?: string;
 }
 
 export interface Quiz {

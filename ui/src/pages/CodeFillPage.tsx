@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  Box, Button, Heading, Text, VStack, Spinner, HStack,
+  Box, Button, Heading, Text, VStack, Spinner, HStack, Wrap, WrapItem, Tag,
 } from "@chakra-ui/react";
 import { ArrowLeft, Play } from "lucide-react";
 import { api } from "../api";
@@ -11,6 +11,27 @@ import CodeEditor from "../components/CodeEditor";
 
 const MODULE_ID = "code-fill";
 
+const DIFFICULTIES = [
+  { value: "easy", label: "Facil", color: "green" },
+  { value: "medium", label: "Medio", color: "yellow" },
+  { value: "hard", label: "Dificil", color: "red" },
+] as const;
+
+const THEORY_MODULES = [
+  { id: "core-java", label: "Core Java" },
+  { id: "poo", label: "POO" },
+  { id: "collections", label: "Colecciones" },
+  { id: "streams", label: "Streams" },
+  { id: "concurrency", label: "Concurrencia" },
+  { id: "jvm", label: "JVM" },
+  { id: "sql-jdbc", label: "SQL/JDBC" },
+  { id: "spring", label: "Spring" },
+  { id: "testing", label: "Testing" },
+  { id: "design-patterns", label: "Patrones" },
+  { id: "rest-http", label: "REST/HTTP" },
+  { id: "git", label: "Git" },
+];
+
 function CodeFillPage({ onExit }: { onExit: () => void }) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [current, setCurrent] = useState(0);
@@ -19,11 +40,86 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.getQuiz(MODULE_ID).then(setQuiz).catch((err: Error) => setError(err.message));
-  }, []);
+  const [difficulty, setDifficulty] = useState<string>("easy");
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [started, setStarted] = useState(false);
+
+  const startQuiz = () => {
+    setStarted(true);
+    api.getQuiz(MODULE_ID, difficulty, selectedModules.length > 0 ? selectedModules : undefined)
+      .then(setQuiz)
+      .catch((err: Error) => setError(err.message));
+  };
+
+  const toggleModule = (id: string) => {
+    setSelectedModules((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  };
 
   if (error) return <Text color={colors.error}>{error}</Text>;
+
+  if (!started) {
+    return (
+      <Box>
+        <Button variant="ghost" color={colors.accent} leftIcon={<ArrowLeft size={16} />} onClick={onExit} mb={4} size="sm">
+          Volver
+        </Button>
+        <Heading size="lg" mb={2}>Rellenar Codigo</Heading>
+        <Text color={colors.textMuted} mb={6}>
+          Selecciona la dificultad y los modulos que queres practicar.
+        </Text>
+
+        <Box bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="12px" p={5} mb={4}>
+          <Text fontWeight="600" mb={3}>Dificultad</Text>
+          <HStack spacing={3} mb={5}>
+            {DIFFICULTIES.map((d) => (
+              <Button
+                key={d.value}
+                size="sm"
+                variant={difficulty === d.value ? "solid" : "outline"}
+                colorScheme={difficulty === d.value ? d.color : "gray"}
+                onClick={() => setDifficulty(d.value)}
+              >
+                {d.label}
+              </Button>
+            ))}
+          </HStack>
+
+          <Text fontWeight="600" mb={3}>Modulos (opcional)</Text>
+          <Text fontSize="sm" color={colors.textMuted} mb={3}>
+            Si no seleccionas ninguno, se usan todos los modulos.
+          </Text>
+          <Wrap spacing={2} mb={5}>
+            {THEORY_MODULES.map((m) => (
+              <WrapItem key={m.id}>
+                <Tag
+                  size="lg"
+                  variant={selectedModules.includes(m.id) ? "solid" : "outline"}
+                  colorScheme={selectedModules.includes(m.id) ? "blue" : "gray"}
+                  cursor="pointer"
+                  onClick={() => toggleModule(m.id)}
+                  _hover={{ opacity: 0.8 }}
+                >
+                  {m.label}
+                </Tag>
+              </WrapItem>
+            ))}
+          </Wrap>
+
+          <Button
+            colorScheme="blue"
+            leftIcon={<Play size={16} />}
+            onClick={startQuiz}
+            size="lg"
+          >
+            Empezar
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
   if (!quiz) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
 
   const question = quiz.questions[current];
@@ -93,7 +189,7 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
       <QuizFeedback
         title="Rellenar Codigo - Resultado"
         result={result}
-        onRetry={() => { setResult(null); setCurrent(0); }}
+        onRetry={() => { setResult(null); setCurrent(0); setStarted(false); setQuiz(null); }}
         onExit={onExit}
       />
     );
@@ -105,9 +201,14 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
         Volver
       </Button>
       <Heading size="lg" mb={2}>Rellenar Codigo</Heading>
-      <Text color={colors.textMuted} mb={4}>
-        Pregunta {current + 1} de {quiz.questions.length}
-      </Text>
+      <HStack spacing={3} mb={4}>
+        <Tag colorScheme={DIFFICULTIES.find((d) => d.value === difficulty)?.color ?? "gray"}>
+          {DIFFICULTIES.find((d) => d.value === difficulty)?.label}
+        </Tag>
+        <Text color={colors.textMuted}>
+          Pregunta {current + 1} de {quiz.questions.length}
+        </Text>
+      </HStack>
 
       <Box bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="12px" p={5} mb={4}>
         <Text fontWeight="600" mb={4}>{question.text}</Text>

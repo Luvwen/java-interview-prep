@@ -119,7 +119,8 @@ public class QuizActivityController {
         List<QuizQuestionDto> questions = quiz.questions().stream()
                 .map(question -> new QuizQuestionDto(question.id(), question.text(),
                         question.options(), question.type(),
-                        question.codeTemplate(), question.blanks(), question.code()))
+                        question.codeTemplate(), question.blanks(), question.code(),
+                        question.difficulty(), question.moduleId()))
                 .toList();
         return new QuizResponse(quiz.id(), questions);
     }

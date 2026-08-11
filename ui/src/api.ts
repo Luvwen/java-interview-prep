@@ -32,7 +32,13 @@ export const api = {
 
   getModule: (id: string) => request<ModuleDetail>(`/api/modules/${id}`),
 
-  getQuiz: (id: string) => request<Quiz>(`/api/modules/${id}/quiz`),
+  getQuiz: (id: string, difficulty?: string, moduleIds?: string[]) => {
+    const params = new URLSearchParams();
+    if (difficulty) params.set("difficulty", difficulty);
+    if (moduleIds && moduleIds.length > 0) params.set("moduleIds", moduleIds.join(","));
+    const qs = params.toString();
+    return request<Quiz>(`/api/modules/${id}/quiz${qs ? "?" + qs : ""}`);
+  },
 
   submitQuiz: (id: string, answers: number[][], textAnswers?: Record<string, string[]>) =>
     request<QuizResult>(`/api/modules/${id}/quiz`, {
