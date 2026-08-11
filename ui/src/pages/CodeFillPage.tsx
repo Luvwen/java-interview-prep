@@ -55,6 +55,15 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
     }
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (current + 1 < quiz.questions.length) {
+        nextQuestion();
+      }
+    }
+  };
+
   const prevQuestion = () => {
     if (current > 0) {
       setCurrent(current - 1);
@@ -125,6 +134,7 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
                   flex={1}
                   value={currentAnswers[i] ?? ""}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleBlankChange(i, e.target.value)}
+                  onKeyDown={handleInputKeyDown}
                   bg="gray.800"
                   color="green.300"
                   border="1px solid"

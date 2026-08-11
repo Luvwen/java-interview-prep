@@ -19,7 +19,7 @@ export default function CodeEditor({
   showLineNumbers = true,
 }: CodeEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const preRef = useRef<HTMLPreElement>(null);
+  const [highlighted, setHighlighted] = useState("");
   const [localCode, setLocalCode] = useState(code);
 
   useEffect(() => {
@@ -27,13 +27,8 @@ export default function CodeEditor({
   }, [code]);
 
   useEffect(() => {
-    if (preRef.current) {
-      preRef.current.innerHTML = Prism.highlight(
-        localCode,
-        Prism.languages[language] ?? Prism.languages.markup,
-        language
-      );
-    }
+    const grammar = Prism.languages[language] ?? Prism.languages.markup;
+    setHighlighted(Prism.highlight(localCode, grammar, language));
   }, [localCode, language]);
 
   const handleChange = useCallback(
@@ -98,19 +93,17 @@ export default function CodeEditor({
         <Box position="relative" flex={1} minW={0}>
           {readOnly ? (
             <Box
-              ref={preRef}
               as="pre"
               p={4}
               m={0}
               color="green.300"
               whiteSpace="pre"
               overflow="hidden"
-              dangerouslySetInnerHTML={{ __html: "" }}
+              dangerouslySetInnerHTML={{ __html: highlighted }}
             />
           ) : (
             <>
               <Box
-                ref={preRef}
                 as="pre"
                 p={4}
                 m={0}
@@ -122,7 +115,7 @@ export default function CodeEditor({
                 top={0}
                 left={0}
                 right={0}
-                dangerouslySetInnerHTML={{ __html: "" }}
+                dangerouslySetInnerHTML={{ __html: highlighted }}
               />
               <textarea
                 ref={textareaRef}
