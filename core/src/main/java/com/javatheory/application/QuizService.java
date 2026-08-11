@@ -56,6 +56,49 @@ public class QuizService {
                 if (answer.equals(q.correctIndexes())) {
                     correct++;
                 }
+            } else if (q.type() == QuestionType.CODE_FILL) {
+                // CODE_FILL is evaluated separately via evaluateWithTextAnswers
+                // When called from evaluateOrdered, count as incorrect
+            } else if (q.type() == QuestionType.BUG_HUNT) {
+                Set<Integer> selected = new HashSet<>(answer);
+                if (q.isCorrectBugHunt(selected)) {
+                    correct++;
+                }
+            } else {
+                Set<Integer> selected = new HashSet<>(answer);
+                if (q.isCorrect(selected)) {
+                    correct++;
+                }
+            }
+        }
+        boolean passed = PassRule.passed(correct, total);
+        return QuizResult.of(quiz.id(), correct, total, passed);
+    }
+
+    public QuizResult evaluateWithTextAnswers(Quiz quiz, List<List<Integer>> answers,
+                                               Map<String, List<String>> textAnswers) {
+        List<Question> questions = quiz.questions();
+        int total = questions.size();
+        int correct = 0;
+        for (int i = 0; i < total; i++) {
+            Question q = questions.get(i);
+            List<Integer> answer = i < answers.size() ? answers.get(i) : List.of();
+            if (q.type() == QuestionType.ORDER) {
+                if (answer.equals(q.correctIndexes())) {
+                    correct++;
+                }
+            } else if (q.type() == QuestionType.CODE_FILL) {
+                List<String> textAnswer = textAnswers != null
+                        ? textAnswers.getOrDefault(q.id(), List.of())
+                        : List.of();
+                if (q.isCorrectCodeFill(textAnswer)) {
+                    correct++;
+                }
+            } else if (q.type() == QuestionType.BUG_HUNT) {
+                Set<Integer> selected = new HashSet<>(answer);
+                if (q.isCorrectBugHunt(selected)) {
+                    correct++;
+                }
             } else {
                 Set<Integer> selected = new HashSet<>(answer);
                 if (q.isCorrect(selected)) {

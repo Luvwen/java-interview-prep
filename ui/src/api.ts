@@ -34,10 +34,10 @@ export const api = {
 
   getQuiz: (id: string) => request<Quiz>(`/api/modules/${id}/quiz`),
 
-  submitQuiz: (id: string, answers: number[][]) =>
+  submitQuiz: (id: string, answers: number[][], textAnswers?: Record<string, string[]>) =>
     request<QuizResult>(`/api/modules/${id}/quiz`, {
       method: "POST",
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers, textAnswers: textAnswers ?? null }),
     }),
 
   completeModule: (id: string) =>
@@ -64,11 +64,12 @@ export const api = {
     quizId: string,
     moduleIds: string[],
     answers: number[][],
-    durationSeconds?: number
+    durationSeconds?: number,
+    textAnswers?: Record<string, string[]>
   ) =>
     request<QuizResult>("/api/quiz/submit", {
       method: "POST",
-      body: JSON.stringify({ quizId, moduleIds, answers, durationSeconds }),
+      body: JSON.stringify({ quizId, moduleIds, answers, durationSeconds, textAnswers: textAnswers ?? null }),
     }),
 
   getStats: () => request<Record<string, ModuleStats>>("/api/stats"),

@@ -18,12 +18,13 @@ class ModuleCatalogTest {
     private final ModuleLoader loader = new ModuleLoader(new ObjectMapper(), "modules");
 
     @Test
-    void loadsAllTwelveModulesInOrder() {
+    void loadsAllFourteenModulesInOrder() {
         List<Module> modules = loader.loadAll();
-        assertEquals(12, modules.size());
+        assertEquals(14, modules.size());
         assertEquals(List.of("core-java", "poo", "collections", "streams",
                 "concurrency", "jvm", "sql-jdbc", "spring", "testing",
-                "design-patterns", "rest-http", "git"), modules.stream().map(Module::id).toList());
+                "design-patterns", "rest-http", "git", "code-fill", "bug-hunt"),
+                modules.stream().map(Module::id).toList());
     }
 
     @Test
@@ -42,11 +43,26 @@ class ModuleCatalogTest {
             for (Question question : module.quiz().questions()) {
                 assertFalse(question.text().isBlank(), module.id() + " question text");
                 assertFalse(question.explanation().isBlank(), module.id() + " question explanation");
-                assertFalse(question.options().isEmpty(), module.id() + " question options");
-                for (Integer index : question.correctIndexes()) {
-                    assertTrue(index >= 0 && index < question.options().size(),
-                            module.id() + " question " + question.id() + " index out of bounds: " + index);
+
+                if (question.type() == QuestionType.CODE_FILL) {
+                    assertFalse(question.codeTemplate().isBlank(),
+                            module.id() + " question " + question.id() + " CODE_FILL must have codeTemplate");
+                    assertFalse(question.blanks().isEmpty(),
+                            module.id() + " question " + question.id() + " CODE_FILL must have blanks");
+                } else if (question.type() == QuestionType.BUG_HUNT) {
+                    assertFalse(question.code().isBlank(),
+                            module.id() + " question " + question.id() + " BUG_HUNT must have code");
+                    assertFalse(question.options().isEmpty(), module.id() + " question options");
+                    assertFalse(question.correctIndexes().isEmpty(),
+                            module.id() + " question " + question.id() + " BUG_HUNT must have correctIndexes");
+                } else {
+                    assertFalse(question.options().isEmpty(), module.id() + " question options");
+                    for (Integer index : question.correctIndexes()) {
+                        assertTrue(index >= 0 && index < question.options().size(),
+                                module.id() + " question " + question.id() + " index out of bounds: " + index);
+                    }
                 }
+
                 if (question.type() == QuestionType.TRUE_FALSE) {
                     assertEquals(List.of("Verdadero", "Falso"), question.options(),
                             module.id() + " question " + question.id() + " must have exactly two options");
@@ -64,8 +80,12 @@ class ModuleCatalogTest {
     }
 
     @Test
-    void everyModuleHasAtLeastTwoTrueFalseQuestions() {
+    void traditionalModulesHaveAtLeastTwoTrueFalseQuestions() {
+        List<String> newTypeModules = List.of("code-fill", "bug-hunt");
         for (Module module : loader.loadAll()) {
+            if (newTypeModules.contains(module.id())) {
+                continue;
+            }
             long trueFalse = module.quiz().questions().stream()
                     .filter(question -> question.type() == QuestionType.TRUE_FALSE)
                     .count();

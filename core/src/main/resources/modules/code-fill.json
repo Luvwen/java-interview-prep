@@ -1,0 +1,184 @@
+{
+  "id": "code-fill",
+  "title": "Rellenar Codigo",
+  "description": "Practica completando fragmentos de codigo Java. Ejercicios donde debes rellenar los blanks para que el codigo compile y funcione correctamente.",
+  "topics": [
+    {
+      "id": "cf-syntax",
+      "title": "Sintaxis basica de Java",
+      "content": "La sintaxis basica de Java incluye la declaracion de variables, tipos primitivos, operadores y sentencias de control de flujo. Dominar estos fundamentos es esencial para escribir codigo que compile y se ejecute correctamente.\n\nJava es un lenguaje fuertamente tipado: cada variable debe declararse con un tipo antes de usarse. Los tipos primitivos (int, double, boolean, char, etc.) almacenan valores directamente, mientras que las clases (String, Object, etc.) almacenan referencias a objetos en el heap. Declarar una variable correctamente es el primer paso para cualquier programa Java.\n\nLos operadores en Java incluyen aritmeticos (+, -, *, /), comparacion (==, !=, <, >), logicos (&&, ||, !) y de asignacion (=, +=, -=). El operador % devuelve el residuo de una division entera. La precedencia de operadores determina el orden de evaluacion; usar parentesis clarifica la intencion.\n\nLas sentencias if/else permiten tomar decisiones, while y for controlan la iteracion, y los arrays almacenan colecciones de elementos del mismo tipo. Un array en Java tiene una propiedad length que indica su tamano, y los indices van desde 0 hasta length-1. Conocer bien estos constructos te permite resolver la mayoria de problemas algoritmicos basicos.\n\nErrores comunes al llenar codigo:\n- Olvidar que los arrays empiezan en indice 0, no 1.\n- Confundir = (asignacion) con == (comparacion).\n- Usar .length sin parentesis en arrays (es .length) pero .length() en String (es un metodo).\n- Declarar el tipo de la variable en un for-each correctamente: for (int x : array).",
+      "examples": [
+        "int x = ___;",
+        "for (int i = 0; i < ___.length; i++)",
+        "double resultado = a ___ b;",
+        "if (edad >= ___) { System.out.println(\"mayor\"); }",
+        "int[] numeros = new int[___];",
+        "boolean esPositivo = num ___ 0;"
+      ]
+    },
+    {
+      "id": "cf-oop",
+      "title": "Programacion orientada a objetos",
+      "content": "La programacion orientada a objetos (POO) es el paradigma fundamental de Java. Se basa en cuatro pilares: encapsulacion, herencia, polimorfismo y abstraccion. Un programa Java esta compuesto por clases que definen el comportamiento y los datos de los objetos.\n\nUna clase define campos (atributos) y metodos (comportamiento). Los campos se declaran con un modificador de acceso (private, protected, public) para controlar la visibilidad. Los constructores inicializan los objetos; si no se define ninguno, Java provee un constructor por defecto sin argumentos. Un constructor tiene el mismo nombre que la clase y no tiene tipo de retorno.\n\nLa herencia permite que una subclase reutilice el comportamiento de una superclase. En Java, una clase solo puede heredar de una clase (herencia simple), pero puede implementar multiples interfaces. La palabra clave extends establece la herencia, implements establece la implementacion de interfaces. Un metodo sobrescrito debe mantener la misma firma y puede usar @Override para indicar la intencion.\n\nEl polimorfismo permite que una referencia de tipo padre apunte a un objeto de tipo hijo, y que la llamada a un metodo se resuelva en runtime (dynamic dispatch). Esto es la base del diseno flexible y extensible. Las interfaces definen contratos que las clases deben cumplir, permitiendo desacoplamiento entre componentes.\n\nConceptos avanzados:\n- Una clase abstracta no se puede instanciar y puede tener metodos abstractos sin implementacion.\n- Las clases selladas (sealed, Java 17+) restringen que clases pueden extenderlas.\n- La composicion sobre herencia: preferir 'has-a' sobre 'is-a' cuando es posible.\n- El patron Builder es comun para construir objetos con muchos campos opcionales.",
+      "examples": [
+        "class ___ { private String nombre; }",
+        "class Animal { void hacerSonido() { } } class Perro ___ Animal { void hacerSonido() { } }",
+        "interface ___ { void ejecutar(); }",
+        "class ___ implements ___ { public void ejecutar() { } }",
+        "Animal a = new ___();",
+        "public ___(String nombre) { this.nombre = nombre; }"
+      ]
+    },
+    {
+      "id": "cf-collections",
+      "title": "Uso de Colecciones",
+      "content": "El Framework de Colecciones de Java proporciona estructuras de datos predefinidas para almacenar y manipular grupos de objetos. Las interfaces principales son List (ordenada, permite duplicados), Set (sin duplicados) y Map (pares clave-valor). Cada interfaz tiene implementaciones con diferentes caracteristicas de rendimiento.\n\nArrayList es la implementacion mas comun de List; se basa en un arreglo dinamico que crece automaticamente. LinkedList implementa List y Deque; es eficiente para inserciones/eliminaciones en los extremos pero lenta para acceso aleatorio. HashSet y TreeSet implementan Set; HashSet es mas rapida pero no ordena, TreeSet ordena los elementos segun su Comparable o un Comparator.\n\nHashMap es la implementacion mas comun de Map; ofrece acceso O(1) promedio pero no garantiza orden. TreeMap ordena las claves. LinkedHashMap preserva el orden de insercion. En entrevistas se pregunta mucho la complejidad temporal de las operaciones基本icas de cada implementacion.\n\nEl patron correcto para declarar una coleccion es programar a la interfaz: List<String> list = new ArrayList<>();, no ArrayList<String> list = new ArrayList<>();. Esto permite cambiar la implementacion sin modificar el codigo que la consume. Los genericos (el tipo entre <>) proporcionan seguridad de tipos en compile-time.\n\nConceptos avanzados:\n- Collections.unmodifiableList crea una vista no modificable; cualquier intento de modificacion lanza UnsupportedOperationException.\n- List.of, Set.of, Map.of (Java 9+) crean colecciones inmutables de forma concisa.\n- El metodo removeIf (Java 8+) elimina elementos que cumplen un predicado, mas limpio que usar Iterator manualmente.\n- ConcurrentModificationException ocurre cuando se modifica una coleccion mientras se itera con for-each; usar Iterator.remove o removeIf.",
+      "examples": [
+        "List<___> lista = new ArrayList<>();",
+        "Map<String, ___> mapa = new HashMap<>();",
+        "lista.___(\"elemento\");",
+        "mapa.___(clave, valor);",
+        "for (String s : ___) { }",
+        "Set<Integer> conjunto = new ___<>();"
+      ]
+    },
+    {
+      "id": "cf-streams-api",
+      "title": "Streams y API moderna",
+      "content": "La API de Streams (Java 8+) permite procesar colecciones de forma declarativa y funcional. Un Stream no modifica la coleccion original; en su lugar, crea un pipeline de operaciones que se evaluan de forma lazy (perezosa), lo que mejora la eficiencia al evitar iteraciones innecesarias.\n\nUn pipeline de Stream se compone de operaciones intermedias (filter, map, flatMap, sorted, distinct) que transforman el Stream, y una operacion terminal (collect, forEach, reduce, count, findFirst) que produce un resultado. Las operaciones intermedias son lazy: no se ejecutan hasta que se invoca una terminal.\n\nLas expresiones lambda permiten definir comportamiento de forma concisa: (parametros) -> expresion o (parametros) -> { sentencias }. Se usan como argumentos de metodos funcionales (Predicate, Function, Consumer, Supplier). El operador :: (method reference) es una forma abreviada: String::length equivale a s -> s.length().\n\nOptional<T> es un contenedor que puede o no contener un valor no nulo. Evita NullPointerException al forzar al llamador a manejar la ausencia de valor. Metodos como orElse, orElseThrow, ifPresent y map permiten encadenar operaciones de forma segura. El keyword var (Java 10+) permite inferencia de tipos en variables locales, reduciendo verbosidad.\n\nConceptos avanzados:\n- collect(Collectors.groupingBy(...)) agrupa elementos por un criterio.\n- flatMap aplanar Streams anidados: Stream<List<T>> -> Stream<T>.\n- parallelStream() ejecuta el pipeline en multiples threads; usar con cuidado por temas de concurrencia.\n- toUnmodifiableList() (Java 16+) crea una lista inmutable desde un Stream, alternativa a Collections.unmodifiableList.",
+      "examples": [
+        "list.stream().___(x -> x > 0).collect(Collectors.toList());",
+        "list.stream().map(String::___).toList();",
+        "Optional<String> opt = list.stream().___(s -> s.startsWith(\"a\"));",
+        "map.values().stream().___(System.out::println);",
+        "long count = list.stream().___().count();",
+        "var numeros = list.stream().___(n -> n * 2).toList();"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "code-fill-quiz",
+    "questions": [
+      {
+        "id": "cf-q1",
+        "text": "Completa la declaracion de una variable entera que almacene el valor 42.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "En Java se declara una variable con el tipo seguido del nombre: int x = 42;. El tipo int ocupa 32 bits y es el tipo entero por defecto.",
+        "type": "CODE_FILL",
+        "codeTemplate": "___ x = 42;",
+        "blanks": ["int"]
+      },
+      {
+        "id": "cf-q2",
+        "text": "Completa el bucle for para iterar sobre todos los elementos de un array llamado 'numeros'.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "La sintaxis for-each en Java usa 'for (Tipo var : array)'. El tipo debe coincidir con el tipo del array. Se declara una variable local que recibira cada elemento en cada iteracion.",
+        "type": "CODE_FILL",
+        "codeTemplate": "for (___ n : numeros) { }",
+        "blanks": ["int"]
+      },
+      {
+        "id": "cf-q3",
+        "text": "Completa la clase para que Perro herede de Animal.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "En Java se usa la palabra clave 'extends' para establecer herencia entre clases. Perro es una subclase de Animal y hereda sus campos y metodos no privados.",
+        "type": "CODE_FILL",
+        "codeTemplate": "class Perro ___ Animal { }",
+        "blanks": ["extends"]
+      },
+      {
+        "id": "cf-q4",
+        "text": "Completa la declaracion de una lista de Strings usando ArrayList.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "El patron correcto es programar a la interfaz: List<String> es el tipo declarado, y new ArrayList<>() es la implementacion. Esto permite cambiar la implementacion sin afectar el codigo que consume la lista.",
+        "type": "CODE_FILL",
+        "codeTemplate": "List<String> lista = new ___<>();",
+        "blanks": ["ArrayList"]
+      },
+      {
+        "id": "cf-q5",
+        "text": "Completa el codigo para agregar un elemento a una lista.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "El metodo add() de List agrega un elemento al final de la lista. Tamien existe add(index, element) para insertar en una posicion especifica.",
+        "type": "CODE_FILL",
+        "codeTemplate": "lista.___(\"hola\");",
+        "blanks": ["add"]
+      },
+      {
+        "id": "cf-q6",
+        "text": "Completa el codigo para insertar un par clave-valor en un HashMap.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "El metodo put(key, value) de Map inserta o actualiza un par clave-valor. Si la clave ya existe, el valor anterior se reemplaza y se retorna.",
+        "type": "CODE_FILL",
+        "codeTemplate": "mapa.___(\"nombre\", \"Carlos\");",
+        "blanks": ["put"]
+      },
+      {
+        "id": "cf-q7",
+        "text": "Completa el pipeline de Stream para filtrar solo los strings que empiezan con la letra 'a'.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "El metodo filter() recibe un Predicate<T> que retorna true o false. Usamos una lambda que invoca startsWith. El resultado es un Stream con solo los elementos que cumplen la condicion.",
+        "type": "CODE_FILL",
+        "codeTemplate": "list.stream().___(s -> s.startsWith(\"a\")).toList();",
+        "blanks": ["filter"]
+      },
+      {
+        "id": "cf-q8",
+        "text": "Completa el codigo para transformar cada string a mayusculas usando method reference.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "El operador :: crea una method reference. String::toUpperCase equivale a s -> s.toUpperCase(). Es una forma mas concisa de expresar la lambda cuando solo se llama a un metodo sin argumentos adicionales.",
+        "type": "CODE_FILL",
+        "codeTemplate": "list.stream().map(String::___).toList();",
+        "blanks": ["toUpperCase"]
+      },
+      {
+        "id": "cf-q9",
+        "text": "Completa el codigo para obtener el primer elemento de un Optional, retornando un valor por defecto si esta vacio.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "orElse() retorna el valor contenido si el Optional tiene valor, o el argumento proporcionado si esta vacio. A diferencia de get(), nunca lanza NoSuchElementException.",
+        "type": "CODE_FILL",
+        "codeTemplate": "Optional<String> opt = Optional.of(\"hello\"); String resultado = opt.___(\"default\");",
+        "blanks": ["orElse"]
+      },
+      {
+        "id": "cf-q10",
+        "text": "Completa el constructor de la clase Persona que inicializa el campo nombre.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "Un constructor tiene el mismo nombre que la clase y no tiene tipo de retorno. this.nombre se refiere al campo de la instancia, distinguiendolo del parametro local con el mismo nombre.",
+        "type": "CODE_FILL",
+        "codeTemplate": "public Persona(String nombre) { this.nombre = ___; }",
+        "blanks": ["nombre"]
+      },
+      {
+        "id": "cf-q11",
+        "text": "Completa el codigo para contar cuantos elementos mayores a 10 hay en una lista usando Stream.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "filter() selecciona los elementos que cumplen la condicion y count() retorna el numero de elementos del Stream resultante. Es una forma declarativa de contar sin usar contadores mutables.",
+        "type": "CODE_FILL",
+        "codeTemplate": "long total = list.stream().___(x -> x > 10).count();",
+        "blanks": ["filter"]
+      },
+      {
+        "id": "cf-q12",
+        "text": "Completa la interfaz funcional que define un metodo que recibe dos argumentos y retorna un valor.",
+        "options": [],
+        "correctIndexes": [],
+        "explanation": "BiFunction<T, U, R> es un interfaz funcional de java.util.function que toma dos argumentos (T y U) y retorna un valor (R). Se usa comunmente con map para transformar pares de elementos.",
+        "type": "CODE_FILL",
+        "codeTemplate": "BiFunction<Integer, Integer, Integer> suma = (a, b) -> a ___ b;",
+        "blanks": ["+"]
+      }
+    ]
+  }
+}

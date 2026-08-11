@@ -6,13 +6,13 @@
     {
       "id": "test-junit5",
       "title": "JUnit 5 (Jupiter)",
-      "content": "JUnit 5 es el framework de testing estandar en Java. Se estructura en Jupiter (la API nueva), Vintage (para correr tests JUnit 4) y Platform (la base de lanzamiento). Un test es un metodo anotado con @Test dentro de una clase de test, y el resultado se valida con asserts de la clase Assertions: assertEquals, assertTrue, assertNotNull, assertThrows, entre otros.\n\nEl ciclo de vida se controla con anotaciones: @BeforeAll/@AfterAll (static, se ejecutan una vez por clase) y @BeforeEach/@AfterEach (antes y despues de cada test). Para verificar que un metodo lanza una excepcion se usa assertThrows con un lambda, y se debe comprobar ademas el tipo exacto de la excepcion.\n\nPara probar distintos valores de entrada existe la parametrizacion: @ParameterizedTest con @ValueSource, @CsvSource o @MethodSource, que ejecuta el mismo test varias veces con datos distintos. Esto evita duplicar codigo y documenta casos limite.\n\nLa convencion de nombres es importante: el metodo describe el comportamiento esperado, no el codigo probado. Tambien se recomienda que cada test sea independiente (no compartir estado) y que verifique UNA cosa a la vez para que los fallos sean diagnosticables.\n\nConceptos avanzados: Cuando se escriben tests parametrizados con @CsvSource, cada par de comillas representa un argumento; si el valor contiene comas, se escapa con comillas dobles. Con @MethodSource se puede usar un metodo estatico que retorne un Stream o Iterable de Argumentos. El @Nested permite agrupar tests por contexto o comportamiento, y @DisplayName personaliza el nombre visible en el reporte. Tambien existe @Timeout para limitar la duracion de un test individual o de toda la clase.\n\nErrores comunes en entrevistas: Olvidar que @BeforeAll y @AfterAll requieren que el metodo sea static a menos que se use @TestInstance(Lifecycle.PER_CLASS). No verificar el tipo exacto de la excepcion en assertThrows (usar instanceof o getMessage()). No saber que @Disabled desactiva un test y por que se usa temporalmente. Confundir @ParameterizedTest con @RepeatedTest (el primero varia datos, el segundo repite la misma ejecucion). No entender que assertEquals usa equals() de Java, no comparacion de referencias.",
+      "content": "JUnit 5 es el framework de testing estandar en Java. Se estructura en Jupiter (la API nueva), Vintage (para correr tests JUnit 4) y Platform (la base de lanzamiento). Un test es un metodo anotado con @Test dentro de una clase de test, y el resultado se valida con asserts de la clase Assertions: assertEquals, assertTrue, assertNotNull, assertThrows, entre otros.\n\nEl ciclo de vida se controla con anotaciones: @BeforeAll/@AfterAll (static, se ejecutan una vez por clase) y @BeforeEach/@AfterEach (antes y despues de cada test). Para verificar que un metodo lanza una excepcion se usa assertThrows con un lambda, y se debe comprobar ademas el tipo exacto de la excepcion.\n\nPara probar distintos valores de entrada existe la parametrizacion: @ParameterizedTest con @ValueSource, @CsvSource o @MethodSource, que ejecuta el mismo test varias veces con datos distintos. Esto evita duplicar codigo y documenta casos limite.\n\nLa convencion de nombres es importante: el metodo describe el comportamiento esperado, no el codigo probado. Tambien se recomienda que cada test sea independiente (no compartir estado) y que verifique UNA cosa a la vez para que los fallos sean diagnosticables.\n\nConceptos avanzados: Cuando se escriben tests parametrizados con @CsvSource, cada par de comillas representa un argumento; si el valor contiene comas, se escapa con comillas dobles. Con @MethodSource se puede usar un metodo estatico que retorne un Stream o Iterable de Argumentos. El @Nested permite agrupar tests por contexto o comportamiento, y @DisplayName personaliza el nombre visible en el reporte. Tambien existe @Timeout para limitar la duracion de un test individual o de toda la clase.\n\nErrores comunes en entrevistas: Olvidar que @BeforeAll y @AfterAll requieren que el metodo sea static a menos que se use @TestInstance(Lifecycle.PER_CLASS). No verificar el tipo exacto de la excepcion en assertThrows (usar instanceof o getMessage()). No saber que @Disabled desactiva un test y @Tag permite filtrar tests por etiqueta durante la ejecucion.",
       "examples": [
         "assertEquals(4, calculadora.sumar(2, 2));",
         "@Test void lanzaErrorSiMontoEsNegativo() { assertThrows(IllegalArgumentException.class, () -> cuenta.debitar(-1)); }",
         "@BeforeEach void setUp() { cuenta = new Cuenta(); }",
         "@ParameterizedTest\n@CsvSource({\"1,1,2\", \"2,3,5\"})\nvoid sumaCorrecta(int a, int b, int esperado) { assertEquals(esperado, a + b); }",
-        "@Nested\n@DisplayName(\"Cuando el saldo es cero\")\nvoidTestsConSaldoCero() {\n  @Test void noPermiteDebitar() { ... }\n}",
+        "@Nested\n@DisplayName(\"Cuando el saldo es cero\")\nvoid TestsConSaldoCero() {\n  @Test void noPermiteDebitar() { ... }\n}",
         "@ParameterizedTest\n@ValueSource(strings = {\"java\", \"python\", \"go\"})\nvoid lenguajeValido(String lang) { assertTrue(lenguajes.contains(lang)); }",
         "@Test\n@DisplayName(\"Calcula IVA correctamente\")\nvoid testIva() { assertEquals(121, precio.conIva(100)); }"
       ]
@@ -20,7 +20,7 @@
     {
       "id": "test-tdd",
       "title": "TDD: red, green, refactor",
-      "content": "Test-Driven Development (TDD) es una practica que invierte el orden habitual: se escribe primero el test que falla (red), despues el minimo codigo para que pase (green) y finalmente se mejora el codigo sin cambiar comportamiento (refactor). El ciclo se repite en pasos pequenos.\n\nLa idea fuerza es que el test es el diseno del comportamiento: obliga a pensar en la interfaz publica y en los casos limite antes de implementar. Tambien da una red de seguridad que permite refactorizar con confianza.\n\nLas tres reglas de TDD (Uncle Bob) resumen la practica: no escribir codigo de produccion sin un test que falle; no escribir mas de un test que falle a la vez; no escribir mas codigo del necesario para que el test pase.\n\nEn entrevistas puede preguntarse que ventajas aporta TDD (menos bugs, diseno mas limpio, refactors seguros) y que criticas recibe (costo inicial, dificil de aplicar sobre codigo legacy sin tests). Lo importante es demostrar que se entiende el ciclo y como escribir tests que guien la implementacion.\n\nConceptos avanzados: TDD funciona mejor cuando los tests son rapidos y deterministas. Un test que depende de la hora, la red o el orden de ejecucion rompe el ciclo. El refactor debe ser una operacion segura: si el codigo cambia y los tests pasan, se esta refactorizando correctamente. Cuando se trabaja con codigo legacy sin tests, se aplica \"characterization testing\": escribir tests que capturen el comportamiento actual antes de cambiar nada. TDD tambien se aplica a disenar APIs: se define como se quiere usar una clase antes de escribirla.\n\nErrores comunes en entrevistas: Creer que TDD es solo escribir tests despues del codigo. No entender que el test de red debe fallar por la razon correcta (no por un error de compilacion o dependencia faltante). Escribir tests que prueben implementacion en vez de comportamiento. Saltarse el paso de refactor y acumular deuda tecnica. No saber que TDD no es obligatorio en todos los contextos (prototipos rapidos, graficadores, interfaces de usuario). No distinguir entre TDD y BDD (Behavior-Driven Development, que usa lenguaje natural en Given/When/Then).",
+      "content": "Test-Driven Development (TDD) es una practica que invierte el orden habitual: se escribe primero el test que falla (red), despues el minimo codigo para que pase (green) y finalmente se mejora el codigo sin cambiar comportamiento (refactor). El ciclo se repite en pasos pequenos.\n\nLa idea fuerza es que el test es el diseno del comportamiento: obliga a pensar en la interfaz publica y en los casos limite antes de implementar. Tambien da una red de seguridad que permite refactorizar con confianza.\n\nLas tres reglas de TDD (Uncle Bob) resumen la practica: no escribir codigo de produccion sin un test que falle; no escribir mas de un test que falle a la vez; no escribir mas codigo del necesario para que el test pase.\n\nEn entrevistas puede preguntarse que ventajas aporta TDD (menos bugs, diseno mas limpio, refactors seguros) y que criticas recibe (costo inicial, dificil de aplicar sobre codigo legacy sin tests). Lo importante es demostrar que se entiende el ciclo y como escribir tests que guien la implementacion.\n\nConceptos avanzados: TDD funciona mejor cuando los tests son rapidos y deterministas. Un test que depende de la hora, la red o el orden de ejecucion rompe el ciclo. El refactor debe ser una operacion segura: si el codigo cambia y los tests pasan, se esta refactorizando correctamente. Cuando se trabaja con codigo legacy sin tests, se aplica characterization testing: escribir tests que capturen el comportamiento actual antes de cambiar nada. TDD tambien se aplica a disenar APIs: se define como se quiere usar una clase antes de escribirla.\n\nErrores comunes en entrevistas: Creer que TDD es solo escribir tests despues del codigo. No entender que el test de red debe fallar por la razon correcta (no por un error de compilacion o dependencia faltante). Escribir tests que prueben implementacion en vez de comportamiento. Saltarse el paso de refactor y acumular deuda tecnica. No saber que TDD no es obligatorio en todos los contextos (prototipos rapidos o spikes no lo requieren).",
       "examples": [
         "// 1. RED\n@Test void descuentoDelDiezPorciento() { assertEquals(90, precio.finalConDescuento(100)); }",
         "// 2. GREEN\npublic int finalConDescuento(int precio) { return (int) (precio * 0.9); }",
@@ -33,7 +33,7 @@
     {
       "id": "test-mocks",
       "title": "Mocks con Mockito",
-      "content": "Los tests unitarios prueban una unidad de codigo aislada. Cuando esa unidad depende de otras (repositorios, clientes HTTP, servicios externos), se sustituyen con dobles: mocks, stubs o spies. El framework mas usado en Java es Mockito.\n\nUn mock se crea con Mockito.mock() o con la anotacion @Mock (y @ExtendWith(MockitoExtension.class)). Para definir comportamiento se usa when(mock.metodo(args)).thenReturn(valor), y para verificar interacciones verify(mock).metodo(args). Una buena practica es usar ArgumentMatchers (any(), eq(...)) y nunca mockear lo que no hace falta.\n\nLa regla de oro: no verificar comportamiento de mocks en exceso (over-mocking hace tests fragiles); se verifican las interacciones que son parte del contrato (por ejemplo, que el servicio guardo el resultado).\n\nEn entrevistas se distingue mock (verifica interacciones) de stub (solo devuelve datos preparados). Mockito permite ambas. Tambien se pregunta que pasa cuando se llama un metodo de un mock sin definir: devuelve el default del tipo (null, 0, lista vacia), lo que causa fallos silenciosos si no se configura.\n\nConceptos avanzados: ArgumentCaptor permite capturar los argumentos que se pasaron a un mock y luego hacer asserts sobre ellos (util cuando se quiere verificar que se guardo un objeto con campos especificos). verify(mock, atLeast(1)).metodo() verifica que se llamo al menos una vez; verify(mock, never()).metodo() verifica que nunca se llamo. @Spy crea un mock parcial que ejecuta el codigo real pero permite interceptar metodos especificos. Los ArgumentMatchers no se pueden usar con mocks stubbados con thenReturn (se usa anyInt(), anyString() como matcher). Mockito.reset(mock) limpiaria los registros pero no se recomienda porque puede causar falsos positivos.\n\nErrores comunes en entrevistas: No saber que @Mock requiere @ExtendWith(MockitoExtension.class) o que el test extienda MockitoJUnitRunner (JUnit 4). Usar verify() sin argumentos cuando se deberia usar any(). Verificar interacciones que no son parte del contrato (over-verification). No saber que when().thenReturn() no funciona con metodos void (se usa doNothing().when(mock).metodo()). Olvidar que un mock no tiene estado propio: si se configura thenReturn una vez, esa es la respuesta para todas las llamadas. Confundir @Mock con @InjectMocks (el ultimo inyecta mocks en la clase real).",
+      "content": "Los tests unitarios prueban una unidad de codigo aislada. Cuando esa unidad depende de otras (repositorios, clientes HTTP, servicios externos), se sustituyen con dobles: mocks, stubs o spies. El framework mas usado en Java es Mockito.\n\nUn mock se crea con Mockito.mock() o con la anotacion @Mock (y @ExtendWith(MockitoExtension.class)). Para definir comportamiento se usa when(mock.metodo(args)).thenReturn(valor), y para verificar interacciones verify(mock).metodo(args). Una buena practica es usar ArgumentMatchers (any(), eq(...)) y nunca mockear lo que no hace falta.\n\nLa regla de oro: no verificar comportamiento de mocks en exceso (over-mocking hace tests fragiles); se verifican las interacciones que son parte del contrato (por ejemplo, que el servicio guardo el resultado).\n\nEn entrevistas se distingue mock (verifica interacciones) de stub (solo devuelve datos preparados). Mockito permite ambas. Tambien se pregunta que pasa cuando se llama un metodo de un mock sin definir: devuelve el default del tipo (null, 0, lista vacia), lo que causa fallos silenciosos si no se configura.\n\nConceptos avanzados: ArgumentCaptor permite capturar los argumentos que se pasaron a un mock y luego hacer asserts sobre ellos (util cuando se quiere verificar que se guardo un objeto con campos especificos). verify(mock, atLeast(1)).metodo() verifica que se llamo al menos una vez; verify(mock, never()).metodo() verifica que nunca se llamo. @Spy crea un mock parcial que ejecuta el codigo real pero permite interceptar metodos especificos. Los ArgumentMatchers no se pueden usar con mocks stubbados con thenReturn (se usa anyInt(), anyString() como matcher). Mockito.reset(mock) limpiaria los registros pero no se recomienda porque puede causar falsos positivos.\n\nErrores comunes en entrevistas: No saber que @Mock requiere @ExtendWith(MockitoExtension.class) o que el test extienda MockitoJUnitRunner (JUnit 4). Usar verify() sin argumentos cuando se deberia usar any(). Verificar interacciones irrelevantes que acoplan el test a la implementacion. No entender que when(...).thenReturn(...) es declarativo y no ejecuta el metodo real. Creer que un mock con un metodo no configurado lanza excepcion (devuelve default).",
       "examples": [
         "@ExtendWith(MockitoExtension.class)\nclass ServicioTest {\n  @Mock Repositorio repo;\n  @InjectMocks Servicio servicio;",
         "when(repo.findById(1L)).thenReturn(Optional.of(cuenta));",
@@ -46,7 +46,7 @@
     {
       "id": "test-integration",
       "title": "Tests unitarios vs de integracion",
-      "content": "Los tests unitarios prueban una clase de forma aislada con dobles, son rapidos y se ejecutan constantemente. Los tests de integracion prueban la colaboracion real entre componentes (base de datos, contexto de Spring, servicios HTTP) y validan que las piezas encajan.\n\nEn Spring Boot, los tests de integracion usan @SpringBootTest para levantar el contexto completo de la aplicacion, y @AutoConfigureMockMvc para probar los controllers a traves del DispatcherServlet con peticiones HTTP simuladas (MockMvc). Para no ensuciar una base real, se usan bases en memoria (H2), testcontainers o transacciones con @Transactional que se revierten.\n\nUna piramide de testing bien formada tiene muchos tests unitarios, menos de integracion y pocos end-to-end. La razon es costo y velocidad: los tests end-to-end son lentos y fragiles, asi que se reservan para flujos criticos.\n\nEn entrevistas es frecuente preguntar cuando conviene usar MockMvc (validar status, headers y cuerpo JSON de una API) y la diferencia con @WebMvcTest (corta el contexto a la capa web) o @DataJpaTest (solo la capa de persistencia).\n\nConceptos avanzados: @SpringBootTest levanta el contexto completo de Spring incluyendo beans de servicio, repositorio y configuracion, lo que es lento pero mas completo. @WebMvcTest solo carga la capa web (controllers, filtros, converters) y usa mocks para el resto; es rapido y recomendado para tests de controllers. @DataJpaTest usa una base H2 en memoria y activa audit por defecto; se combina con @AutoConfigureTestDatabase para controlar que base se usa. @TestConfiguration permite definir beans adicionales solo para tests. @ActiveProfiles(\"test\") activa un perfil de configuracion especifico para pruebas. Para tests de integracion con base de datos reales, Testcontainers levanta contenedores Docker con la base exacta que usa produccion.\n\nErrores comunes en entrevistas: Usar @SpringBootTest para tests que solo necesitan la capa web (innecesariamente lento). No saber que @DataJpaTest es transaccional por defecto y revierte cambios automaticamente. No entender que MockMvc no levanta un servidor real (simula peticiones internamente). Olvidar que @WebMvcTest no carga beans de servicio; se necesitan @MockBean para inyectar dependencias. No distinguir entre test de integracion y test end-to-end (el ultimo atraviesa multiples capas o servicios). No saber que @AutoConfigureMockMvc se puede usar con @SpringBootTest para obtener ambos contextos.",
+      "content": "Los tests unitarios prueban una clase de forma aislada con dobles, son rapidos y se ejecutan constantemente. Los tests de integracion prueban la colaboracion real entre componentes (base de datos, contexto de Spring, servicios HTTP) y validan que las piezas encajan.\n\nEn Spring Boot, los tests de integracion usan @SpringBootTest para levantar el contexto completo de la aplicacion, y @AutoConfigureMockMvc para probar los controllers a traves del DispatcherServlet con peticiones HTTP simuladas (MockMvc). Para no ensuciar una base real, se usan bases en memoria (H2), testcontainers o transacciones con @Transactional que se revierten.\n\nUna piramide de testing bien formada tiene muchos tests unitarios, menos de integracion y pocos end-to-end. La razon es costo y velocidad: los tests end-to-end son lentos y fragiles, asi que se reservan para flujos criticos.\n\nEn entrevistas es frecuente preguntar cuando conviene usar MockMvc (validar status, headers y cuerpo JSON de una API) y la diferencia con @WebMvcTest (corta el contexto a la capa web) o @DataJpaTest (solo la capa de persistencia).\n\nConceptos avanzados: @SpringBootTest levanta el contexto completo de Spring incluyendo beans de servicio, repositorio y configuracion, lo que es lento pero mas completo. @WebMvcTest solo carga la capa web (controllers, filtros, converters) y usa mocks para el resto; es rapido y recomendado para tests de controllers. @DataJpaTest usa una base H2 en memoria y activa audit por defecto; se combina con @AutoConfigureTestDatabase para controlar que base se usa. @TestConfiguration permite definir beans adicionales solo para tests. @ActiveProfiles(\"test\") activa un perfil de configuracion especifico para pruebas. Para tests de integracion con base de datos reales, Testcontainers levanta contenedores Docker con la base exacta que usa produccion.\n\nErrores comunes en entrevistas: Usar @SpringBootTest para tests que solo necesitan la capa web (innecesariamente lento). No saber que @DataJpaTest usa transacciones que se revierten por defecto y por eso los inserts no persisten despues del test. Olvidar que MockMvc no levanta un servidor real; simula peticiones internamente. No conocer la diferencia entre @MockBean (reemplaza un bean del contexto) y @Mock (un mock standalone sin contexto Spring).",
       "examples": [
         "@SpringBootTest\n@AutoConfigureMockMvc\nclass ApiTest {\n  @Autowired MockMvc mockMvc;",
         "mockMvc.perform(get(\"/api/cuentas/1\"))\n  .andExpect(status().isOk())\n  .andExpect(jsonPath(\"$.saldo\").value(100));",
@@ -54,6 +54,62 @@
         "@DataJpaTest // solo repositorios + base en memoria",
         "@TestConfiguration\nstatic class TestConfig {\n  @Bean\n  public ServicioExterno servicioExterno() { return new MockServicioExterno(); }\n}",
         "@Test\n@Rollback(true)\nvoid guardarYBuscar() {\n  repo.save(cuenta);\n  assertTrue(repo.findById(1L).isPresent());\n}"
+      ]
+    },
+    {
+      "id": "test-parameterized",
+      "title": "Tests parametrizados en profundidad",
+      "content": "Los tests parametrizados permiten ejecutar el mismo metodo de test con conjuntos de datos distintos, eliminando duplicacion y documentando casos limite de forma declarativa. En JUnit 5 se combinan @ParameterizedTest con una fuente de datos (@ValueSource, @CsvSource, @MethodSource, @CsvFileSource, @EnumSource, @NullSource, @EmptySource) que provee los argumentos en cada invocacion.\n\n@ValueSource es la fuente mas simple: acepta arrays de strings, ints, doubles, floats, longs, chars, booleans y clases de tipo Class. Solo admite un argumento por invocacion. @CsvSource permite multiples argumentos por linea usando comas como delimitador por defecto; el atributo delimiter puede cambiarse y trimStatements controla si se eliminan espacios alrededor de cada valor. Cada linea del array es un caso de prueba independiente.\n\n@MethodSource apunta a un metodo estatico (o de instancia con @TestInstance) que retorna un Stream<Arguments>, una lista o un Iterable. Es la fuente mas flexible: permite construir objetos complejos, leer de archivos o generar datos programaticamente. Cuando se necesita logica de provision mas avanzada se usa @ArgumentsSource con una clase que implemente ArgumentsProvider.\n\n@CsvFileSource carga datos desde un archivo CSV en el classpath, util para grandes volumenes de casos. @EnumSource itera sobre los valores de un enum, con opciones para filtrar por nombre (names) o excluir valores (mode = EXCLUDE). @NullSource y @EmptySource proporcionan un unico argumento null o vacio respectivamente; se pueden combinar con cualquier otra fuente para cubrir casos borde.\n\nConceptos avanzados: Se pueden anidar multiples fuentes en un solo test usando la sintaxis combinada: @CsvSource + @NullSource + @EmptySource cubren validaciones de entrada completas. El atributo autoCloseArguments controla si JUnit cierra los argumentos al finalizar cada invocacion. La anotacion @ParameterizedTest debe incluir el atributo name para personalizar el nombre de cada ejecucion en el reporte (por ejemplo, name = \"entrada={0}, esperado={1}\"). El ciclo de vida es ligeramente diferente: @BeforeEach y @AfterEach se ejecutan por cada invocacion, no una sola vez por el test parametrizado.\n\nErrores comunes en entrevistas: No saber que @MethodSource requiere un metodo static (a menos que se use @TestInstance). Olvidar que @ValueSource no admite objetos complejos, solo tipos primitivos y strings. Confundir el delimitador por defecto de @CsvSource (comilla simple como quote, coma como separador) y no escapar comas dentro de valores. No entender que cada fila de @CsvSource genera una invocacion independiente con su propio ciclo de vida. Creer que @NullSource y @EmptySource reemplazan a @ValueSource cuando en realidad son complementarios.",
+      "examples": [
+        "@ParameterizedTest(name = \"入口={0}, 期待={1}\")\n@CsvSource({\"1,1,2\", \"0,0,0\", \"-1,1,0\"})\nvoid suma(int a, int b, int esperado) {\n  assertEquals(esperado, calculadora.sumar(a, b));\n}",
+        "@ParameterizedTest\n@ValueSource(doubles = {1.0, 2.5, 99.99})\nvoid preciosPositivos(double precio) {\n  assertTrue(precio > 0);\n}",
+        "@ParameterizedTest\n@MethodSource(\"proveedorDeCadenas\")\nvoid cadenasNoVacias(String s) {\n  assertNotNull(s);\n  assertFalse(s.isEmpty());\n}\nstatic Stream<String> proveedorDeCadenas() {\n  return Stream.of(\"java\", \"python\", \"go\");\n}",
+        "@ParameterizedTest\n@CsvFileSource(resources = \"/datos-prueba.csv\", numLinesToSkip = 1)\nvoid calcularImpuesto(String producto, double base, double esperado) {\n  assertEquals(esperado, impuesto.calcular(producto, base), 0.01);\n}",
+        "@ParameterizedTest\n@EnumSource(value = EstadoCuenta.class, names = {\"ACTIVA\", \"BLOQUEADA\"})\nvoid estadosPermitidos(EstadoCuenta estado) {\n  assertTrue(servicio.esEstadoValido(estado));\n}",
+        "@ParameterizedTest\n@NullAndEmptySource\n@ValueSource(strings = \"  \")\nvoid rechazarEntradasVacias(String entrada) {\n  assertThrows(IllegalArgumentException.class,\n    () -> validador.validar(entrada));\n}",
+        "@ParameterizedTest(name = \"custom={0}\")\n@ArgumentsSource(MiProveedor.class)\nvoid testConProveedorCustom(DatosEntrada entrada) {\n  assertNotNull(servicio.procesar(entrada));\n}"
+      ]
+    },
+    {
+      "id": "test-mockito-advanced",
+      "title": "Mockito avanzado",
+      "content": "Mas alla del uso basico de mocks, Mockito ofrece herramientas para verificaciones precisas, control fino del comportamiento y testing de codigo estatico. ArgumentCaptor captura los argumentos reales que se pasaron a un metodo del mock para hacer asserts detallados, util cuando se quiere verificar que se construyo un objeto con campos especificos sin usar equals().\n\nverify() soporta cardinales: times(n), atLeast(n), atMost(n) y never(). Esto permite validar que un metodo se llamo exactamente N veces, al menos una vez, o que nunca fue invocado. InOrder verification (verifyNoMoreInteractions en combinacion con InOrder) permite asserts sobre el orden de llamadas cuando el secuenciamiento importa.\n\n@Spy wraps un objeto real y permite interceptar metodos especificos mientras ejecuta el codigo verdadero para el resto. doReturn/doThrow/doNothing son la forma de stub metodos en spies o mocks cuando when() no es viable (por ejemplo, metodos void o cuando el metodo real se ejecutaria antes del stub). Mockito.mockStatic permite mockear metodos estaticos dentro de un bloque try-with-resources, pero debe usarse con moderacion porque acopla el test a la implementacion.\n\nMockSettings ofrece configuracion avanzada: defaultAnswer para definir el comportamiento por defecto (ej: RETURNS_DEEP_STUBS), serializable() para simular serializacion, y extraInterfaces() para implementar interfaces adicionales. La anotacion @Captor es azucar sintactica sobre ArgumentCaptor.forClass() y se inyecta directamente en campos de la clase de test.\n\nConceptos avanzados: MockitoExtension registra automaticamente los mocks declarados con @Mock y verifica que no queden invocations sin stub (strict stubbing). reset() y clearInvocations() son distintos: reset() borra el estado del mock completamente (incluyendo stubs), mientras clearInvocations() solo limpia el registro de invocaciones sin afectar los stubs configurados. En general, si necesitas reset el test esta mal diseniado; prefiera crear un nuevo mock en setUp(). doAnswer() es util cuando el argumento del stub necesita logica (por ejemplo, extraer un valor del argumento).\n\nErrores comunes en entrevistas: No saber que @Spy ejecuta el constructor real y puede tener efectos secundarios. Confundir verify(mock, times(1)) con verify(mock) (el ultimo es equivalente a times(1)). Usar when() en metodos void o en spies (usar doReturn/doThrow). No entender que mockStatic sin try-with-resources deja el mock estatico abierto y afecta otros tests. Olvidar que ArgumentMatchers no se mezclan con valores literales en el mismo stub (todo o nada).",
+      "examples": [
+        "ArgumentCaptor<Pedido> captor = ArgumentCaptor.forClass(Pedido.class);\nverify(servicio).procesar(captor.capture());\nassertEquals(\"LIBRO\", captor.getValue().getCategoria());",
+        "verify(repositorio, times(3)).guardar(any());\nverify(repositorio, atLeastOnce()).flush();\nverify(cache, never()).evict(anyString());",
+        "@Spy MiServicio real = new MiServicio();\ndoReturn(\"mock\").when(real).buscar(anyLong());\nassertEquals(\"mock\", real.buscar(1L));",
+        "try (MockedStatic<FechaUtil> mocked = mockStatic(FechaUtil.class)) {\n  mocked.when(FechaUtil::ahora).thenReturn(LocalDate.of(2025, 1, 1));\n  assertEquals(LocalDate.of(2025, 1, 1), servicio.fechaActual());\n}",
+        "doAnswer(invocation -> {\n  String arg = invocation.getArgument(0);\n  return arg.toUpperCase();\n}).when(transformador).convertir(anyString());",
+        "verifyInOrder(inOrder) {\n  inOrder.verify(repositorio).save(any());\n  inOrder.verify(email).enviar(any());\n}",
+        "@ExtendWith(MockitoExtension.class)\nclass Test {\n  @Mock(answer = Answers.RETURNS_DEEP_STUBS)\n  Configuracion config;\n}"
+      ]
+    },
+    {
+      "id": "test-spring-advanced",
+      "title": "Testing avanzado en Spring Boot",
+      "content": "Spring Boot ofrece anotaciones de test que controlan que tan completo es el contexto cargado, permitiendo equilibrar velocidad y cobertura. @SpringBootTest levanta el contexto completo y es ideal para tests de integracion que involucran multiples capas. Se combina con TestRestTemplate para hacer llamadas HTTP reales contra la aplicacion levantada en un puerto aleatorio.\n\n@WebMvcTest recorta el contexto a la capa web: carga controllers, filtros, converters y advice pero usa mocks para servicios y repositorios. Se inyecta MockMvc que simula peticiones HTTP sin levantar un servidor real. Es el estandar para testear endpoints REST con assertions sobre status, headers, y cuerpo JSON usando jsonPath().\n\n@DataJpaTest aislada la capa de persistencia: carga repositories, entidades y una base de datos en memoria (H2 por defecto). @AutoConfigureTestDatabase puede configurarse con replace = Replace.NONE para usar Testcontainers en vez de la base embebida. Los tests de repositorio son transaccionales y se revierten automaticamente, asi que los datos no persisten entre tests.\n\n@MockBean reemplaza un bean del contexto de Spring con un mock de Mockito; es util para aislar un controller de su dependencia de servicio. @SpyBean es similar pero ejecuta el codigo real por defecto y solo intercepta metodos configurados. @TestConfiguration permite definir beans adicionales o reemplazar existentes solo en el contexto de test. @ActiveProfiles(\"test\") activa un perfil de configuracion especifico, y @Sql permite ejecutar scripts SQL antes o despues del test para poblar datos de prueba.\n\n@DirtiesContext fuerza la reinicializacion del contexto de Spring despues de un test, util cuando un test modifica beans singleton que afectarian a otros tests. Testcontainers es una libreria que levanta contenedores Docker reales (bases de datos, colas de mensajes, etc.) para tests de integracion mas fiables que las bases embebidas. Se integra con Spring Boot via @Container y configuracion dinámica de puertos.\n\nConceptos avanzados: TestRestTemplate hace peticiones HTTP reales contra la app levantada por @SpringBootTest, validando el comportamiento end-to-end. jsonPath() usa sintaxis GPath para navegar JSON: jsonPath(\"$.usuarios[0].nombre\").value(\"Juan\"). El atributo webEnvironment de @SpringBootTest controla si se levanta un servidor real (RANDOM_PORT), mock (MOCK) o ninguno (NONE). @SqlGroup permite ejecutar multiples scripts SQL en orden. Para APIs REST, el patron tipico es: perform(get(...)).andExpect(status().isOk()).andExpect(jsonPath(...).value(...)).andExpect(content().json(...)).\n\nErrores comunes en entrevistas: Usar @SpringBootTest cuando @WebMvcTest es suficiente (el test es lento innecesariamente). No saber que @MockBean y @Mock son distintos: el primero integra con el contexto Spring, el segundo es standalone. Olvidar que @DataJpaTest usa transacciones que se revierten, por eso los asserts sobre el repositorio funcionan pero no se ven los datos en otra instancia. No conocer que Testcontainers requiere Docker corriendo y que el puerto es aleatorio, hay que configurarlo dinamicamente. Confundir @SpyBean con @Spy de Mockito: el primero es aware del ciclo de vida de Spring.",
+      "examples": [
+        "@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)\nclass ApiIntegrationTest {\n  @Autowired TestRestTemplate restTemplate;\n  @Test void getCuenta() {\n    ResponseEntity<Cuenta> resp = restTemplate.getForEntity(\"/api/cuentas/1\", Cuenta.class);\n    assertEquals(HttpStatus.OK, resp.getStatusCode());\n  }\n}",
+        "@WebMvcTest(CuentaController.class)\nclass CuentaControllerTest {\n  @Autowired MockMvc mockMvc;\n  @MockBean CuentaServicio servicio;\n  @Test void obtenerCuenta() throws Exception {\n    when(servicio.obtener(1L)).thenReturn(new Cuenta(1L, \"Juan\", 100));\n    mockMvc.perform(get(\"/api/cuentas/1\"))\n      .andExpect(status().isOk())\n      .andExpect(jsonPath(\"$.nombre\").value(\"Juan\"))\n      .andExpect(jsonPath(\"$.saldo\").value(100));\n  }\n}",
+        "@DataJpaTest\n@AutoConfigureTestDatabase(replace = Replace.NONE)\nclass CuentaRepositoryTest {\n  @Autowired CuentaRepository repo;\n  @Test void guardarYBuscar() {\n    Cuenta c = repo.save(new Cuenta(null, \"Ana\", 500));\n    assertTrue(repo.findById(c.getId()).isPresent());\n  }\n}",
+        "@TestConfiguration\nstatic class TestConfig {\n  @Bean\n  public EmailServicio emailServicio() {\n    return new MockEmailServicio();\n  }\n}",
+        "@ActiveProfiles(\"test\")\n@SpringBootTest\nclass ServicioTest {\n  // usa application-test.yml\n}",
+        "@Sql(scripts = \"/test-data.sql\", executionPhase = BEFORE_TEST_METHOD)\n@Test\nvoid testConDatos() {\n  // datos cargados antes del test\n}",
+        "@Test\n@DirtiesContext(methodMode = AFTER_TEST_METHOD)\nvoid testQueModificaContexto() {\n  // el contexto se reinicia despues de este test\n}"
+      ]
+    },
+    {
+      "id": "test-coverage",
+      "title": "Cobertura de codigo y metricas",
+      "content": "La cobertura de codigo mide que proporcion del codigo fuente es ejecutada por los tests. JaCoCo es el estandar en Java: se integra como plugin de Maven, genera reportes en HTML/XML y metricas de cobertura de lineas, ramas, metodos y clases. La cobertura de lineas (line coverage) indica que porcentaje de lineas se ejecuto; la de ramas (branch coverage) es mas estricta y mide que se probaron ambos caminos de cada condicional.\n\nEl reporte de JaCoCo incluye un dashboard con porcentajes y un drill-down por paquete y clase con el codigo coloreado (verde = cubierto, rojo = no cubierto, amarillo = parcialmente cubierto). Para activarlo en Maven se agrega el plugin jaoco-maven-plugin con goals prepare-agent y report. La meta tipica es 70-80% de cobertura de lineas, no 100%.\n\nLa cobertura alta no garantiza calidad: un test puede cubrir todas las lineas y aun asi no validar comportamiento correcto. Los anti-patrones incluyen: tests que solo ejecutan codigo sin assertions, tests de implementacion que se rompen con refactorizaciones, y perseguir 100% de cobertura a costa de tests inutiles o fragiles. La cobertura es un indicador de omision (que NO se esta testeando), no de calidad.\n\nEl mutation testing (PITest) es un concepto complementario: inyecta mutaciones en el codigo fuente (cambiar + por -, retornar null en vez de valor, etc.) y ejecuta los tests. Si los tests fallan, la mutacion fue detectada (good). Si los tests siguen pasando, hay un hueco en la cobertura. El mutation score indica que porcentaje de mutaciones fueron detectadas. Es mas costoso que JaCoCo pero mas significativo.\n\nConceptos avanzados: La piramide de testing sugiere que la mayoria de tests sean rapidos (unitarios), algunos de integracion y pocos end-to-end. Las metricas de cobertura deben medirse por modulo, no globalmente: un modulo con 95% puede enmascarar otro con 30%. Los tests de codigo que solo hacen new y llaman un getter sin assertions inflan la cobertura artificialmente. Naming conventions importan: nombres como testCalculateDiscountWhenQuantityAboveTen comunican intencion; nombres como test1 no. Se recomienda no testear: getters/setters puros, metodos trivialmente simples (return 0), y codigo generado por frameworks (Lombok, etc.).\n\nErrores comunes en entrevistas: Creer que 100% de cobertura significa ausencia de bugs. No conocer la diferencia entre cobertura de lineas y cobertura de ramas. No saber que JaCoCo es el estandar en Java y que se integra via Maven plugin. Confundir cobertura con validacion: un test puede cubrir una linea sin validar el resultado. No entender que mutation testing mide la efectividad de los tests, no la cantidad de codigo ejecutado.",
+      "examples": [
+        "<plugin>\n  <groupId>org.jacoco</groupId>\n  <artifactId>jacoco-maven-plugin</artifactId>\n  <version>0.8.11</version>\n  <executions>\n    <execution>\n      <goals><goal>prepare-agent</goal></goals>\n    </execution>\n    <execution>\n      <id>report</id>\n      <goals><goal>report</goal></goals>\n    </execution>\n  </executions>\n</plugin>",
+        "// Ejecutar: mvn clean test jacoco:report\n// Reporte en target/site/jacoco/index.html",
+        "// Branch coverage: if (x > 0) cubierto solo cuando x > 0 Y cuando x <= 0",
+        "// Mutation testing con PITest\n<plugin>\n  <groupId>org.pitest</groupId>\n  <artifactId>pitest-maven</artifactId>\n  <version>1.15.0</version>\n  <configuration>\n    <targetClasses>com.ejemplo.*</targetClasses>\n  </configuration>\n</plugin>",
+        "// Test sin assertion (infla cobertura sin valor)\n@Test void ejecutar() {\n  servicio.procesar(new Dato()); // pasa pero no valida nada\n}",
+        "// Buen naming\nclass DescuentoTest {\n  @Test void aplicarDescuentoDiezPorCiento_CuandoMontoMayorA100() { ... }\n  @Test void lanzarExcepcion_CuandoMontoNegativo() { ... }\n}",
+        "// Cuando NO testear\n// - getters/setters generados por Lombok\n// - metodos triviailes: return 0;\n// - equals/hashCode/toString si Lombok los genera\n// - codigo generado por frameworks ORM"
       ]
     }
   ],
@@ -229,6 +285,145 @@
         ],
         "explanation": "El orden es: @BeforeAll (una vez por clase), @BeforeEach (antes de cada test), @Test (el test), @AfterEach (despues de cada test), @AfterAll (una vez por clase al final).",
         "type": "ORDER"
+      },
+      {
+        "id": "te-q12",
+        "text": "Que anotaciones son fuentes de datos validas para @ParameterizedTest en JUnit 5?",
+        "options": [
+          "@ValueSource",
+          "@CsvSource",
+          "@Mock",
+          "@CsvFileSource",
+          "@EnumSource"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          3,
+          4
+        ],
+        "explanation": "@ValueSource, @CsvSource, @CsvFileSource y @EnumSource son fuentes de datos para tests parametrizados. @Mock es una anotacion de Mockito, no de JUnit.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "te-q13",
+        "text": "Que permite ArgumentCaptor en Mockito?",
+        "options": [
+          "Crear mocks con comportamiento por defecto",
+          "Capturar los argumentos pasados a un mock para hacer asserts detallados",
+          "Verificar que un metodo se llamo en un orden especifico",
+          "Mockear metodos estaticos"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "ArgumentCaptor captura los argumentos reales que se pasaron a un metodo del mock, permitiendo asserts sobre sus campos sin usar equals().",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q14",
+        "text": "En Spring Boot, que anotacion levanta el contexto completo de la aplicacion?",
+        "options": [
+          "@WebMvcTest",
+          "@DataJpaTest",
+          "@SpringBootTest",
+          "@MockBean"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "@SpringBootTest levanta el contexto completo de Spring incluyendo todos los beans de la aplicacion. @WebMvcTest y @DataJpaTest son recortes.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q15",
+        "text": "Cual es la diferencia entre @MockBean y @Mock en un test de Spring Boot?",
+        "options": [
+          "@MockBean reemplaza un bean del contexto Spring; @Mock es un mock standalone sin contexto",
+          "Son exactamente lo mismo",
+          "@Mock se usa en Spring; @MockBean en Mockito puro",
+          "@MockBean crea un spy; @Mock crea un mock"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "@MockBean inyecta un mock de Mockito en el contexto de Spring, reemplazando el bean real. @Mock es un mock standalone que no interactua con el contexto Spring.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q16",
+        "text": "Que herramienta mide la cobertura de lineas y ramas en un proyecto Java con Maven?",
+        "options": [
+          "PITest",
+          "JaCoCo",
+          "Surefire",
+          "Mockito"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "JaCoCo es el plugin estandar de Maven para medir cobertura de lineas, ramas, metodos y clases. Surefire ejecuta los tests, PITest mide mutation testing.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q17",
+        "text": "Que es true sobre la cobertura de codigo al 100%?",
+        "options": [
+          "Garantiza ausencia de bugs en el codigo",
+          "Significa que todos los tests son de buena calidad",
+          "Indica que no hay lineas sin ejecutar, pero no garantiza calidad ni validez del comportamiento",
+          "Es el unico indicador relevante de calidad de software"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "La cobertura al 100% solo indica que todas las lineas se ejecutaron, pero no que los tests validen comportamiento correcto. Tests sin assertions o que prueben implementacion inflan cobertura sin valor real.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q18",
+        "text": "En Mockito, que hace la combinacion de doReturn() con @Spy?",
+        "options": [
+          "Ejecuta el metodo real antes de retornar el valor mockeado",
+          "Evita que se ejecute el metodo real del objeto spied, retornando directamente el valor configurado",
+          "Lanza una excepcion si el metodo es void",
+          "Resetea todas las invocaciones del spy"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "doReturn() con @Spy evita la ejecucion del metodo real (a diferencia de when().thenReturn() que si lo ejecuta). Esto es util cuando el metodo real tiene efectos secundarios o puede lanzar excepcion.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q19",
+        "text": "Que permite @Sql en los tests de Spring Boot?",
+        "options": [
+          "Configurar el perfil de activacion del contexto",
+          "Ejecutar scripts SQL antes o despues de un test para poblar datos de prueba",
+          "Mockear un repositorio JPA",
+          "Configurar la base de datos de produccion"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "@Sql ejecuta scripts SQL definidos en el atributo scripts (o value) antes o despues del test, segun executionPhase (BEFORE_TEST_METHOD o AFTER_TEST_METHOD).",
+        "type": "SINGLE"
+      },
+      {
+        "id": "te-q20",
+        "text": "Que es el mutation testing y que mide?",
+        "options": [
+          "Mide la velocidad de ejecucion de los tests",
+          "Inyecta mutaciones en el codigo fuente y verifica si los tests las detectan",
+          "Mide la cobertura de ramas del codigo",
+          "Verifica que los tests no tengan dependencias externas"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "El mutation testing (PITest) introduce mutaciones artificiales en el codigo (+ por -, return null, etc.) y ejecuta los tests. Si los tests pasan con la mutacion, hay un hueco en la cobertura. El mutation score indica que porcentaje de mutaciones fue detectado.",
+        "type": "SINGLE"
       }
     ]
   }

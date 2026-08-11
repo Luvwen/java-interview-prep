@@ -1,5 +1,5 @@
 export type ModuleState = "PENDING" | "IN_PROGRESS" | "COMPLETED";
-export type QuestionType = "SINGLE" | "MULTIPLE" | "TRUE_FALSE" | "ORDER";
+export type QuestionType = "SINGLE" | "MULTIPLE" | "TRUE_FALSE" | "ORDER" | "CODE_FILL" | "BUG_HUNT";
 export type QuizMode = "NORMAL" | "MIXED" | "ERROR_REVIEW";
 
 export interface ModuleSummary {
@@ -28,6 +28,9 @@ export interface QuizQuestion {
   text: string;
   options: string[];
   type: QuestionType;
+  codeTemplate?: string;
+  blanks?: string[];
+  code?: string;
 }
 
 export interface Quiz {

@@ -10,5 +10,7 @@
   "testing.json",
   "design-patterns.json",
   "rest-http.json",
-  "git.json"
+  "git.json",
+  "code-fill.json",
+  "bug-hunt.json"
 ]

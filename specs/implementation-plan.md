@@ -97,14 +97,14 @@ La V2 entrego actividades ludo-didacticas (quiz mixto, contra-reloj, flashcards,
 
 | Iter | Entregables | Verificacion | Estado |
 |---|---|---|---|
-| V3-1 | README.md + LICENCIA MIT | Archivos creados, README con instrucciones de levantamiento | Pendiente |
+| V3-1 | README.md + LICENCIA MIT | Archivos creados, README con instrucciones de levantamiento | **Completada** |
 | V3-2 | Expansion de contenido: mas preguntas y teoria profunda para los 12 modulos existentes (min. 10 preguntas por modulo, ejemplos ampliados, conceptos avanzados) | `mvn test` + validacion de JSON | **Completada** |
 | V3-3 | Expansion del modulo Spring (Spring Boot profiles, actuator, testing, transactional) + nuevo contenido sobre librerias (Hibernate, JPA, JDBC avanzado) integrado al modulo SQL/JDBC y Spring | `mvn test` | **Completada** |
 | V3-4 | Expansion de patrones de diseno (mas patrones, ejemplos completos) + nueva seccion de Arquitectura (Clean Architecture, Hexagonal, Microservicios conceptos, con diagramas y codigo) | `mvn test` | **Completada** |
 | V3-5 | Migracion del frontend a **Chakra UI**: instalar dependencias, reemplazar estilos, refactorizar componentes existentes, mejorar Layout, dark mode profesional, responsive | `npm run build` + `npm run dev` visual check | **Completada** |
-| V3-6 | Nuevo modulo JSON: **Rellenar Codigo** (fragmentos con blanks que el usuario debe completar para que compile). Nueva vista en la UI con editor simple y validacion | `mvn test` + `npm run build` | Pendiente |
-| V3-7 | Nuevo modulo JSON: **Encontrar el Bug** (fragmentos de codigo con errores intencionales que el usuario debe identificar). Nueva vista en la UI con seleccion de area del bug | `mvn test` + `npm run build` | Pendiente |
-| V3-8 | Expansion extensa del modulo Testing (mas teoria, cobertura, parametrizados, mocks avanzados, tests de integracion, tests de contrato, testing en Spring Boot) | `mvn test` + `npm run build` | Pendiente |
+| V3-6 | Nuevo modulo JSON: **Rellenar Codigo** (fragmentos con blanks que el usuario debe completar para que compile). Nueva vista en la UI con editor simple y validacion | `mvn test` + `npm run build` | **Completada** |
+| V3-7 | Nuevo modulo JSON: **Encontrar el Bug** (fragmentos de codigo con errores intencionales que el usuario debe identificar). Nueva vista en la UI con seleccion de area del bug | `mvn test` + `npm run build` | **Completada** |
+| V3-8 | Expansion extensa del modulo Testing (mas teoria, cobertura, parametrizados, mocks avanzados, tests de integracion, tests de contrato, testing en Spring Boot) | `mvn test` + `npm run build` | **Completada** |
 
 ### Detalle por iteracion
 

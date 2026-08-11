@@ -1,0 +1,232 @@
+{
+  "id": "bug-hunt",
+  "title": "Encontrar el Bug",
+  "description": "Identifica errores intencionales en fragmentos de codigo Java. Desarrolla tu habilidad de debugging y aprende los pitfalls mas comunes del lenguaje.",
+  "topics": [
+    {
+      "id": "bh-nullpointer",
+      "title": "NullPointerException y null",
+      "content": "NullPointerException es la excepcion mas comun en Java y una de las causas principales de aplicaciones inestables. Ocurre cuando se intenta acceder a un metodo o campo de un objeto que tiene valor null. Este bug puede ser especialmente peligroso porque no se detecta en tiempo de compilacion y solo aparece en ejecucion, a veces en escenarios dificiles de reproducir.\n\nEntender como prevenir y manejar null es fundamental para escribir codigo robusto. Java ofrece herramientas como Optional, Objects.requireNonNull y la anotacion @Nullable para gestionar la ausencia de valores de forma segura.\n\nLos errores mas tipicos incluyen accesos a metodos de referencias null, cadenas de llamadas donde cualquier enlace puede ser null, y el unboxing automatico de tipos envoltorios como Integer que pueden contener null.",
+      "examples": [
+        "**Acceso a metodo de referencia null:** Llamar a `length()` sobre un `String` null lanza `NullPointerException`. Solucion: agregar un null check antes de usar la referencia o usar `Optional`.",
+        "**Optional como alternativa a null:** `Optional.ofNullable(valor).orElse(\"default\")` elimina la necesidad de null checks explicitos y fuerza al desarrollador a manejar el caso donde el valor puede no existir, haciendo el codigo mas expressivo y seguro.",
+        "**Objects.requireNonNull para validacion:** `Objects.requireNonNull(nombre, \"El nombre no puede ser null\")` valida argumentos null temprano y lanza `NullPointerException` con un mensaje descriptivo. Ideal para validacion de parametros en constructores y metodos.",
+        "**NPE en cadena de llamadas:** En `usuario.getDireccion().getCiudad().toUpperCase()`, cualquiera de las llamadas en la cadena puede retornar null, causando NPE en la siguiente llamada. Solucion: usar Optional en cada paso o null checks intermedios.",
+        "**Null check inutil despues de uso:** Si se ejecuta `valor.length()` antes de `if (valor != null)`, la NPE ya habria ocurrido. El orden importa: validar null antes de usar la referencia.",
+        "**Unboxing de Integer null:** El unboxing automatico de `Integer` a `int` lanza `NullPointerException` si el `Integer` es null. Aunque el tipo primitivo `int` no puede ser null, la conversion automatica falla antes de asignar el valor."
+      ]
+    },
+    {
+      "id": "bh-concurrency",
+      "title": "Bugs de concurrencia",
+      "content": "Los bugs de concurrencia son algunos de los mas dificiles de detectar y reproducir. Ocurren cuando multiples hilos acceden y modifican recursos compartidos sin la sincronizacion adecuada. Estos bugs pueden manifestarse intermitentemente, hacer que la app parezca estable durante pruebas pero falle en produccion.\n\nSon extremadamente dificiles de debuggear porque dependen del scheduling del hilo, que es no determinista. Un bug de concurrencia puede aparecer una vez en mil ejecuciones, lo que hace que las pruebas unitarias tradicionales no lo capturen de forma confiable.\n\nDominar los conceptos de concurrencia es esencial para sistemas multi-hilo. Esto incluye comprender race conditions, deadlocks, livelocks, y la diferencia entre `volatile` y atomicidad real.",
+      "examples": [
+        "**Race condition en contador:** El operador `++` no es atomico: es lectura + suma + escritura. Cuando multiples hilos lo ejecutan simultaneamente, pueden leer el mismo valor, incrementarlo y escribir el mismo resultado, perdiendo actualizaciones. Solucion: usar `AtomicInteger` o `synchronized`.",
+        "**Deadlock por orden inconsistente de locks:** Cuando dos hilos adquieren los locks en orden inverso (`lockA` luego `lockB` vs `lockB` luego `lockA`), cada uno espera que el otro libere su lock, creando un interbloqueo. Solucion: siempre adquirir los locks en el mismo orden.",
+        "**ConcurrentModificationException en ArrayList:** El iterator de `ArrayList` detecta modificaciones estructurales durante la iteracion y lanza `ConcurrentModificationException`. Solucion: usar `iterator.remove()` o `CopyOnWriteArrayList`.",
+        "**Volatile no garantiza atomicidad:** `volatile` garantiza visibilidad entre hilos pero no atomicidad. La operacion `++` sigue siendo lectura-suma-escritura y puede intercalarse con otros hilos. Solucion: usar `AtomicInteger` o `synchronized`.",
+        "**Livelock en retry infinito:** Livelock ocurre cuando los hilos cambian de estado en respuesta al otro pero ninguno progresa. A diferencia del deadlock, los hilos estan activos pero no avanzan. Solucion: backoff exponencial o retry limitado.",
+        "**Sobreescritura en coleccion no sincronizada:** `HashMap` no es thread-safe. Operaciones concurrentes pueden causar data race, corrupcion de estructura interna o perdida de datos. Solucion: usar `ConcurrentHashMap` o `Collections.synchronizedMap()`."
+      ]
+    },
+    {
+      "id": "bh-memory",
+      "title": "Memory leaks y garbage collection",
+      "content": "Aunque Java tiene garbage collection automatica, las memory leaks siguen siendo un problema real. Ocurren cuando objetos ya no necesarios permanecen referenciados y no pueden ser recolectados. Los culpables mas comunes son: colecciones estaticas que crecen indefinidamente, recursos no cerrados como streams y conexiones, y listeners no removidos.\n\nEstos problemas se manifiestan como `OutOfMemoryError` o degradacion gradual del rendimiento en aplicaciones de larga duracion. A diferencia de los leaks en C/C++, en Java el objeto no se pierde de memoria sino que simplemente no se puede liberar porque todavia tiene referencias activas.\n\nLa prevencion implica buenas practicas como usar try-with-resources, limitar el tamano de caches, remover listeners cuando ya no se necesitan, y evitar el estado estatico mutable.",
+      "examples": [
+        "**Coleccion estatica que crece sin control:** Los objetos estaticos no son recolectados por el GC mientras viva la clase. Un `ArrayList` estatico que solo agrega nunca libera memoria, eventualmente causando `OutOfMemoryError`. Solucion: usar un cache con limite o limpiar periodicamente.",
+        "**Recurso no cerrado - FileInputStream:** `FileInputStream` mantiene un handle del sistema operativo. Si no se cierra, el recurso queda retenido. Solucion: usar try-with-resources para garantizar el cierre automatico.",
+        "**try-with-resources correcto:** `try (FileInputStream fis = new FileInputStream(\"datos.txt\"))` garantiza que el recurso se cierre al finalizar el bloque, ya sea por exito o excepcion. Es la forma recomendada de manejar `AutoCloseable` en Java 7+.",
+        "**Listener registrado pero nunca removido:** Si un objeto registra listeners en un componente de larga vida y nunca los remueve, el componente retiene referencia al objeto impidiendo su garbage collection. Solucion: remover listeners en `dispose()` o usar `WeakReference`.",
+        "**WeakReference para caches:** `SoftReference` permite que el GC recolecte el objeto cuando memoria es escasa, pero lo retenga mientras haya espacio. Es ideal para caches donde el objeto es costly de crear pero no critico mantener.",
+        "**finalize() poco confiable:** `finalize()` no tiene garantia de ejecucion ni de timing. El GC puede nunca llamarlo, o hacerlo mucho despues de que el recurso ya no se necesita. Solucion: usar try-with-resources o `Cleaner` de Java 9+."
+      ]
+    },
+    {
+      "id": "bh-logic",
+      "title": "Bugs logicos y algoritmicos",
+      "content": "Los bugs logicos son errores en el diseno o implementacion de un algoritmo que producen resultados incorrectos sin lanzar excepciones. Son los mas peligrosos porque pasan desapercibidos en pruebas basicas y pueden causar corrupcion de datos, decisiones incorrectas o comportamiento inesperado.\n\nIncluyen errores off-by-one, overflow de enteros, comparaciones de strings con `==`, y problemas con el contrato `equals`/`hashCode`. Estos bugs requieren atencion al detalle y comprension profunda del lenguaje para ser detectados.\n\nA diferencia de los errores de compilacion o runtime, los bugs logicos no generan ningun tipo de advertencia. El programa compila y ejecuta sin problemas, pero produce resultados equivocados que pueden pasar desapercibidos por mucho tiempo.",
+      "examples": [
+        "**Off-by-one en bucle:** Usar `i <= numeros.length` en lugar de `i < numeros.length` causa `ArrayIndexOutOfBoundsException` en la ultima iteracion. El indice valido va de 0 a `length-1`. Solucion: cambiar `<=` por `<`.",
+        "**Comparacion de strings con ==:** El operador `==` compara referencias de memoria, no contenido. Dos objetos `String` creados con `new` tienen diferentes referencias aunque tengan el mismo texto. Solucion: usar `a.equals(b)` para comparar contenido.",
+        "**Integer overflow silencioso:** `Integer.MAX_VALUE + 1` causa overflow y el resultado es `Integer.MIN_VALUE` sin ningun error. Esto puede causar bugs logicos graves en calculos financieros o indices. Solucion: usar `Math.addExact()` para detectar overflow.",
+        "**Contrato equals/hashCode roto:** Si `equals()` es overridden, `hashCode()` tambien debe serlo. De lo contrario, objetos iguales pueden tener diferentes hashes, causando comportamiento inesperado en `HashMap`, `HashSet` y otras colecciones que dependen del hash.",
+        "**Mutable static state compartido:** El estado estatico mutable es compartido por todos los hilos y clases. Puede causar efectos secundarios inesperados, problemas de concurrencia y hace que el codigo sea dificil de testear. Solucion: inyeccion de dependencias o configuracion inmutable.",
+        "**Problema de serializacion:** Un campo marcado como `transient` no se serializa. Al deserializar, ese campo sera null aunque el objeto original lo tenia. Si el campo debe persistir, no debe ser transient; si es sensible, debe manejarse por separado."
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "bug-hunt-quiz",
+    "questions": [
+      {
+        "id": "bh-q1",
+        "text": "Encuentra el bug en este codigo que procesa una lista de usuarios:",
+        "options": [
+          "Line 1: La lista se inicializa correctamente",
+          "Line 2: Se accede a getNombre() sin verificar null - puede lanzar NPE",
+          "Line 3: El bucle for-each es la forma correcta de iterar",
+          "Line 4: System.out.println es valido para debug"
+        ],
+        "correctIndexes": [1],
+        "explanation": "En la linea 2, u.getNombre() puede retornar null, y si se intenta usar ese valor directamente (por ejemplo con .length() o en concatenacion) se lanzara NullPointerException. Solucion: agregar null check o usar Optional.",
+        "type": "BUG_HUNT",
+        "code": "List<Usuario> usuarios = obtenerUsuarios();\nfor (Usuario u : usuarios) {\n    String nombre = u.getNombre();\n    System.out.println(\"Nombre: \" + nombre.toUpperCase());\n}"
+      },
+      {
+        "id": "bh-q2",
+        "text": "Encuentra el bug en este codigo que busca un elemento en un array:",
+        "options": [
+          "Line 1: La declaracion del array es correcta",
+          "Line 2: El indice inicia en 0, correcto",
+          "Line 3: La comparacion usa equals correctamente",
+          "Line 4: El bucle puede terminar sin encontrar el elemento y retorna null indefinidamente"
+        ],
+        "correctIndexes": [3],
+        "explanation": "El bucle while no tiene condicion de terminacion para el caso donde el elemento no existe. Si clave no esta en el array, i crece indefinidamente causando ArrayIndexOutOfBoundsException. Solucion: agregar condicion i < array.length.",
+        "type": "BUG_HUNT",
+        "code": "String[] array = {\"a\", \"b\", \"c\", \"d\"};\nString clave = \"z\";\nint i = 0;\nwhile (!array[i].equals(clave)) {\n    i++;\n}"
+      },
+      {
+        "id": "bh-q3",
+        "text": "Encuentra el bug en este codigo que valida un objeto opcional:",
+        "options": [
+          "Line 1: La llamada a Optional.ofNullable es correcta",
+          "Line 2: El map transforma el Optional correctamente",
+          "Line 3: El isPresent() verifica si hay valor",
+          "Line 4: El get() se llama sin verificar - puede lanzar NoSuchElementException si el Optional esta vacio"
+        ],
+        "correctIndexes": [3],
+        "explanation": "Aunque el flujo parece logico, en la linea 4 se llama a get() directamente despues de isPresent(). El problema es que si la cadena anterior retorna un Optional vacio, el get() lanzaria NoSuchElementException. La forma correcta es usar orElse(), orElseThrow(), o ifPresent().",
+        "type": "BUG_HUNT",
+        "code": "Optional<Usuario> usuario = Optional.ofNullable(buscarUsuario(id));\nOptional<String> nombre = usuario.map(Usuario::getNombre);\nif (nombre.isPresent()) {\n    String valor = nombre.get();\n}"
+      },
+      {
+        "id": "bh-q4",
+        "text": "Encuentra el bug en este codigo que incrementa un contador compartido entre hilos:",
+        "options": [
+          "Line 1: El contador se declara como volatile correctamente",
+          "Line 2: El synchronized en el metodo es correcto",
+          "Line 3: La operacion ++ no es atomica incluso con volatile",
+          "Line 4: El return retorna el valor actual"
+        ],
+        "correctIndexes": [2],
+        "explanation": "Aunque el contador es volatile, la operacion ++ no es atomica: es lectura, suma y escritura. Dos hilos pueden leer el mismo valor, incrementar y escribir el mismo resultado. Solucion: usar AtomicInteger o sincronizar el acceso completo.",
+        "type": "BUG_HUNT",
+        "code": "private volatile int contador = 0;\n\npublic void incrementar() {\n    contador++;\n}\n\npublic int getContador() {\n    return contador;\n}"
+      },
+      {
+        "id": "bh-q5",
+        "text": "Encuentra el bug en este codigo que elimina elementos de una lista:",
+        "options": [
+          "Line 1: La lista se crea correctamente",
+          "Line 2: El bucle itera sobre la lista",
+          "Line 3: La condicion de eliminacion es valida",
+          "Line 4: Modificar la lista durante la iteracion causa ConcurrentModificationException"
+        ],
+        "correctIndexes": [3],
+        "explanation": "Eliminar elementos de un ArrayList mientras se itera con for-each lanza ConcurrentModificationException. El iterator detecta que la estructura de la coleccion cambio. Solucion: usar iterator.remove() o filter con streams.",
+        "type": "BUG_HUNT",
+        "code": "List<String> items = new ArrayList<>(List.of(\"a\", \"b\", \"c\", \"d\"));\nfor (String item : items) {\n    if (item.length() == 1) {\n        items.remove(item);\n    }\n}"
+      },
+      {
+        "id": "bh-q6",
+        "text": "Encuentra el bug en este codigo que crea un pool de hilos:",
+        "options": [
+          "Line 1: La creacion del pool es correcta",
+          "Line 2: El Callable retorna un valor",
+          "Line 3: future.get() puede bloquear indefinidamente si la tarea nunca completa",
+          "Line 4: La impresion del resultado es correcta"
+        ],
+        "correctIndexes": [2],
+        "explanation": "future.get() sin timeout puede bloquear el hilo calling indefinidamente si la tarea nunca completa (por ejemplo, deadlock interno). Solucion: usar get(timeout, TimeUnit) para evitar bloqueos infinitos.",
+        "type": "BUG_HUNT",
+        "code": "ExecutorService pool = Executors.newFixedThreadPool(2);\nCallable<String> tarea = () -> {\n    Thread.sleep(10000);\n    return \"completado\";\n};\nFuture<String> future = pool.submit(tarea);\nString resultado = future.get();\nSystem.out.println(resultado);"
+      },
+      {
+        "id": "bh-q7",
+        "text": "Encuentra el bug en este codigo que lee un archivo:",
+        "options": [
+          "Line 1: La ruta del archivo es correcta",
+          "Line 2: El FileInputStream se abre correctamente",
+          "Line 3: Los datos se leen correctamente",
+          "Line 4: El recurso nunca se cierra - causa memory leak de file handles"
+        ],
+        "correctIndexes": [3],
+        "explanation": "FileInputStream no se cierra despues de usarlo, lo que causa un file handle leak. En sistemas con muchos archivos, esto agota los recursos del sistema operativo. Solucion: usar try-with-resources.",
+        "type": "BUG_HUNT",
+        "code": "String ruta = \"datos.txt\";\nFileInputStream fis = new FileInputStream(ruta);\nbyte[] datos = fis.readAllBytes();\nString contenido = new String(datos);"
+      },
+      {
+        "id": "bh-q8",
+        "text": "Encuentra el bug en este codigo que almacena eventos en cache:",
+        "options": [
+          "Line 1: El ArrayList estatico se inicializa una vez",
+          "Line 2: El metodo agrega eventos a la lista",
+          "Line 3: La lista nunca se limpia ni tiene limite de tamaño",
+          "Line 4: El return retorna la lista"
+        ],
+        "correctIndexes": [2],
+        "explanation": "La lista estatica eventLog crece indefinidamente porque nunca se eliminan elementos. Como es estatica, los objetos nunca son recolectados por GC, eventualmente causandoOutOfMemoryError. Solucion: usar un cache con limite como LinkedHashMap con removeEldestEntry o CircularFifoQueue.",
+        "type": "BUG_HUNT",
+        "code": "public class EventLogger {\n    private static final List<String> eventLog = new ArrayList<>();\n    \n    public static void log(String event) {\n        eventLog.add(LocalDateTime.now() + \": \" + event);\n    }\n}"
+      },
+      {
+        "id": "bh-q9",
+        "text": "Encuentra el bug en este codigo que usa WeakReference para un cache:",
+        "options": [
+          "Line 1: El WeakHashMap se usa correctamente como cache",
+          "Line 2: Se crea el objeto si no existe en cache",
+          "Line 3: El SoftReference se almacena en el mapa",
+          "Line 4: Se retorna el objeto cacheado"
+        ],
+        "correctIndexes": [2],
+        "explanation": "El codigo usa WeakHashMap pero intenta almacenar SoftReference en el. La clave correcta es que WeakHashMap almacena valores debiles directamente, no SoftReference. El uso inconsistente puede causar que el objeto se recolecte inesperadamente o que el cache no funcione como se espera.",
+        "type": "BUG_HUNT",
+        "code": "Map<String, Object> cache = new WeakHashMap<>();\n\npublic Object getOrCreate(String key) {\n    Object obj = cache.get(key);\n    if (obj == null) {\n        obj = crearObjetoCostoso(key);\n        cache.put(key, new SoftReference<>(obj));\n    }\n    return obj;\n}"
+      },
+      {
+        "id": "bh-q10",
+        "text": "Encuentra el bug en este codigo que calcula el promedio:",
+        "options": [
+          "Line 1: La lista de numeros es correcta",
+          "Line 2: La suma se inicializa en 0",
+          "Line 3: La division usa enteros - causa truncaiento decimal",
+          "Line 4: El return retorna el resultado"
+        ],
+        "correctIndexes": [2],
+        "explanation": "La division suma/numeros.size() es division de enteros porque ambos operandos son int. Esto trunca la parte decimal (5/2 = 2, no 2.5). Solucion: cast a double antes de dividir: (double) suma / numeros.size().",
+        "type": "BUG_HUNT",
+        "code": "List<Integer> numeros = List.of(10, 20, 30, 40, 50);\nint suma = 0;\nfor (int num : numeros) {\n    suma += num;\n}\nint promedio = suma / numeros.size();\nSystem.out.println(\"Promedio: \" + promedio);"
+      },
+      {
+        "id": "bh-q11",
+        "text": "Encuentra el bug en este codigo que compara objetos Person:",
+        "options": [
+          "Line 1: La clase implementa Serializable correctamente",
+          "Line 2: El constructor asigna los campos",
+          "Line 3: equals() compara el nombre correctamente",
+          "Line 4: Falta override de hashCode() - rompe el contrato equals/hashCode"
+        ],
+        "correctIndexes": [3],
+        "explanation": "Cuando equals() es overridden, hashCode() tambien debe serlo. De lo contrario, dos objetos con el mismo nombre tendran diferentes hashes, causando que HashMap/HashSet no los reconozca como iguales. Solucion: generar hashCode() basado en los mismos campos que equals().",
+        "type": "BUG_HUNT",
+        "code": "public class Person implements Serializable {\n    private String name;\n    private int age;\n    \n    public Person(String name, int age) {\n        this.name = name;\n        this.age = age;\n    }\n    \n    @Override\n    public boolean equals(Object obj) {\n        if (obj instanceof Person p) {\n            return this.name.equals(p.name);\n        }\n        return false;\n    }\n}"
+      },
+      {
+        "id": "bh-q12",
+        "text": "Encuentra el bug en este codigo que busca en un array bidimensional:",
+        "options": [
+          "Line 1: La matriz se crea correctamente",
+          "Line 2: El bucle externo recorre filas correctamente",
+          "Line 3: El bucle interno recorre columnas correctamente",
+          "Line 4: La comparacion puede causar ArrayIndexOutOfBoundsException si columnas es 0"
+        ],
+        "correctIndexes": [3],
+        "explanation": "Si alguna fila de la matriz tiene 0 columnas, acceder a matriz[i][0] lanzaria ArrayIndexOutOfBoundsException. Aunque la matriz parece completa, datos tiene 2 filas pero la segunda fila podria tener 0 columnas si se construyo dinamicamente. Solucion: verificar matriz[i].length antes de acceder.",
+        "type": "BUG_HUNT",
+        "code": "int[][] datos = {{1, 2, 3}, {4, 5, 6}};\nint objetivo = 5;\nfor (int i = 0; i < datos.length; i++) {\n    for (int j = 0; j < datos[i].length; j++) {\n        if (datos[i][j] == objetivo) {\n            System.out.println(\"Encontrado en: \" + i + \",\" + j);\n        }\n    }\n}"
+      }
+    ]
+  }
+}

@@ -4,6 +4,7 @@ import com.javatheory.application.ModuleService;
 import com.javatheory.application.ProgressService;
 import com.javatheory.application.QuizService;
 import com.javatheory.domain.Question;
+import com.javatheory.domain.QuestionType;
 import com.javatheory.domain.Quiz;
 import com.javatheory.domain.QuizMode;
 import com.javatheory.domain.QuizResult;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/quiz")
@@ -62,8 +63,9 @@ public class QuizActivityController {
         }
 
         List<List<Integer>> raw = request.answers() != null ? request.answers() : List.of();
+        Map<String, List<String>> textAnswers = request.textAnswers();
 
-        QuizResult result = quizService.evaluateOrdered(quiz, raw);
+        QuizResult result = quizService.evaluateWithTextAnswers(quiz, raw, textAnswers);
         progressService.recordResult(result);
         progressService.recordAttempt(
                 com.javatheory.domain.Attempt.of(quiz.id(), mode, moduleIds,
@@ -76,8 +78,15 @@ public class QuizActivityController {
             List<Integer> answer = i < raw.size() ? raw.get(i) : List.of();
             Question question = questions.get(i);
             boolean correct;
-            if (question.type() == com.javatheory.domain.QuestionType.ORDER) {
+            if (question.type() == QuestionType.CODE_FILL) {
+                List<String> textAnswer = textAnswers != null
+                        ? textAnswers.getOrDefault(question.id(), List.of())
+                        : List.of();
+                correct = question.isCorrectCodeFill(textAnswer);
+            } else if (question.type() == QuestionType.ORDER) {
                 correct = answer.equals(question.correctIndexes());
+            } else if (question.type() == QuestionType.BUG_HUNT) {
+                correct = question.isCorrectBugHunt(new HashSet<>(answer));
             } else {
                 correct = question.isCorrect(new HashSet<>(answer));
             }
@@ -109,7 +118,8 @@ public class QuizActivityController {
     private QuizResponse toResponse(Quiz quiz) {
         List<QuizQuestionDto> questions = quiz.questions().stream()
                 .map(question -> new QuizQuestionDto(question.id(), question.text(),
-                        question.options(), question.type()))
+                        question.options(), question.type(),
+                        question.codeTemplate(), question.blanks(), question.code()))
                 .toList();
         return new QuizResponse(quiz.id(), questions);
     }

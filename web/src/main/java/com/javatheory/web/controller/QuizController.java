@@ -53,7 +53,8 @@ public class QuizController {
     private QuizResponse toResponse(Quiz quiz) {
         List<QuizQuestionDto> questions = quiz.questions().stream()
                 .map(question -> new QuizQuestionDto(question.id(), question.text(),
-                        question.options(), question.type()))
+                        question.options(), question.type(),
+                        question.codeTemplate(), question.blanks(), question.code()))
                 .toList();
         return new QuizResponse(quiz.id(), questions);
     }
@@ -61,7 +62,7 @@ public class QuizController {
     private QuizResultResponse evaluate(Quiz quiz, QuizSubmitRequest request) {
         List<List<Integer>> raw = request.answers() != null ? request.answers() : List.of();
 
-        QuizResult result = quizService.evaluateOrdered(quiz, raw);
+        QuizResult result = quizService.evaluateWithTextAnswers(quiz, raw, request.textAnswers());
         progressService.recordResult(result);
 
         List<QuestionFeedback> feedback = new ArrayList<>();
@@ -70,8 +71,15 @@ public class QuizController {
             List<Integer> answer = i < raw.size() ? raw.get(i) : List.of();
             Question question = questions.get(i);
             boolean correct;
-            if (question.type() == QuestionType.ORDER) {
+            if (question.type() == QuestionType.CODE_FILL) {
+                List<String> textAnswer = request.textAnswers() != null
+                        ? request.textAnswers().getOrDefault(question.id(), List.of())
+                        : List.of();
+                correct = question.isCorrectCodeFill(textAnswer);
+            } else if (question.type() == QuestionType.ORDER) {
                 correct = answer.equals(question.correctIndexes());
+            } else if (question.type() == QuestionType.BUG_HUNT) {
+                correct = question.isCorrectBugHunt(new HashSet<>(answer));
             } else {
                 correct = question.isCorrect(new HashSet<>(answer));
             }

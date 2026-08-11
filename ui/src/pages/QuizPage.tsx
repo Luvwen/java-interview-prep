@@ -12,6 +12,7 @@ import QuizFeedback from "../components/QuizFeedback";
 function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selected, setSelected] = useState<number[][]>([]);
+  const [codeFillAnswers, setCodeFillAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,7 @@ function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }
     api.getQuiz(moduleId).then((q) => {
       setQuiz(q);
       setSelected(q.questions.map((question) => question.type === "ORDER" ? question.options.map((_, i) => i) : []));
+      setCodeFillAnswers({});
       setResult(null);
     }).catch((err: Error) => setError(err.message));
   }, [moduleId]);
@@ -31,7 +33,7 @@ function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }
     const type = quiz.questions[questionIndex].type;
     setSelected((prev) => {
       const next = prev.map((q) => [...q]);
-      if (type === "SINGLE" || type === "TRUE_FALSE") {
+      if (type === "SINGLE" || type === "TRUE_FALSE" || type === "BUG_HUNT") {
         next[questionIndex] = [optionIndex];
       } else {
         const current = next[questionIndex];
@@ -41,10 +43,30 @@ function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }
     });
   };
 
+  const handleCodeFillChange = (questionId: string, answers: string[]) => {
+    setCodeFillAnswers((prev) => ({ ...prev, [questionId]: answers }));
+  };
+
+  const isAnswered = (qIndex: number) => {
+    const question = quiz.questions[qIndex];
+    if (question.type === "ORDER") return true;
+    if (question.type === "CODE_FILL") {
+      const ans = codeFillAnswers[question.id];
+      return ans && ans.length === (question.blanks?.length ?? 0) && ans.every((a) => a.trim() !== "");
+    }
+    return selected[qIndex].length > 0;
+  };
+
   const submit = async () => {
     setSubmitting(true);
     try {
-      setResult(await api.submitQuiz(moduleId, selected));
+      const textAnswers: Record<string, string[]> = {};
+      for (const q of quiz.questions) {
+        if (q.type === "CODE_FILL" && codeFillAnswers[q.id]) {
+          textAnswers[q.id] = codeFillAnswers[q.id];
+        }
+      }
+      setResult(await api.submitQuiz(moduleId, selected, textAnswers));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -52,7 +74,7 @@ function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }
     }
   };
 
-  const answeredAll = selected.every((q, i) => q.length > 0 || quiz.questions[i].type === "ORDER");
+  const answeredAll = quiz.questions.every((_, i) => isAnswered(i));
 
   if (result) {
     return (
@@ -83,6 +105,8 @@ function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }
             onOrderChange={(order) => {
               setSelected((prev) => { const next = [...prev]; next[qIndex] = order; return next; });
             }}
+            onCodeFillChange={handleCodeFillChange}
+            codeFillAnswers={codeFillAnswers[question.id]}
           />
         ))}
       </VStack>
