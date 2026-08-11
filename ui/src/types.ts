@@ -31,6 +31,7 @@ export interface QuizQuestion {
   codeTemplate?: string;
   blanks?: string[];
   code?: string;
+  explanation?: string;
 }
 
 export interface Quiz {

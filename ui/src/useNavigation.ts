@@ -11,7 +11,9 @@ type View =
   | "time-attack"
   | "flashcards"
   | "exam"
-  | "statistics";
+  | "statistics"
+  | "code-fill"
+  | "bug-hunt";
 
 interface NavState {
   view: View;
@@ -31,6 +33,8 @@ function viewToPath(state: NavState): string {
     flashcards: "/activities/flashcards",
     exam: "/activities/exam",
     statistics: "/statistics",
+    "code-fill": "/activities/code-fill",
+    "bug-hunt": "/activities/bug-hunt",
   };
   return map[state.view] ?? "/";
 }
@@ -47,6 +51,8 @@ function parsePath(pathname: string): NavState {
       "error-review": "error-review",
       flashcards: "flashcards",
       exam: "exam",
+      "code-fill": "code-fill",
+      "bug-hunt": "bug-hunt",
     };
     if (subMap[sub]) return { view: subMap[sub], moduleId: null };
   }

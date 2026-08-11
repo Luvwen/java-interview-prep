@@ -47,7 +47,7 @@ function CodeBlock({ code }: { code: string }) {
         borderColor={colors.codeBorder}
         borderRadius="8px"
         p={4}
-        overflowX="auto"
+        overflow="hidden"
         fontSize="0.85rem"
         lineHeight="1.6"
         fontFamily="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace"

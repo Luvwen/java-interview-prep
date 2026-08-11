@@ -12,10 +12,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/modules")
 public class ModuleController {
+
+    private static final Set<String> ACTIVITY_MODULE_IDS = Set.of("code-fill", "bug-hunt");
 
     private final ModuleService moduleService;
     private final ProgressService progressService;
@@ -28,6 +31,7 @@ public class ModuleController {
     @GetMapping
     public List<ModuleSummary> list() {
         return moduleService.listModules().stream()
+                .filter(module -> !ACTIVITY_MODULE_IDS.contains(module.id()))
                 .map(module -> new ModuleSummary(module.id(), module.title(), module.description(),
                         progressService.stateOf(module.id())))
                 .toList();

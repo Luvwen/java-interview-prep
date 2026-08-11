@@ -261,9 +261,9 @@ function BugHuntBody({
           borderRadius="8px"
           fontFamily="monospace"
           fontSize="xs"
-          whiteSpace="pre"
+          whiteSpace="pre-wrap"
           lineHeight="tall"
-          overflowX="auto"
+          overflow="hidden"
         >
           {question.code.split("\n").map((line, i) => (
             <div key={i}>

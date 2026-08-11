@@ -19,6 +19,8 @@ import {
   Layers,
   FileText,
   Trophy,
+  Code2,
+  Bug,
 } from "lucide-react";
 import CatalogPage from "./pages/CatalogPage";
 import ModulePage from "./pages/ModulePage";
@@ -30,6 +32,8 @@ import TimeAttackPage from "./pages/TimeAttackPage";
 import FlashcardsPage from "./pages/FlashcardsPage";
 import ExamPage from "./pages/ExamPage";
 import StatisticsPage from "./pages/StatisticsPage";
+import CodeFillPage from "./pages/CodeFillPage";
+import BugHuntPage from "./pages/BugHuntPage";
 import { useNavigation, type NavState } from "./useNavigation";
 import { colors } from "./colors";
 
@@ -39,6 +43,8 @@ const activities = [
   { id: "error-review" as const, title: "Repasar Errores", desc: "Repasa las preguntas que fallaste. Acertar 2 veces seguidas las elimina.", icon: AlertTriangle },
   { id: "flashcards" as const, title: "Flashcards", desc: "Voltea tarjetas con conceptos clave y autoevalua si los sabias.", icon: Layers },
   { id: "exam" as const, title: "Examen Simulado", desc: "Simula una entrevista: tiempo limitado, sin ir atras.", icon: FileText },
+  { id: "code-fill" as const, title: "Rellenar Codigo", desc: "Completa blanks en fragmentos de codigo Java. IDE interactivo.", icon: Code2 },
+  { id: "bug-hunt" as const, title: "Encontrar el Bug", desc: "Identifica errores intencionales en codigo Java. Debugging real.", icon: Bug },
   { id: "statistics" as const, title: "Estadisticas", desc: "Ve tu desempeno por modulo: aciertos, errores y topicos debiles.", icon: Trophy },
 ];
 
@@ -57,6 +63,8 @@ function App() {
     view === "time-attack" ||
     view === "flashcards" ||
     view === "exam" ||
+    view === "code-fill" ||
+    view === "bug-hunt" ||
     view === "statistics";
 
   return (
@@ -140,6 +148,8 @@ function App() {
           {view === "error-review" && <ErrorReviewPage onExit={() => go({ view: "activities", moduleId: null })} />}
           {view === "flashcards" && <FlashcardsPage onExit={() => go({ view: "activities", moduleId: null })} />}
           {view === "exam" && <ExamPage onExit={() => go({ view: "activities", moduleId: null })} />}
+          {view === "code-fill" && <CodeFillPage onExit={() => go({ view: "activities", moduleId: null })} />}
+          {view === "bug-hunt" && <BugHuntPage onExit={() => go({ view: "activities", moduleId: null })} />}
           {view === "statistics" && <StatisticsPage onOpenModule={openModule} />}
           {view === "progress" && <ProgressPage onOpenModule={openModule} />}
         </Box>

@@ -33,7 +33,7 @@ class ApiIntegrationTest {
     void listsAllModules() throws Exception {
         mockMvc.perform(get("/api/modules"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(14)))
+                .andExpect(jsonPath("$", hasSize(12)))
                 .andExpect(jsonPath("$[0].id").value("core-java"))
                 .andExpect(jsonPath("$[0].state").isNotEmpty());
     }
