@@ -1,12 +1,12 @@
 {
   "id": "sql-jdbc",
-  "title": "SQL y JDBC",
-  "description": "Acceso a bases de datos relacionales desde Java: consultas SQL, joins, transacciones y JDBC con PreparedStatement. Imprescindible para entrevistas backend.",
+  "title": "SQL, JDBC y Persistencia",
+  "description": "Acceso a bases de datos relacionales desde Java: consultas SQL, joins, transacciones, JDBC, JPA/Hibernate y Spring Data JPA. Imprescindible para entrevistas backend.",
   "topics": [
     {
       "id": "sql-basics",
       "title": "Queries basicas",
-      "content": "SQL es el lenguaje declarativo de las bases relacionales. Las operaciones CRUD se expresan con INSERT, SELECT, UPDATE y DELETE. La clausula WHERE filtra filas; ORDER BY ordena; LIMIT acota el resultado.\n\nSELECT proyecta columnas y filas; DISTINCT elimina duplicados; el alias AS mejora la legibilidad. Las funciones de agregacion (COUNT, SUM, AVG, MIN, MAX) resumen grupos y suelen combinarse con GROUP BY. La condicion HAVING filtra despues de agregar (WHERE filtra filas antes de agrupar).\n\nEl orden logico de ejecucion de un SELECT es: FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY -> LIMIT. Conocer este orden resuelve preguntas trampa sobre WHERE vs HAVING.\n\nEn entrevistas se pide escribir queries por nivel de complejidad: la segunda mas vendida, el segundo mas alto por departamento, contar por grupo, o eliminar duplicados dejando la fila mas reciente. Practicar estos patrones es clave.\n\nConceptos avanzados: Las subconsultas (subqueries) pueden ser correlacionadas (dependen de la fila externa) o independientes. EXISTS vs IN: EXISTS es mas eficiente cuando la subconsulta es grande porque detiene la busqueda en el primer match. UNION combina resultados de dos queries (elimina duplicados); UNION ALL los conserva y es mas rapido. CASE WHEN permite logica condicional dentro de la query, util para pivotar datos o crear columnas calculadas. Los window functions (ROW_NUMBER, RANK, LAG, LEAD, SUM OVER PARTITION BY) permiten agregaciones sin colapsar filas, algo que GROUP BY no puede hacer.\n\nErrores comunes en entrevistas: Confundir WHERE con HAVING (WHERE filtra filas antes de GROUP BY, HAVING filtra grupos despues). Olvidar que columnas en SELECT sin funcion de agregacion deben estar en GROUP BY. Usar DISTINCT como parche para queries mal escritos en vez de corregir la logica. No saber que COUNT(*) cuenta filas incluyendo NULLs mientras COUNT(columna) excluye NULLs. Mezclar funciones de agregacion con columnas individuales sin GROUP BY. No entender que el orden de ejecucion logico difiere del orden sintactico del query.",
+      "content": "SQL es el lenguaje declarativo de las bases relacionales. Las operaciones CRUD se expresan con INSERT, SELECT, UPDATE y DELETE. La clausula WHERE filtra filas; ORDER BY ordena; LIMIT acota el resultado.\n\nSELECT proyecta columnas y filas; DISTINCT elimina duplicados; el alias AS mejora la legibilidad. Las funciones de agregacion (COUNT, SUM, AVG, MIN, MAX) resumen grupos y suelen combinarse con GROUP BY. La condicion HAVING filtra despues de agregar (WHERE filtra filas antes de agrupar).\n\nEl orden logico de ejecucion de un SELECT es: FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY -> LIMIT. Conocer este orden resuelve preguntas trampa sobre WHERE vs HAVING.\n\nEn entrevistas se pide escribir queries por nivel de complejidad: la segunda mas vendida, el segundo mas alto por departamento, contar por grupo, o eliminar duplicados dejando la fila mas reciente. Practicar estos patrones es clave.\n\nConceptos avanzados: Las subconsultas (subqueries) pueden ser correlacionadas (dependen de la fila externa) o independientes. EXISTS vs IN: EXISTS es mas eficiente cuando la subconsulta es grande porque detiene la busqueda en el primer match. UNION combina resultados de dos queries (elimina duplicados); UNION ALL los conserva y es mas rapido. CASE WHEN permite logica condicional dentro de la query, util para pivotar datos o crear columnas calculadas. Los window functions (ROW_NUMBER, RANK, LAG, LEAD, SUM OVER PARTITION BY) permiten agregaciones sin colapsar filas, algo que GROUP BY no puede hacer.\n\nErrores comunes en entrevistas: Confundir WHERE con HAVING (WHERE filtra filas antes de GROUP BY, HAVING filtra grupos despues). Olvidar que columnas en SELECT sin funcion de agregacion deben estar en GROUP BY. Usar DISTINCT como parche para queries mal escritos en vez de corregir la logica. No saber que COUNT(*) cuenta filas incluyendo NULLs mientras COUNT(columna) excluye NULLs. Mezclar funciones de agregacion con columnas individuales sin GROUP BY.",
       "examples": [
         "SELECT nombre, salario FROM empleados WHERE salario > 3000 ORDER BY salario DESC;",
         "SELECT dept_id, COUNT(*) AS total FROM empleados GROUP BY dept_id HAVING COUNT(*) > 5;",
@@ -20,7 +20,7 @@
     {
       "id": "sql-joins",
       "title": "Joins",
-      "content": "Un JOIN combina filas de dos o mas tablas usando una condicion. INNER JOIN devuelve solo las filas que coinciden en ambas tablas. LEFT JOIN (o LEFT OUTER) devuelve todas las filas de la izquierda y las coincidencias de la derecha, con NULL donde no hay coincidencia. RIGHT JOIN es el espejo, y FULL OUTER JOIN devuelve todas las filas de ambas.\n\nLa diferencia INNER vs LEFT es una de las preguntas mas frecuentes: con INNER se pierden las filas sin correspondencia; con LEFT se conservan las de la izquierda.\n\nCROSS JOIN produce el producto cartesiano; SELF JOIN combina una tabla consigo misma (tipico para jerarquias como empleado-supervisor). La sintaxis moderna prefiere el JOIN explicito en lugar de enumerar tablas en FROM con comas y condiciones en WHERE.\n\nLa clave de rendimiento son los indices: JOIN sobre columnas indexadas es mucho mas rapido. En entrevistas se valora mencionar los indices al hablar de joins lentos.\n\nConceptos avanzados: FULL OUTER JOIN retorna todas las filas de ambas tablas; donde no hay coincidencia se rellena con NULL. Es util para detectar registros huérfanos en ambas direcciones. CROSS JOIN sin clausula ON genera el producto cartesiano (M x N filas), peligroso en tablas grandes pero util para generar combinaciones (ej: tallas x colores). NATURAL JOIN une por columnas con el mismo nombre en ambas tablas; es conciso pero frágil si se agregan columnas con el mismo nombre. El USING clause es similar a ON pero requiere nombres de columna iguales.\n\nErrores comunes en entrevistas: Olvidar la condicion ON en un JOIN y generar un producto cartesiano accidental ( CROSS JOIN no intencionado). Confundir LEFT con RIGHT y no poder leer un query con ambos. No saber que FULL OUTER JOIN no existe en MySQL (se simula con UNION de LEFT y RIGHT JOIN). Usar comas en FROM en lugar de JOIN explicito, lo cual dificulta leer queries con multiples joins. No entender por que un LEFT JOIN puede devolver mas filas que la tabla izquierda (cuando hay duplicados en la tabla derecha).",
+      "content": "Un JOIN combina filas de dos o mas tablas usando una condicion. INNER JOIN devuelve solo las filas que coinciden en ambas tablas. LEFT JOIN (o LEFT OUTER) devuelve todas las filas de la izquierda y las coincidencias de la derecha, con NULL donde no hay coincidencia. RIGHT JOIN es el espejo, y FULL OUTER JOIN devuelve todas las filas de ambas.\n\nLa diferencia INNER vs LEFT es una de las preguntas mas frecuentes: con INNER se pierden las filas sin correspondencia; con LEFT se conservan las de la izquierda.\n\nCROSS JOIN produce el producto cartesiano; SELF JOIN combina una tabla consigo misma (tipico para jerarquias como empleado-supervisor). La sintaxis moderna prefiere el JOIN explicito en lugar de enumerar tablas en FROM con comas y condiciones en WHERE.\n\nLa clave de rendimiento son los indices: JOIN sobre columnas indexadas es mucho mas rapido. En entrevistas se valora mencionar los indices al hablar de joins lentos.\n\nConceptos avanzados: FULL OUTER JOIN retorna todas las filas de ambas tablas; donde no hay coincidencia se rellena con NULL. Es util para detectar registros huérfanos en ambas direcciones. CROSS JOIN sin clausula ON genera el producto cartesiano (M x N filas), peligroso en tablas grandes pero util para generar combinaciones (ej: tallas x colores). NATURAL JOIN une por columnas con el mismo nombre en ambas tablas; es conciso pero fragil si se agregan columnas con el mismo nombre. El USING clause es similar a ON pero requiere nombres de columna iguales.\n\nErrores comunes en entrevistas: Olvidar la condicion ON en un JOIN y generar un producto cartesiano accidental (CROSS JOIN no intencionado). Confundir LEFT con RIGHT y no poder leer un query con ambos. No saber que FULL OUTER JOIN no existe en MySQL (se simula con UNION de LEFT y RIGHT JOIN). Usar comas en FROM en lugar de JOIN explicito, lo cual dificulta leer queries con multiples joins. No entender por que un LEFT JOIN puede devolver mas filas que la tabla izquierda (cuando hay duplicados en la tabla derecha).",
       "examples": [
         "SELECT e.nombre, d.nombre FROM empleados e INNER JOIN departamentos d ON e.dept_id = d.id;",
         "SELECT e.nombre, j.nombre FROM empleados e LEFT JOIN empleados j ON e.jefe_id = j.id;",
@@ -34,7 +34,7 @@
     {
       "id": "sql-transactions",
       "title": "Transacciones",
-      "content": "Una transaccion agrupa varias operaciones que se confirman (COMMIT) o revierten (ROLLBACK) como una unidad atomica. El acronimo ACID define sus garantias: Atomicidad (todo o nada), Consistencia (estado valido), Aislamiento (las transacciones no se interfieren) y Durabilidad (lo confirmado persiste).\n\nEl aislamiento se controla con niveles: READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ y SERIALIZABLE. Cada nivel previene anomalias como dirty reads (leer datos no confirmados), non-repeatable reads y phantom reads. Mas aislamiento = menos concurrencia.\n\nEl control de concurrencia se apoya en locks y en MVCC (Multi-Version Concurrency Control), usado por PostgreSQL para lecturas sin bloqueo. En entrevistas, saber explicar dirty read o deadlock demuestra dominio.\n\nUn deadlock es un ciclo de espera entre transacciones por locks: la base detecta uno y aborta una de ellas. Se evita accediendo a los recursos en un orden consistente.\n\nConceptos avanzados: READ UNCOMMITTED permite dirty reads (ver cambios no commiteados). READ COMMITTED previene dirty reads pero no non-repeatable reads (una misma query puede devolver valores distintos). REPEATABLE READ garantiza que una fila leida no cambie durante la transaccion, pero puede haber phantom reads (nuevas filas aparecen). SERIALIZABLE es el nivel mas alto: simula ejecucion serial, previene todas las anomalias pero es el mas lento por bloqueo total. SAVEPOINT permite crear puntos de rescate dentro de una transaccion y hacer ROLLBACK parcial sin abortar todo.\n\nErrores comunes en entrevistas: No saber explicar que es un dirty read o confundirlo con un phantom read. Olvidar que autoCommit esta en true por defecto en JDBC y por eso las operaciones individuales no son transaccionales. Crear deadlocks por acceder a tablas en orden inconsistente (transaccion A bloquea tabla1 y espera tabla2; B bloquea tabla2 y espera tabla1). No manejar rollback en el catch despues de un error en JDBC, dejando la transaccion abierta. No entender que SERIALIZABLE es el nivel mas restrictivo y puede causar timeouts en alta concurrencia.",
+      "content": "Una transaccion agrupa varias operaciones que se confirman (COMMIT) o revierten (ROLLBACK) como una unidad atomica. El acronimo ACID define sus garantias: Atomicidad (todo o nada), Consistencia (estado valido), Aislamiento (las transacciones no se interfieren) y Durabilidad (lo confirmado persiste).\n\nEl aislamiento se controla con niveles: READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ y SERIALIZABLE. Cada nivel previene anomalias como dirty reads (leer datos no confirmados), non-repeatable reads y phantom reads. Mas aislamiento = menos concurrencia.\n\nEl control de concurrencia se apoya en locks y en MVCC (Multi-Version Concurrency Control), usado por PostgreSQL para lecturas sin bloqueo. En entrevistas, saber explicar dirty read o deadlock demuestra dominio.\n\nUn deadlock es un ciclo de espera entre transacciones por locks: la base detecta uno y aborta una de ellas. Se evita accediendo a los recursos en un orden consistente.\n\nConceptos avanzados: READ UNCOMMITTED permite dirty reads (ver cambios no commiteados). READ COMMITTED previene dirty reads pero no non-repeatable reads (una misma query puede devolver valores distintos). REPEATABLE READ garantiza que una fila leida no cambie durante la transaccion, pero puede haber phantom reads (nuevas filas aparecen). SERIALIZABLE es el nivel mas alto: simula ejecucion serial, previene todas las anomalias pero es el mas lento por bloqueo total. SAVEPOINT permite crear puntos de rescate dentro de una transaccion y hacer ROLLBACK parcial sin abortar todo.\n\nErrores comunes en entrevistas: No saber explicar que es un dirty read o confundirlo con un phantom read. Olvidar que autoCommit esta en true por defecto en JDBC y por eso las operaciones individuales no son transaccionales. Crear deadlocks por acceder a tablas en orden inconsistente (transaccion A bloquea tabla1 y espera tabla2; B bloquea tabla2 y espera tabla1). No manejar rollback en el catch despues de un error en JDBC, dejando la transaccion en estado inconsistente.",
       "examples": [
         "BEGIN; UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1; COMMIT;",
         "BEGIN; UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1; ROLLBACK;",
@@ -48,7 +48,7 @@
     {
       "id": "jdbc-prepared",
       "title": "JDBC y PreparedStatement",
-      "content": "JDBC es la API estandar de Java para acceder a bases de datos. El flujo es: registrar el driver, abrir una conexion (DriverManager.getConnection), crear un statement, ejecutarlo y procesar el ResultSet. Los recursos se cierran con try-with-resources porque Connection, Statement y ResultSet implementan AutoCloseable.\n\nPreparedStatement es la forma correcta de enviar parametros: se escriben marcadores (?) y se enlazan con setString, setInt, etc. Ventajas: evita la inyeccion SQL (los parametros no se concatenan con la query), mejora el rendimiento por precompilacion y hace el codigo mas legible.\n\nConcatenar valores en un String para armar SQL es una vulnerabilidad de inyeccion SQL: un usuario podria cerrar la query e inyectar codigo (por ejemplo, ' OR '1'='1). La regla de oro es usar siempre PreparedStatement para valores de datos; la concatenacion solo para nombres de tablas/columnas si fuera imprescindible (y aun asi validados).\n\nLas transacciones en JDBC se controlan con connection.setAutoCommit(false), connection.commit() y connection.rollback(), con try-catch para revertir ante error. Es un punto que se pregunta mucho en tests tecnicos.\n\nConceptos avanzados: Statement basico solo ejecuta queries sin parametros; PreparedStatement precompila y reutiliza la query con diferentes valores; CallableStatement ejecuta stored procedures con parametros IN, OUT e INOUT. Los batch updates (addBatch + executeBatch) agrupan multiples INSERT/UPDATE en una sola llamada al servidor, reduciendo roundtrips dramaticamente. Los tipos de ResultSet determinan el comportamiento: TYPE_FORWARD_ONLY (solo avanza, por defecto), TYPE_SCROLL_INSENSITIVE (scrollable pero no refleja cambios concurrentes), TYPE_SCROLL_SENSITIVE (refleja cambios). CONCUR_READ_ONLY vs CONCUR_UPDATABLE permiten o no modificar filas del ResultSet directamente.\n\nErrores comunes en entrevistas: No cerrar recursos (Connection, Statement, ResultSet) y provocar leaks de conexiones. Usar Statement en vez de PreparedStatement para queries con parametros del usuario. Olvidar que executeQuery() retorna ResultSet (para SELECT) y executeUpdate() retorna int (para INSERT/UPDATE/DELETE). No usar try-with-resources y mezclar manejo manual de cierre con logica de negocio. Confundir executeBatch() con executeUpdate() y no entender que batch agrupa operaciones. No saber que CallableStatement es el que se usa para stored procedures, no PreparedStatement.",
+      "content": "JDBC es la API estandar de Java para acceder a bases de datos. El flujo es: registrar el driver, abrir una conexion (DriverManager.getConnection), crear un statement, ejecutarlo y procesar el ResultSet. Los recursos se cierran con try-with-resources porque Connection, Statement y ResultSet implementan AutoCloseable.\n\nPreparedStatement es la forma correcta de enviar parametros: se escriben marcadores (?) y se enlazan con setString, setInt, etc. Ventajas: evita la inyeccion SQL (los parametros no se concatenan con la query), mejora el rendimiento por precompilacion y hace el codigo mas legible.\n\nConcatenar valores en un String para armar SQL es una vulnerabilidad de inyeccion SQL: un usuario podria cerrar la query e inyectar codigo (por ejemplo, ' OR '1'='1). La regla de oro es usar siempre PreparedStatement para valores de datos; la concatenacion solo para nombres de tablas/columnas si fuera imprescindible (y aun asi validados).\n\nLas transacciones en JDBC se controlan con connection.setAutoCommit(false), connection.commit() y connection.rollback(), con try-catch para revertir ante error. Es un punto que se pregunta mucho en tests tecnicos.\n\nConceptos avanzados: Statement basico solo ejecuta queries sin parametros; PreparedStatement precompila y reutiliza la query con diferentes valores; CallableStatement ejecuta stored procedures con parametros IN, OUT e INOUT. Los batch updates (addBatch + executeBatch) agrupan multiples INSERT/UPDATE en una sola llamada al servidor, reduciendo roundtrips dramaticamente. Los tipos de ResultSet determinan el comportamiento: TYPE_FORWARD_ONLY (solo avanza, por defecto), TYPE_SCROLL_INSENSITIVE (scrollable pero no refleja cambios concurrentes), TYPE_SCROLL_SENSITIVE (refleja cambios). CONCUR_READ_ONLY vs CONCUR_UPDATABLE permiten o no modificar filas del ResultSet directamente.\n\nErrores comunes en entrevistas: No cerrar recursos (Connection, Statement, ResultSet) y provocar leaks de conexiones. Usar Statement en vez de PreparedStatement (vulnerabilidad de inyeccion SQL). No usar try-with-resources y tener que cerrar manualmente en finally. Olvidar que executeUpdate retorna el numero de filas afectadas (no un ResultSet). No entender la diferencia entre executeQuery (SELECT) y executeUpdate (INSERT/UPDATE/DELETE).",
       "examples": [
         "try (Connection c = DriverManager.getConnection(url, user, pass); PreparedStatement ps = c.prepareStatement(\"SELECT * FROM empleados WHERE salario > ?\")) { ps.setInt(1, 3000); ResultSet rs = ps.executeQuery(); }",
         "c.setAutoCommit(false); try { ...; c.commit(); } catch (Exception e) { c.rollback(); throw e; }",
@@ -57,6 +57,46 @@
         "ps.addBatch(); // dentro de un loop, agregar multiples inserts ps.executeBatch(); // ejecutar todas las operaciones agrupadas en un solo roundtrip",
         "ResultSet rs = ps.executeQuery(); while (rs.next()) { String nombre = rs.getString(\"nombre\"); double salario = rs.getDouble(\"salario\"); }",
         "try (Connection c = HikariCP.getConnection(); PreparedStatement ps = c.prepareStatement(\"UPDATE empleados SET salario = ? WHERE id = ?\")) { ps.setDouble(1, 4500); ps.setInt(2, 1); int rows = ps.executeUpdate(); }"
+      ]
+    },
+    {
+      "id": "jdbc-advanced",
+      "title": "JDBC avanzado: DataSource, Pool y Batch",
+      "content": "DriverManager es la forma basica de obtener conexiones pero tiene limitaciones: crea una conexion nueva por cada llamada (costoso en tiempo y recursos). DataSource es la interfaz recomendada en aplicaciones reales; encapsula la configuracion de conexion y puede integrarse con un pool de conexiones. Un DataSource como HikariCP reutiliza conexiones existentes en vez de crear nuevas, reduciendo latencia y carga sobre la base de datos.\n\nEl connection pooling mantiene un grupo de conexiones abiertas y listas para usar. HikariCP es el pool mas popular en el ecosistema Java/Spring por su rendimiento y fiabilidad. Las configuraciones clave son: maximumPoolSize (numero maximo de conexiones), minimumIdle (conexiones minimas en el pool), connectionTimeout (tiempo maximo para obtener una conexion antes de lanzar SQLException), idleTimeout (tiempo que una conexion inactiva permanece en el pool) y maxLifetime (tiempo maximo de vida de una conexion, incluyendo uso activo). El pool cierra conexiones ociosas automaticamente y las renueva periodicamente para evitar timeouts del lado del servidor.\n\nPreparedStatement vs CallableStatement: PreparedStatement ejecuta queries precompiladas con parametros IN; CallableStatement ejecuta stored procedures con parametros IN, OUT e INOUT. Batch processing agrupa multiples operaciones en un solo roundtrip al servidor usando addBatch() y executeBatch(). Desde JDBC 4.1 executeLargeBatch() permite operaciones que afectan mas de Integer.MAX_VALUE filas. Los savepoints permiten rollback parcial dentro de una transaccion sin abortar todo el trabajo previo.\n\nConceptos avanzados: DataSource vs DriverManager: DriverManager.getConnection() crea una conexion nueva cada vez; un DataSource con pool reutiliza conexiones y gestiona lifecycle automaticamente. El patron es inyectar DataSource (via constructor o @Resource) y nunca usar DriverManager en produccion. Los row sets (CachedRowSet) permiten trabajar con datos desconectados de la base, util para procesamiento offline o cuando el ResultSet no puede mantener la conexion abierta. CachedRowSet es scrollable, updatable y serializable, permitiendo pasar datos entre capas sin mantener la conexion activa.\n\nErrores comunes en entrevistas: Usar DriverManager en produccion en lugar de DataSource/pool (rendimiento deficiente bajo carga). No cerrar conexiones devueltas al pool (el pool las considera activas y se agota). Configurar maximumPoolSize demasiado alto y saturar la base de datos con conexiones. No entender que maxLifetime menor que el timeout del servidor causa reconexiones innecesarias. Olvidar que executeBatch() retorna un array de int con el numero de filas afectadas por cada operacion, no un boolean.",
+      "examples": [
+        "HikariConfig config = new HikariConfig(); config.setJdbcUrl(\"jdbc:postgresql://localhost:5432/mydb\"); config.setUsername(\"user\"); config.setPassword(\"pass\"); config.setMaximumPoolSize(10); config.setMinimumIdle(5); config.setConnectionTimeout(30000); config.setIdleTimeout(600000); config.setMaxLifetime(1800000); HikariDataSource ds = new HikariDataSource(config);",
+        "try (Connection c = ds.getConnection(); PreparedStatement ps = c.prepareStatement(\"INSERT INTO empleados (nombre) VALUES (?)\")) { ps.setString(1, \"Ana\"); ps.addBatch(); ps.setString(1, \"Luis\"); ps.addBatch(); int[] results = ps.executeBatch(); }",
+        "Connection c = ds.getConnection(); Savepoint sp = c.setSavepoint(\"before_update\"); try { ps.executeUpdate(); } catch (SQLException e) { c.rollback(sp); } c.releaseSavepoint(sp); c.close();",
+        "CachedRowSet crs = RowSetProvider.newFactory().createCachedRowSet(); crs.setCommand(\"SELECT * FROM empleados\"); crs.execute(dataSource); crs.moveToInsertRow(); crs.updateString(\"nombre\", \"Nuevo\"); crs.insertRow(); crs.acceptChanges();",
+        "CallableStatement cs = c.prepareCall(\"{CALL sp_calcular(?, ?)}\"); cs.setInt(1, 100); cs.registerOutParameter(2, Types.DOUBLE); cs.execute(); double resultado = cs.getDouble(2);"
+      ]
+    },
+    {
+      "id": "jpa-hibernate",
+      "title": "JPA y Hibernate",
+      "content": "JPA (Java Persistence API) es una especificacion (JSR 338) que define estandares para mapeo objeto-relacional (ORM) en Java. Hibernate es la implementacion mas popular de JPA, pero tambien existe EclipseLink. La ventaja de JPA sobre JDBC directo es la abstraccion: se trabaja con entidades Java en vez de queries SQL, lo que reduce boilerplate y mejora la portabilidad entre bases de datos.\n\nUna entidad JPA se define con @Entity y tiene una clave primaria anotada con @Id. @GeneratedValue define la estrategia de generacion del id: IDENTITY (autoincremento de la base), SEQUENCE (secuencia de la base, mas portable y eficiente que IDENTITY), TABLE (una tabla auxiliar para simular secuencias) y AUTO (Hibernate elige la mejor estrategia segun el dialecto). @Table y @Column personalizan nombres y restricciones de tablas y columnas.\n\nLas relaciones entre entidades se mapean con @ManyToOne, @OneToMany, @ManyToMany y @OneToOne. La clave esta en entender fetch types: LAZY (carga la relacion solo cuando se accede al atributo, recomendado para performance) vs EAGER (carga todo de golpe, puede causar N+1). Cascade types determinan que operaciones se propagan: cascade = CascadeType.ALL propaga todo (persist, merge, remove, refresh, detach), mientras que cascade = CascadeType.PERSIST solo propaga el guardado.\n\nEl entity lifecycle tiene cuatro estados: transient (objeto creado con new, sin gestionar por el EntityManager), persistent (gestionado, sincronizado con la base), detached (fue persistent pero el EntityManager se cerro o se desvinculo) y removed (marcado para eliminacion). merge() convierte una entidad detached en persistent; persist() convierte transient en persistent; remove() marca para borrado fisico al hacer flush. JPQL es un lenguaje de consulta orientado a entidades (no a tablas): \"SELECT e FROM Empleado e WHERE e.salario > :minimo\". @Query permite escribir JPQL o SQL nativo directamente en los repositorios Spring Data.\n\nConceptos avanzados: equals() y hashCode() en entidades son criticos. El patron recomendado es basarlos en la clave natural (business key) o en el id, pero considerando que el id puede ser null en entidades transient. Usar un patron que compare por business key si existe, o por id si no. Los named queries (@NamedQuery) se definen en la entidad y se reutilizan, evitando strings duplicados. Las optimistic locks (@Version) previenen lost updates: si otra transaccion modifico la fila, se lanza OptimisticLockException al hacer flush.\n\nErrores comunes en entrevistas: No entender la diferencia entre JPA (especificacion) y Hibernate (implementacion). Usar EAGER por defecto y causar N+1 queries (un problema clasico de performance). Olvidar que lazy loading solo funciona dentro de una transaccion abierta (LazyInitializationException). Confundir el ciclo de vida: no saber que merge() es para detached y persist() es para transient. No manejar OptimisticLockException en aplicaciones concurrentes. Crear entidades sin equals/hashCode correctos y tener problemas con HashSet y colecciones.",
+      "examples": [
+        "@Entity @Table(name = \"empleados\") public class Empleado { @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id; @Column(nullable = false, length = 100) private String nombre; @Column(precision = 10, scale = 2) private BigDecimal salario; }",
+        "@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = \"depto_id\") private Departamento departamento; @OneToMany(mappedBy = \"empleado\", cascade = CascadeType.ALL, fetch = FetchType.LAZY) private List<Proyecto> proyectos; @ManyToMany @JoinTable(name = \"emp_roles\", joinColumns = @JoinColumn(name = \"emp_id\"), inverseJoinColumns = @JoinColumn(name = \"role_id\")) private Set<Rol> roles;",
+        "@Entity public class Empleado { @Version private int version; // optimistic lock }",
+        "EntityManager em = emf.createEntityManager(); Empleado emp = new Empleado(); emp.setNombre(\"Ana\"); em.getTransaction().begin(); em.persist(emp); // transient -> persistent em.getTransaction().commit(); // id asignado",
+        "@Query(\"SELECT e FROM Empleado e WHERE e.departamento.nombre = :deptoName AND e.salario > :minSalario\") List<Empleado> findByDeptAndMinSalary(@Param(\"deptoName\") String depto, @Param(\"minSalario\") BigDecimal min);",
+        "@NamedQuery(name = \"Empleado.findByNombre\", query = \"SELECT e FROM Empleado e WHERE e.nombre = :nombre\")",
+        "em.getTransaction().begin(); Empleado emp = em.find(Empleado.class, 1L); emp.setSalario(emp.getSalario().add(new BigDecimal(\"500\"))); em.merge(emp); em.getTransaction().commit();"
+      ]
+    },
+    {
+      "id": "spring-data-repo",
+      "title": "Spring Data JPA en profundidad",
+      "content": "Spring Data JPA elimina el boilerplate del acceso a datos. CrudRepository proporciona operaciones CRUD basicas (save, findById, findAll, deleteById, count). PagingAndSortingRepository extiende CrudRepository con paginacion (findAll(Pageable)) y ordenamiento (findAll(Sort)). JpaRepository extiende ambas y agrega flush, saveAllAndFlush, deleteInBatch y metodos de flush/sincronizacion con la base.\n\nLos derived query methods permiten definir queries escribiendo el nombre del metodo con convenciones: findByNombre(String nombre), findBySalarioGreaterThan(BigDecimal valor), findByDepartamentoNombreAndActivoTrue(String depto). Spring Data parsea el nombre y genera la JPQL correspondiente sin escribir codigo. Soporta AND, OR, Like, IgnoreCase, Between, In, IsNull, IsNotEmpty,OrderBy, etc.\n\n@Query permite escribir JPQL o SQL natico directamente. Con nativeQuery = true se usa SQL de la base en vez de JPQL. @Modifying se usa con @Query para operaciones de escritura (UPDATE/DELETE) que no retornan entidades; sin @Modifying, Spring Data espera un SELECT. La paginacion se obtiene con PageRequest.of(page, size) y se pasa como parametro; el metodo retorna Page<T> que incluye contenido, numero de pagina, total de paginas y total de elementos.\n\nConceptos avanzados: Specification permite construir queries dinamicas usando el patron Specification del patron Domain-Driven Design. Se combinan con AND/OR para filtros opcionales en busquedas. Projection interfaces permiten seleccionar solo ciertos campos de la entidad (interfaces con getters que mapean a columnas). Sort permite ordenamiento dinamico: Sort.by(Sort.Direction.DESC, \"salario\"). Querydsl es una alternativa a Specification para queries tipadas y seguras en compile-time, generando una DSL a partir de las entidades.\n\nAuditing de Spring Data registra automaticamente quien creo/modifico una entidad y cuando. Se habilita con @EnableJpaAuditing y se usan las anotaciones @CreatedDate, @LastModifiedDate, @CreatedBy, @LastModifiedBy en los campos correspondientes. La entidad debe tener un Listener (@EntityListeners(AuditingEntityListener.class)). Esto es fundamental en aplicaciones empresariales para trazabilidad y cumplimiento normativo.\n\nErrores comunes en entrevistas: Olvidar que @Query con @Modifying necesita @Transactional (o la transaccion debe estar abierta). Confundir Page (tiene contenido + metadata de paginacion) con List (solo contenido). No entender que derived query methods generan JPQL, no SQL nativo. Usar EAGER fetch en las relaciones y causar N+1 sin darse cuenta. No saber que save() hace persist si el id es null y merge si el id tiene valor. Crear Specification complejas sin componer con AND/OR y generar queries ineficientes.",
+      "examples": [
+        "public interface EmpleadoRepository extends JpaRepository<Empleado, Long> { List<Empleado> findByNombre(String nombre); List<Empleado> findBySalarioGreaterThan(BigDecimal salario); Page<Empleado> findByDepartamentoNombre(String deptoNombre, Pageable pageable); }",
+        "@Query(value = \"SELECT * FROM empleados WHERE salario > :minimo\", nativeQuery = true) List<Empleado> findWithSalaryAbove(@Param(\"minimo\") BigDecimal min);",
+        "@Modifying @Query(\"DELETE FROM Empleado e WHERE e.activo = false\") int deleteInactiveEmpleados();",
+        "Page<Empleado> page = repository.findByDepartamentoNombre(\"IT\", PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, \"salario\"))); page.getContent(); // List<Empleado> page.getTotalPages(); // int page.getTotalElements(); // long",
+        "Specification<Empleado> spec = (root, query, cb) -> cb.greaterThan(root.get(\"salario\"), new BigDecimal(\"3000\")); Specification<Empleado> spec2 = (root, query, cb) -> cb.equal(root.get(\"departamento\").get(\"nombre\"), \"IT\"); List<Empleado> result = repository.findAll(spec.and(spec2));",
+        "@EntityListeners(AuditingEntityListener.class) @Entity public class Empleado { @CreatedDate private LocalDateTime createdAt; @LastModifiedDate private LocalDateTime updatedAt; @CreatedBy private String createdBy; @LastModifiedBy private String lastModifiedBy; }",
+        "public interface EmpleadoProjection { String getNombre(); BigDecimal getSalario(); } @Query(\"SELECT e.nombre as nombre, e.salario as salario FROM Empleado e\") List<EmpleadoProjection> findNombreSalario();"
       ]
     }
   ],
@@ -189,7 +229,7 @@
       },
       {
         "id": "sql-q9",
-        "text": "Que tipo de ResultSet permite navehar en ambas direcciones y modificar filas directamente?",
+        "text": "Que tipo de ResultSet permite navegar en ambas direcciones y modificar filas directamente?",
         "options": [
           "TYPE_FORWARD_ONLY con CONCUR_READ_ONLY",
           "TYPE_SCROLL_INSENSITIVE con CONCUR_READ_ONLY",
@@ -231,6 +271,119 @@
           1
         ],
         "explanation": "El orden correcto es: obtener Connection -> crear PreparedStatement -> ejecutar query y procesar ResultSet -> cerrar Connection.",
+        "type": "ORDER"
+      },
+      {
+        "id": "sql-q12",
+        "text": "Que diferencias clave existen entre DriverManager y un DataSource con connection pooling?",
+        "options": [
+          "DriverManager crea una conexion nueva por cada llamada; DataSource con pool reutiliza conexiones existentes",
+          "DataSource con pool es mas lento que DriverManager porque agrega overhead de gestion",
+          "DriverManager es recomendado para aplicaciones de produccion por su simplicidad",
+          "DataSource permite configurar maximumPoolSize, connectionTimeout y maxLifetime"
+        ],
+        "correctIndexes": [
+          0,
+          3
+        ],
+        "explanation": "DriverManager crea una conexion nueva cada vez (costoso); DataSource con pool (como HikariCP) reutiliza conexiones y permite configurar tiempos y tamanios de pool.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "sql-q13",
+        "text": "En HikariCP, que parametro controla el numero maximo de conexiones que el pool puede mantener abiertas?",
+        "options": [
+          "minimumIdle",
+          "connectionTimeout",
+          "maximumPoolSize",
+          "idleTimeout"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "maximumPoolSize define el numero maximo de conexiones en el pool. minimumIdle son las conexiones minimas en espera; connectionTimeout es el tiempo maximo para obtener una conexion.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sql-q14",
+        "text": "Cuales son los cuatro estados del entity lifecycle en JPA?",
+        "options": [
+          "transient",
+          "persistent",
+          "detached",
+          "removed"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "Los cuatro estados son: transient (sin gestionar), persistent (gestionado por EntityManager), detached (fue persistent pero se desvinculo) y removed (marcado para eliminacion).",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "sql-q15",
+        "text": "JPA es una implementacion de Hibernate que proporciona mapeo objeto-relacional en Java.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: es al reves. JPA es la especificacion (estandar) y Hibernate es una de sus implementaciones. JPA define las reglas; Hibernate las ejecuta.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "sql-q16",
+        "text": "En Spring Data JPA, que diferencia hay entre Page y List como tipo de retorno de un metodo del repositorio?",
+        "options": [
+          "Page incluye metadata de paginacion (total de paginas, total de elementos, numero de pagina); List solo contiene los resultados",
+          "Page es mas rapido porque usa cache; List siempre consulta la base",
+          "List soporta paginacion y Page solo retorna el contenido completo",
+          "Page implementa Iterable y List no"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Page<T> extiende PagedIterable y contiene getContent() (los datos), getTotalPages(), getTotalElements(), getNumber() (pagina actual) y getNumberOfElements(). List solo contiene los objetos.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sql-q17",
+        "text": "Que anotaciones de auditing proporciona Spring Data JPA para registrar automaticamente el autor y fecha de modificacion?",
+        "options": [
+          "@CreatedDate",
+          "@LastModifiedDate",
+          "@CreatedBy",
+          "@LastModifiedBy"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "Spring Data JPA ofrece @CreatedDate, @LastModifiedDate, @CreatedBy y @LastModifiedBy. Se habilitan con @EnableJpaAuditing y requieren @EntityListeners(AuditingEntityListener.class).",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "sql-q18",
+        "text": "Ordena los pasos para configurar HikariCP y usarlo en una aplicacion JDBC:",
+        "options": [
+          "Cerrar la conexion al pool con conn.close() (la devuelve al pool)",
+          "Configurar HikariConfig con URL, usuario, password y parametros de pool",
+          "Crear HikariDataSource con la configuracion",
+          "Obtener una Connection del DataSource con ds.getConnection()"
+        ],
+        "correctIndexes": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "explanation": "El orden es: configurar HikariConfig -> crear HikariDataSource -> obtener Connection con getConnection() -> usar la conexion -> cerrarla (la devuelve al pool, no la destruye).",
         "type": "ORDER"
       }
     ]

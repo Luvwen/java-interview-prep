@@ -58,6 +58,76 @@
         "@GetMapping(\"/api/reportes/{id}/descarga\")\npublic ResponseEntity<Resource> descargar(@PathVariable Long id) {\n    Resource resource = ...;\n    return ResponseEntity.ok()\n        .header(HttpHeaders.CONTENT_DISPOSITION, \"attachment; filename=report.pdf\")\n        .body(resource);\n}",
         "@ExceptionHandler(MethodArgumentNotValidException.class)\n@ResponseStatus(HttpStatus.BAD_REQUEST)\npublic Map<String, String> handleValidation(MethodArgumentNotValidException ex) {\n    Map<String, String> errors = new HashMap<>();\n    ex.getBindingResult().getFieldErrors().forEach(e -> errors.put(e.getField(), e.getDefaultMessage()));\n    return errors;\n}"
       ]
+    },
+    {
+      "id": "spring-profiles",
+      "title": "Profiles y configuracion avanzada",
+      "content": "Los profiles en Spring permiten segmentar la configuracion de una aplicacion segun el entorno (dev, test, staging, production). Cada profile puede definir sus propios beans, propiedades y configuraciones que solo se cargan cuando el profile esta activo. Esto evita condicionales en el codigo y mantiene separada la configuracion por entorno.\n\n@Profile se puede aplicar en metodos @Bean o en clases @Component/@Service/@Configuration para que solo se registren cuando el profile activo coincida. En Spring Boot se activa con spring.profiles.active=dev en application.yml, via variable de entorno SPRING_PROFILES_ACTIVE, o con el flag -Dspring.profiles.active=dev al iniciar la JVM.\n\n@ConfigurationProperties permite vincular propiedades de application.yml a un POJO tipado con validacion, relax binding (acepta kebab-case, camelCase, SCREAMING_SNAKE_CASE) y soporte para objetos anidados anidados. Se usa @EnableConfigurationProperties para registrar el POJO como bean y @Validated para activar la validacion JSR 380. Un archivo YAML con documentos separados (---) permite definir configuracion comun y configuracion especifica por profile en un solo archivo.\n\nLa configuracion externa en Spring Boot sigue un orden de precedencia: argumentos de linea de comandos > variables de entorno > archivos externos (application-{profile}.yml, config/) > archivos internos (application.yml) > default properties. Spring expone el bean Environment que encapsula todas las propiedades y permite inyectarlo para acceder a cualquier valor de configuracion de forma programatica.\n\nConceptos avanzados:\n- spring.profiles.group permite agrupar profiles: por ejemplo, group: production=metrics,trace activa metrics y trace cuando se activa production.\n- @PropertySource carga un archivo de propiedades externo (no-estandar) en el Environment de Spring. No reemplaza application.yml, solo agrega propiedades adicionales con menor prioridad.\n- @ConditionalOnProperty permite registrar un bean solo si una propiedad tiene un valor especifico: @ConditionalOnProperty(name = \"app.feature\", havingValue = \"true\").\n- @ConditionalOnBean y @ConditionalOnMissingBean permiten registrar un bean solo si otro bean existe (o no existe) en el contexto, fundamental para la autoconfiguracion de starters.\n- @ConditionalOnClass registra un bean solo si una clase especifica esta en el classpath, habilitando configuracion opcional segun las dependencias.\n- Los profiles default se cargan siempre. Se pueden anidar profiles con spring.profiles.include o heredar configuracion con spring.config.activate.on-profile (Spring Boot 2.4+).\n\nErrores comunes en entrevistas:\n- Confundir @Profile con @Conditional: @Profile es un caso especial de @Conditional que verifica si un profile esta activo. @Conditional es mas general y verifica cualquier condicion.\n- No saber que las propiedades de un profile especifico (application-dev.yml) tienen prioridad sobre las de application.yml: si ambas definen la misma propiedad, gana dev.yml.\n- Creer que @ConfigurationProperties con @Validated requiere un Bean Validation provider: en Spring Boot, jakarta.validation ya esta incluido en el starter-web, pero en aplicaciones que no son web hay que agregarlo manualmente.\n- Olvidar que relax binding en @ConfigurationProperties acepta 'app.datasource.url', 'app.datasource.url-url' y 'APP_DATASOURCE_URL': todos mapean al mismo campo.\n- No saber que spring.profiles.active no puede definirse en un archivo application.yml (es ignorada): se debe usar variable de entorno, argumento de linea de comandos, o spring.profiles.default.\n- Confundir un documento YAML multi-documento (---) con archivos separados: ambos son equivalentes, pero en un solo archivo es mas facil de mantener.",
+      "examples": [
+        "@Profile(\"dev\")\n@Component\npublic class DevDataSource {\n    @Bean\n    public DataSource dataSource() {\n        return new EmbeddedDatabaseBuilder().setType(EmbeddedDatabaseType.H2).build();\n    }\n}",
+        "@ConfigurationProperties(prefix = \"app.mail\")\n@Validated\npublic class MailProperties {\n    @NotBlank\n    private String host;\n    private int port = 587;\n    private Map<String, String> headers = new HashMap<>();\n    // getters y setters\n}",
+        "# application.yml con multi-documento\nspring:\n  config:\n    activate:\n      on-profile: dev\nserver:\n  port: 8081\n---\nspring:\n  config:\n    activate:\n      on-profile: prod\nserver:\n  port: 80\nmanagement:\n  server:\n    port: 9090",
+        "spring.profiles.active=dev\n# o en application.yml:\n# spring:\n#   profiles:\n#     active: dev",
+        "@Component\n@ConditionalOnProperty(name = \"app.feature.cache\", havingValue = \"true\")\npublic class CacheConfig { ... }",
+        "@Component\n@ConditionalOnBean(CacheManager.class)\npublic class CacheService { ... }",
+        "@Component\n@ConditionalOnMissingBean(RedisConnectionFactory.class)\npublic class LocalCacheConfig { ... }"
+      ]
+    },
+    {
+      "id": "spring-transactional",
+      "title": "@Transactional y gestion de transacciones",
+      "content": "@Transactional se aplica en metodos o clases para gestionar transacciones de forma declarativa: Spring abre una transaccion antes del metodo y la cierra con commit si termina correctamente o con rollback si lanza una excepcion. Esto evita boilerplate con begin, commit y rollback manual en cada metodo.\n\nLa anotacion soporta propiedades clave: propagation define como se comporta una transaccion cuando ya existe otra activa (REQUIRED es la default y se une a la transaccion existente; REQUIRES_NEW siempre crea una nueva; NESTED anida dentro de la existente con savepoints), isolation controla la visibilidad de cambios entre transacciones concurrentes (READ_COMMITTED, REPEATABLE_READ, SERIALIZABLE), readOnly optimiza para solo lectura, y timeout define el limite de tiempo antes de abortar.\n\nrollbackFor y noRollbackFor controlan que excepciones provocan rollback. Por defecto, Spring revierte solo en RuntimeException y Error (excepciones unchecked). Checked exceptions (como IOException) NO provocan rollback a menos que se especifique: @Transactional(rollbackFor = Exception.class). En Spring Boot, la configuracion por defecto del transaction manager (DataSourceTransactionManager o JpaTransactionManager) ya maneja correctamente la mayoria de los casos.\n\nEl error mas comun en entrevistas es la self-invocation: si un metodo A llama a otro metodo B dentro de la misma clase y ambos estan anotados con @Transactional, solo A pasa por el proxy AOP y la transaccion de B no se gestiona. La solucion es inyectar la propia clase o usar AopContext.currentProxy(). Tambien se debe recordar que @Transactional solo funciona en metodos publicos.\n\nConceptos avanzados:\n- REQUIRES_NEW suspende la transaccion externa y crea una nueva. Util para operaciones que deben persistirse independientemente del resultado del Metodo exterior (por ejemplo, registrar un log de auditoria).\n- NESTED crea un savepoint dentro de la transaccion existente. Si el metodo interno falla, se revierte hasta el savepoint sin afectar la transaccion externa.\n- SUPPORTS usa la transaccion existente si la hay, pero no crea una nueva si no existe. Ideal para metodos de solo lectura que pueden ejecutarse dentro o fuera de una transaccion.\n- MANDATORY falla con TransactionRequiredException si no hay transaccion activa. Util para metodos que siempre deben ejecutarse dentro de una transaccion.\n- NOT_SUPPORTED suspende cualquier transaccion activa y ejecuta el metodo sin transaccion. NEVER lanza una excepcion si hay una transaccion activa.\n- TransactionTemplate es la forma programatica de gestionar transacciones: envuelve el codigo en una lambda y devuelve el resultado, permitiendo control fino del commit y rollback.\n- @TransactionalEventListener escucha eventos de Spring y ejecuta el listener despues del commit (o antes, o en various fases) de la transaccion que publico el evento.\n\nErrores comunes en entrevistas:\n- Self-invocation: llamar a un metodo @Transactional desde otro metodo de la misma clase no pasa por el proxy, por lo que la transaccion no se gestiona.\n- Olvidar que @Transactional solo funciona en metodos publicos: si se pone en un metodo protected o private, Spring no puede crear el proxy y lo ignora silenciosamente.\n- No especificar rollbackFor = Exception.class: por defecto solo RuntimeException provocan rollback. Si una checked exception debe causar rollback, hay que indicarlo explicitamente.\n- Confundir readOnly con no-transaccional: readOnly hint al proveedor de persistencia (JPA) que puede optimizar el flush/merge, pero la transaccion sigue abierta y los cambios se revierten al final.\n- No entender que el proxy AOP solo intercepta llamadas externas: dentro de un bean, las llamadas directas no pasan por el proxy y las transacciones no se aplican.\n- Usar @Transactional en clases @Controller o @RestController: generalmente la capa web no deberia manejar transacciones, eso corresponde a la capa de servicio (@Service).",
+      "examples": [
+        "@Service\npublic class TransferService {\n    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED)\n    public void transferir(Long origen, Long destino, BigDecimal monto) {\n        cuentaRepository.debitar(origen, monto);\n        cuentaRepository.acreditar(destino, monto);\n    }\n}",
+        "@Service\npublic class AuditService {\n    @Transactional(propagation = Propagation.REQUIRES_NEW)\n    public void registrarAuditoria(String accion) {\n        auditRepo.save(new AuditLog(accion, LocalDateTime.now()));\n    }\n}",
+        "@Transactional(rollbackFor = Exception.class)\npublic void procesarArchivo(File archivo) throws IOException {\n    // sin rollbackFor, IOException no haria rollback\n}",
+        "@Service\npublic class ReportService {\n    private final ReportService self;\n    public ReportService(@Lazy ReportService self) { this.self = self; }\n    public void generar() {\n        self.generarInterno(); // llamar al proxy, no this.generarInterno()\n    }\n    @Transactional(propagation = Propagation.REQUIRES_NEW)\n    public void generarInterno() { ... }\n}",
+        "@Service\npublic class PaymentProcessor {\n    private final TransactionTemplate txTemplate;\n    public PaymentProcessor(PlatformTransactionManager txManager) {\n        this.txTemplate = new TransactionTemplate(txManager);\n    }\n    public void procesar(Pago pago) {\n        txTemplate.executeWithoutResult(status -> {\n            paymentRepo.save(pago);\n            notificationService.enviar(pago);\n        });\n    }\n}",
+        "@Component\npublic class OrderEventHandler {\n    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)\n    public void onOrderCreated(OrderCreatedEvent event) {\n        emailService.enviarConfirmacion(event.getOrderId());\n    }\n}",
+        "@Service\npublic class ReportGenerator {\n    @Transactional(readOnly = true)\n    public List<Reporte> listarReportes() {\n        return reportRepo.findAll();\n    }\n}"
+      ]
+    },
+    {
+      "id": "spring-data",
+      "title": "Spring Data JPA",
+      "content": "Spring Data JPA simplifica el acceso a la persistencia con JPA: al definir una interfaz que extiende CrudRepository o JpaRepository, Spring crea automaticamente una implementacion en tiempo de ejecucion con operaciones CRUD basicas. Esto elimina la necesidad de escribir codigo repetitivo para consultas simples.\n\nLas consultas derivadas se definen con nombres de metodo que siguen una convencion: findByNombre, findByNombreAndApellido, findByEdadGreaterThan, findByNombreContaining, findByEstadoIn(List<Estados>). Spring parsea el nombre del metodo y genera la consulta JPQL correspondiente sin escribir una sola linea de SQL o JPQL.\n\nPara consultas complejas se usa @Query: @Query(\"SELECT e FROM Empleado e WHERE e.departamento.id = :deptId\") con JPQL (basado en entidades) o @Query(value = \"SELECT * FROM empleados WHERE dept_id = ?1\", nativeQuery = true) con SQL nativo. El anotador @Param(\"nombre\") mapea los parametros del metodo a los placeholders de la consulta.\n\nSpring Data JPA soporta paginacion con Pageable y sorting con Sort: el metodo findAll(Pageable pageable) retorna un Page<T> que contiene los datos, el numero de pagina, el total de paginas y el total de elementos. Se puede combinar con consultas derivadas o @Query. Las proyecciones permiten retornar solo los campos necesarios definiendo interfaces o clases DTO.\n\nConceptos avanzados:\n- Las proyecciones de interfaz permiten seleccionar campos especificos: al crear una interfaz con los getters de los campos deseados, Spring Data genera un proxy que solo expone esos campos, reduciendo el trafico con la base de datos.\n- @CreatedDate, @LastModifiedDate, @CreatedBy y @LastModifiedBy son anotaciones de auditing que Spring Data rellena automaticamente al persistir o actualizar entidades. Se habilitan con @EnableJpaAuditing y requieren que la entidad implemente AuditingEntityListener.\n- Specifications permite construir consultas dinamicas de forma tipada: al implementar la interfaz Specification<T>, se pueden componer predicados de forma flexible con .and(), .or() y .not(), ideal para filtros de busqueda donde el usuario puede combinar multiples criterios.\n- @Query con SpEL permite inyectar valores dinamicos en la consulta: @Query(\"SELECT e FROM #{#entityName} e WHERE e.estado = :estado\").\n- Los repositories personalizados se crean definiendo una interfaz y luego implementandola: si se necesita logica compleja que no se puede expresar con consultas derivadas, se crea una clase que implementa la interfaz personalizada y se registra como bean.\n- Page<T> vs List<T>: Page retorna metadata adicional (total de paginas, total de elementos) y ejecuta una segunda consulta COUNT, mientras que List solo retorna los datos sin overhead.\n\nErrores comunes en entrevistas:\n- No entender que las consultas derivadas generan JPQL, no SQL directo: los nombres de campos en el metodo deben coincidir con los atributos de la entidad, no con las columnas de la tabla.\n- Confundir JpaRepository con CrudRepository: JpaRepository extiende CrudRepository y agrega metodos de paginacion y sorting. Para solo CRUD basico, CrudRepository es suficiente.\n- Olvidar que @Param es necesario cuando la consulta tiene multiples parametros: sin @Param, Spring no puede mapear los argumentos del metodo a los placeholders de la consulta.\n- No usar Pageable en metodos de listado grandes: sin paginacion, una tabla con millones de registros puede agotar la memoria y degradar el rendimiento.\n- Confundir JPQL con SQL: JPQL trabaja con entidades y atributos (no tablas y columnas), y es portable entre proveedores de base de datos.\n- No saber que @Transactional(readOnly = true) en repositorios ayuda al JPA a optimizar el flush y reducir el overhead de transacciones de solo lectura.",
+      "examples": [
+        "public interface CuentaRepository extends JpaRepository<Cuenta, Long> {\n    List<Cuenta> findByEstado(EstadoCuenta estado);\n    Optional<Cuenta> findByNumeroCuenta(String numero);\n    List<Cuenta> findBySaldoGreaterThan(BigDecimal minimo);\n    List<Cuenta> findByNombreContainingIgnoreCase(String nombre);\n    List<Cuenta> findByEstadoIn(List<EstadoCuenta> estados);\n}",
+        "@Query(\"SELECT c FROM Cuenta c WHERE c.fechaApertura BETWEEN :inicio AND :fin\")\nList<Cuenta> findByRangoFechas(@Param(\"inicio\") LocalDate inicio, @Param(\"fin\") LocalDate fin);",
+        "@Query(value = \"SELECT * FROM cuentas WHERE saldo > ?1\", nativeQuery = true)\nList<Cuenta> cuentasConSaldoMayor(BigDecimal minimo);",
+        "Page<Cuenta> findByEstado(EstadoCuenta estado, Pageable pageable);\n// uso:\nPage<Cuenta> page = repo.findByEstado(ACTIVA, PageRequest.of(0, 10, Sort.by(\"fechaApertura\").descending()));",
+        "public interface CuentaProjection {\n    String getNumeroCuenta();\n    BigDecimal getSaldo();\n}\n// en el repositorio:\nList<CuentaProjection> findByEstado(EstadoCuenta estado);",
+        "@EntityListeners(AuditingEntityListener.class)\npublic class Cuenta {\n    @CreatedDate\n    private LocalDateTime fechaCreacion;\n    @LastModifiedDate\n    private LocalDateTime fechaModificacion;\n    @CreatedBy\n    private String creadoPor;\n}",
+        "public interface CuentaSpecs {\n    Specification<Cuenta> conSaldoMayorQue(BigDecimal minimo);\n    Specification<Cuenta> deEstado(EstadoCuenta estado);\n}\n// uso:\nrepo.findAll(Specs.conSaldoMayorQue(min).and(Specs.deEstado(ACTIVA)));"
+      ]
+    },
+    {
+      "id": "spring-actuator",
+      "title": "Spring Boot Actuator",
+      "content": "Spring Boot Actuator agrega endpoints de monitorizacion y gestion a una aplicacion Spring Boot sin configuracion adicional. Al agregar spring-boot-starter-actuator al classpath, la aplicacion expone endpoints como /actuator/health, /actuator/info, /actuator/metrics y mas bajo el contexto /actuator/.\n\nLos endpoints mas comunes son: health (estado de la aplicacion y sus dependencias), info (informacion de la aplicacion definida en application.yml o via un InfoContributor), metrics (metricas de JVM, HTTP, etc. con Micrometer), env (propiedades del Environment), beans (listado de todos los beans del contexto), mappings (mapeos de endpoints HTTP) y conditions (razones por las que se cargo o no cada autoconfiguracion).\n\nPara seguridad, Actuator permite configurar que endpoints se exponen y en que canal: management.endpoints.web.exposure.include expone endpoints HTTP, management.endpoints.web.exposure.exclude los excluye. En produccion se recomienda exponer solo los endpoints seguros y configurar management.server.port para servir Actuator en un puerto separado.\n\nLos health indicators son componentes que verifican la salud de partes especificas de la aplicacion (base de datos, disco, Redis, etc.). Spring Boot ya incluye indicadores para DataSource, Disco y Redis. Los custom health indicators se crean implementando la interfaz HealthIndicator y devolviendo un objeto Health con el estado UP o DOWN.\n\nConceptos avanzados:\n- Micrometer es el facade de metricas que usa Actuator: soporta múltiples backends (Prometheus, Datadog, CloudWatch, etc.) y expone metricas de la JVM (heap, GC, threads), de Spring (requests, cache hits) y custom metrics con MetricRegistry.\n- Las custom metrics se registran con MeterRegistry: counter, gauge, timer y distribution summary son los tipos principales. Se pueden crear tags para filtrar metricas por dimensiones (por ejemplo, status=200, endpoint=/api/cuentas).\n- management.server.port permite ejecutar Actuator en un puerto distinto al de la aplicacion, evitando que los endpoints de gestion esten expuestos al publico.\n- Los info contributors personalizados se crean implementando InfoContributor o usando @Bean de tipo InfoContributor para agregar informacion custom a /actuator/info (version, build info, estado de servicios externos).\n- @Endpoint y @WebEndpoint permiten crear endpoints Actuator personalizados: se anota un metodo con @ReadOperation, @WriteOperation o @DeleteOperation y se expone como un nuevo endpoint bajo /actuator/.\n- management.endpoints.web.exposure.include=* expone todos los endpoints (nunca en produccion). En desarrollo se puede usar * para tener visibilidad completa.\n\nErrores comunes en entrevistas:\n- Exponer todos los endpoints en produccion: endpoints como /actuator/env o /actuator/configprops revelan informacion sensible y deben estar protegidos o deshabilitados.\n- No saber que health expone un estado agregado de todos los HealthIndicator: si algun indicador esta DOWN, el estado global cambia a DOWN o OUT_OF_SERVICE.\n- Confundir metrics con monitoring: Actuator expone metricas via Micrometer, pero no genera dashboards ni alertas. Se necesita un backend como Prometheus + Grafana para visualizar.\n- Olvidar que management.server.port cambia el puerto de Actuator, no de la aplicacion: la aplicacion sigue en el puerto 8080, pero Actuator se sirve en el puerto configurado (por ejemplo, 9090).\n- No entender que /actuator/beans requiere que se exponga explicitamente: no esta incluido en los endpoints por defecto (solo health e info estan habilitados por defecto).",
+      "examples": [
+        "# pom.xml\n<dependency>\n    <groupId>org.springframework.boot</groupId>\n    <artifactId>spring-boot-starter-actuator</artifactId>\n</dependency>",
+        "# application.yml\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health,info,metrics,beans,mappings\n  server:\n    port: 9090",
+        "@Component\npublic class DatabaseHealthIndicator implements HealthIndicator {\n    private final DataSource dataSource;\n    public DatabaseHealthIndicator(DataSource ds) { this.dataSource = ds; }\n    @Override\n    public Health health() {\n        try (Connection c = dataSource.getConnection()) {\n            return Health.up().withDetail(\"database\", \"accessible\").build();\n        } catch (SQLException e) {\n            return Health.down().withDetail(\"database\", e.getMessage()).build();\n        }\n    }\n}",
+        "@Component\npublic class CustomMetrics {\n    private final MeterRegistry registry;\n    public CustomMetrics(MeterRegistry registry) { this.registry = registry; }\n    public void registrarPedido(String tipo) {\n        registry.counter(\"pedidos.total\", \"tipo\", tipo).increment();\n    }\n}",
+        "# informacion custom en /actuator/info\ninfo:\n  app:\n    name: Mi Aplicacion\n    version: 1.0.0\n  build:\n    artifact: my-app\n    group: com.example",
+        "@Endpoint(id = \"cache-stats\")\npublic class CacheStatsEndpoint {\n    @ReadOperation\n    public Map<String, Object> stats() {\n        return Map.of(\"hits\", hitCount, \"misses\", missCount);\n    }\n}",
+        "# Solo health e info por defecto (seguro para produccion)\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health,info"
+      ]
+    },
+    {
+      "id": "spring-testing",
+      "title": "Testing en Spring Boot",
+      "content": "Spring Boot ofrece anotaciones de testing que cargan solo la parte del contexto necesaria, acelerando los tests. @SpringBootTest carga el contexto completo de la aplicacion (todos los beans, base de datos, servicios) y es ideal para tests de integracion. @WebMvcTest carga solo la capa web (controllers, filters, @ControllerAdvice) sin services ni repos, siendo mucho mas rapido para tests de controllers.\n\n@MockBean agrega un mock al contexto de Spring, reemplazando el bean real. Esto permite simular el comportamiento de dependencias sin levantar la implementacion real. @SpyBean, por otro lado, crea un spy del bean real: intercepta las llamadas pero delega en la implementacion por defecto, permitiendo verificar llamadas o sobreescribir comportamiento selectivamente.\n\nMockMvc es la herramienta para testear endpoints REST sin levantar un servidor real. Se puede usar en modo standalone (MockMvcBuilders.standaloneSetup(controller).build()) o en modo webapp (inyectado via @AutoConfigureMockMvc en un @SpringBootTest). TestRestTemplate es otra alternativa que levanta la aplicacion completa y envia requests HTTP reales, siendo mas lento pero mas fiel al comportamiento en produccion.\n\n@Sql permite ejecutar scripts SQL antes o despues de un test para preparar datos de prueba. Se puede usar a nivel de metodo o de clase. Los test slices como @DataJpaTest (solo JPA, con base de datos embebida) y @JsonTest (solo serializacion JSON con Jackson) permiten testar componentes especificos con el minimo contexto posible.\n\nConceptos avanzados:\n- @TestConfiguration define beans adicionales que solo se cargan durante los tests, sin afectar el contexto de produccion. Es util para crear helpers, mocks o configuraciones especificas de testing.\n- @ActiveProfiles(\"test\") activa un profile especifico durante los tests, permitiendo usar configuracion de test (base de datos embebida, logging reducido, etc.).\n- Los test slices (@WebMvcTest, @DataJpaTest, @JsonTest) cargan solo los beans necesarios para esa capa, lo que reduce drasticamente el tiempo de arranque del test. Se pueden combinar con @MockBean para simular dependencias.\n- Testcontainers es una libreria que levanta contenedores Docker para tests de integracion (bases de datos, Redis, Kafka, etc.). Se integra con Spring Boot via @DynamicPropertySource para inyectar automaticamente las propiedades de conexion del contenedor.\n- @AutoConfigureMockMvc configura MockMvc automaticamente en un @SpringBootTest, inyectando el MockMvc listo para usar con todas las configuraciones de la aplicacion.\n- @DataJpaTest usa una base de datos embebida (H2 por defecto) y rollback automatico de transacciones despues de cada test, garantizando que los tests no contaminen datos entre si.\n- @JsonTest carga el contexto de serializacion JSON (Jackson) y permite testear serializers/deserializers, @JsonComponent y @JsonProperty.\n\nErrores comunes en entrevistas:\n- Usar @SpringBootTest para todos los tests: si solo se esta testeando un controller, @WebMvcTest es mucho mas rapido y no carga dependencias innecesarias.\n- No usar @MockBean: testear un controller sin mocks de servicios obliga a levantar la capa de persistencia y datos reales, haciendo el test lento y frágil.\n- Confundir @MockBean con @Mock de Mockito: @MockBean reemplaza el bean en el contexto de Spring, @Mock crea un mock de Mockito sin relacion con Spring.\n- Olvidar que @DataJpaTest ejecuta rollback automatico: si se necesita verificar que una transaccion se persiste correctamente, se debe usar @Transactional en el test o deshabilitar el rollback.\n- No usar @ActiveProfiles(\"test\") en tests: sin un profile de test, los tests pueden conectarse a la base de datos de produccion o usar configuracion no deseada.\n- Usar TestRestTemplate en tests unitarios: TestRestTemplate levanta toda la aplicacion y es lento. Para tests de controller, MockMvc es la herramienta correcta.",
+      "examples": [
+        "@SpringBootTest\nclass CuentaServiceIntegrationTest {\n    @Autowired private CuentaService service;\n    @Autowired private CuentaRepository repo;\n    @Test\n    void shouldTransferir() { ... }\n}",
+        "@WebMvcTest(CuentaController.class)\nclass CuentaControllerTest {\n    @Autowired private MockMvc mockMvc;\n    @MockBean private CuentaService cuentaService;\n    @Test\n    void shouldReturnCuenta() throws Exception {\n        when(cuentaService.findById(1L)).thenReturn(dto);\n        mockMvc.perform(get(\"/api/cuentas/1\")).andExpect(status().isOk());\n    }\n}",
+        "@DataJpaTest\nclass CuentaRepositoryTest {\n    @Autowired private CuentaRepository repo;\n    @Test\n    void shouldFindByEstado() {\n        repo.save(new Cuenta(null, \"001\", ACTIVA, BigDecimal.TEN));\n        List<Cuenta> result = repo.findByEstado(ACTIVA);\n        assertThat(result).hasSize(1);\n    }\n}",
+        "@SpringBootTest\n@AutoConfigureMockMvc\nclass CuentaControllerFullTest {\n    @Autowired private MockMvc mockMvc;\n    @Test\n    void shouldCreateCuenta() throws Exception {\n        mockMvc.perform(post(\"/api/cuentas\")\n            .contentType(MediaType.APPLICATION_JSON)\n            .content(\"{\\\"numero\\\":\\\"001\\\"}\"))\n            .andExpect(status().isCreated());\n    }\n}",
+        "@TestConfiguration\npublic class TestConfig {\n    @Bean\n    public Clock testClock() {\n        return Clock.fixed(Instant.parse(\"2024-01-15T10:00:00Z\"), ZoneId.of(\"UTC\"));\n    }\n}",
+        "@JsonTest\npublic class CuentaDtoTest {\n    @Autowired private JacksonTester<CuentaDto> json;\n    @Test\n    void shouldSerialize() throws Exception {\n        CuentaDto dto = new CuentaDto(\"001\", ACTIVA, BigDecimal.TEN);\n        Assertions.assertThat(json.write(dto)).isEqualToJson(\"cuenta.json\");\n    }\n}",
+        "@ActiveProfiles(\"test\")\n@SpringBootTest\nclass OrderServiceTest {\n    @MockBean private EmailService emailService;\n    @Autowired private OrderService orderService;\n    @Test\n    void shouldProcessOrder() {\n        orderService.process(new Order(\"item1\"));\n        verify(emailService).sendConfirmation(any());\n    }\n}"
+      ]
     }
   ],
   "quiz": {
@@ -237,6 +307,131 @@
           2
         ],
         "explanation": "El orden es: DispatcherServlet recibe el request, HandlerMapping resuelve que controller lo maneja, HandlerInterceptor.preHandle se ejecuta, el metodo del controller se ejecuta, HandlerInterceptor.postHandle se ejecuta, y finalmente la respuesta se envia al cliente.",
+        "type": "ORDER"
+      },
+      {
+        "id": "sp-q12",
+        "text": "Que propagacion de transaccion crea una nueva transaccion suspendiendo la externa?",
+        "options": [
+          "REQUIRED",
+          "REQUIRES_NEW",
+          "NESTED",
+          "SUPPORTS"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "REQUIRES_NEW siempre crea una nueva transaccion y suspende la que este activa. Si el metodo interno falla, se revierte solo la transaccion interna sin afectar la externa.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q13",
+        "text": "Que efecto tiene @Transactional(readOnly = true) en un metodo de repositorio?",
+        "options": [
+          "Desactiva la transaccion completamente",
+          "Le dice al proveedor JPA que puede optimizar el flush y merge",
+          "Hace que la consulta sea mas lenta pero mas consistente",
+          "No tiene efecto real, es solo documentacion"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "readOnly es un hint al proveedor de persistencia (JPA) para optimizar operaciones de solo lectura: evita el dirty checking y reduce el overhead. La transaccion sigue abierta.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q14",
+        "text": "En Spring Data JPA, cual es la diferencia entre JpaRepository y CrudRepository?",
+        "options": [
+          "JpaRepository agrega metodos de paginacion y sorting sobre CrudRepository",
+          "CrudRepository es mas rapido que JpaRepository",
+          "JpaRepository solo soporta JPA, CrudRepository es generico",
+          "Ambas son equivalentes"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "JpaRepository extiende CrudRepository y PagingAndSortingRepository, agregando metodos como findAll(Sort), findAll(Pageable) y flush. CrudRepository solo ofrece CRUD basico.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q15",
+        "text": "Que anotacion de Spring Boot Actuator se usa para verificar que un servicio externo (como una base de datos) esta disponible?",
+        "options": [
+          "@InfoContributor",
+          "@HealthIndicator",
+          "@Endpoint",
+          "@MetricsEndpoint"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "HealthIndicator es la interfaz que se implementa para verificar la salud de un componente. Spring Boot incluye indicadores para DataSource, Disco y Redis. Los custom se crean implementando esta interfaz.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q16",
+        "text": "Que ocurria si @Transactional se invoca desde un metodo de la misma clase (self-invocation)?",
+        "options": [
+          "La transaccion se gestiona correctamente",
+          "Spring detecta la llamada y aplica el proxy",
+          "El proxy AOP no intercepta la llamada y la transaccion no se aplica",
+          "Lanza una excepcion en tiempo de ejecucion"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "El proxy AOP solo intercepta llamadas externas. Dentro de una clase, las llamadas directas a metodos @Transactional pasan por this, no por el proxy, por lo que la transaccion no se gestiona.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "sp-q17",
+        "text": "Cuales son las formas correctas de activar un profile en Spring Boot?",
+        "options": [
+          "spring.profiles.active en application.yml",
+          "Variable de entorno SPRING_PROFILES_ACTIVE",
+          "Argumento de linea de comandos -Dspring.profiles.active=dev",
+          "Definir @Profile en la clase principal",
+          "spring.profiles.default en application.properties"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          4
+        ],
+        "explanation": "Los profiles se activan con spring.profiles.active (yml/properties/env), SPRING_PROFILES_ACTIVE (variable de entorno) o -Dspring.profiles.active (JVM arg). @Profile define QUE beans se cargan, no activa el profile. spring.profiles.default define el profile usado si no se especifica ninguno.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "sp-q18",
+        "text": "En Spring Data JPA, una consulta derivada como findByNombreAndEstado genera JPQL, no SQL nativo.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: las consultas derivadas se convierten a JPQL (basado en entidades). El nombre del metodo se parsea para generar la consulta JPQL que opera sobre atributos de la entidad, no columnas de la tabla.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "sp-q19",
+        "text": "Ordena de menor a mayor aislamiento transaccional en Spring:",
+        "options": [
+          "SERIALIZABLE",
+          "READ_UNCOMMITTED",
+          "READ_COMMITTED",
+          "REPEATABLE_READ"
+        ],
+        "correctIndexes": [
+          1,
+          2,
+          3,
+          0
+        ],
+        "explanation": "El orden de menor a mayor aislamiento es: READ_UNCOMMITTED (permite lecturas sucias), READ_COMMITTED (evita lecturas sucias pero no phantom reads), REPEATABLE_READ (garantiza consistencia en lecturas repetidas), SERIALIZABLE (el mas restrictivo, serializa transacciones).",
         "type": "ORDER"
       }
     ]

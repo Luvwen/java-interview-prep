@@ -6,7 +6,7 @@
     {
       "id": "dp-creational",
       "title": "Patrones creacionales",
-      "content": "Los patrones creacionales abstraen el proceso de creacion de objetos, haciendo al sistema independiente de como se construyen, componen y representan. Los mas preguntados en entrevistas son Singleton, Factory Method, Abstract Factory y Builder.\n\nSingleton garantiza una unica instancia. En Java, la forma correcta y segura en concurrente es el enum con un unico valor o la clase con campo static final; la version 'perezosa' con synchronized doble-check es el ejemplo que mas se pide explicar.\n\nFactory Method define una interfaz para crear objetos y deja que las subclases decidan que clase instanciar. Builder separa la construccion de un objeto complejo de su representacion, permitiendo parametros opcionales de forma legible (muy usado para objetos con muchos atributos, y es el patron detras de cosas como StringBuilder).\n\nEl analisis para entrevistas: en lugar de memorizar, conviene saber CUANDO se usa cada uno. Singleton cuando se necesita una unica instancia global (configuracion, pool de conexiones); Factory cuando la creacion depende de condiciones; Builder cuando el objeto tiene muchos atributos y hay que evitar constructores telescopicos.\n\nConceptos avanzados: En Singleton, el problema de los classloaders puede crear multiples instancias si la clase se carga en diferentes classloaders (comun en aplicaciones EE). La serializacion puede romper el Singleton si no se implementa readResolve(). En Factory Method, el patron puede retornar subtipos de la clase devuelta, lo que permite caches de objetos o pools. Abstract Factory garantiza consistencia entre un grupo de objetos relacionados (por ejemplo, una familia de componentes UI para un SO especifico). Builder puede validarse en tiempo de compilacion con el patron Step Builder o con Builder interno estatico que expone un build() que retorna Optional o lanza excepciones.\n\nErrores comunes en entrevistas: Olvidar la palabra volatile en double-checked locking (sin volatile, un hilo podria ver un objeto parcialmente construido). Confundir Abstract Factory con Factory Method: el primero crea familias de objetos, el segundo crea un unico objeto. Usar Singleton cuando inyeccion de dependencias resuelve el problema de forma mas limpia y testeable. No considerar que Builder sin validacion puede crear objetos en estado inconsistente. Asumir que Singleton es globalmente accesible desde cualquier parte del codigo cuando en realidad su acceso se controla mediante la interfaz que se le exponga.",
+      "content": "Los patrones creacionales abstraen el proceso de creacion de objetos, haciendo al sistema independiente de como se construyen, componen y representan. Los mas preguntados en entrevistas son Singleton, Factory Method, Abstract Factory y Builder.\n\nSingleton garantiza una unica instancia. En Java, la forma correcta y segura en concurrente es el enum con un unico valor o la clase con campo static final; la version 'perezosa' con synchronized doble-check es el ejemplo que mas se pide explicar.\n\nFactory Method define una interfaz para crear objetos y deja que las subclases decidan que clase instanciar. Builder separa la construccion de un objeto complejo de su representacion, permitiendo parametros opcionales de forma legible (muy usado para objetos con muchos atributos, y es el patron detras de cosas como StringBuilder).\n\nEl analisis para entrevistas: en lugar de memorizar, conviene saber CUANDO se usa cada uno. Singleton cuando se necesita una unica instancia global (configuracion, pool de conexiones); Factory cuando la creacion depende de condiciones; Builder cuando el objeto tiene muchos atributos y hay que evitar constructores telescopicos.\n\nConceptos avanzados: En Singleton, el problema de los classloaders puede crear multiples instancias si la clase se carga en diferentes classloaders (comun en aplicaciones EE). La serializacion puede romper el Singleton si no se implementa readResolve(). En Factory Method, el patron puede retornar subtipos de la clase devuelta, lo que permite caches de objetos o pools. Abstract Factory garantiza consistencia entre un grupo de objetos relacionados (por ejemplo, una familia de componentes UI para un SO especifico). Builder puede validarse en tiempo de compilacion con el patron Step Builder o con Builder interno estatico que expone un build() que retorna Optional o lanza excepciones.\n\nErrores comunes en entrevistas: Olvidar la palabra volatile en double-checked locking (sin volatile, un hilo podria ver un objeto parcialmente inicializado). Confundir Factory Method con Abstract Factory: el primero crea un producto, el segundo crea una familia. Builder sin validacion permite objetos en estado inconsistente; siempre validar en build(). Usar Singleton como solucion a todo: muchas veces una instancia inyectada (con scope singleton en Spring) es mejor y mas testeable.",
       "examples": [
         "public enum Config { INSTANCE; public String get(String key) { ... } } // Singleton thread-safe",
         "interface VehiculoFactory { Vehiculo crear(); }\nclass AutoFactory implements VehiculoFactory { public Vehiculo crear() { return new Auto(); } }",
@@ -20,7 +20,7 @@
     {
       "id": "dp-structural",
       "title": "Patrones estructurales",
-      "content": "Los patrones estructurales se ocupan de como se componen clases y objetos para formar estructuras mas grandes. Los clasicos de entrevista son Adapter, Decorator, Proxy y Composite.\n\nAdapter convierte la interfaz de una clase en otra que el cliente espera, sin tocar ninguna de las dos. Un caso real: adaptar una libreria externa a la interfaz propia del proyecto.\n\nDecorator agrega responsabilidades a un objeto de forma dinamica y transparente, envuelviendolo. En la JDK se ve en java.io: BufferedInputStream envuelve a FileInputStream y suma funcionalidad. Es el patron de los 'wrappers'. Se implementa componiendo: la clase decoradora implementa la misma interfaz y delega, anadiendo comportamiento.\n\nProxy controla el acceso a un objeto real: lazy loading, cache, control de acceso o logging, manteniendo la misma interfaz. En Java existe el proxy dinamico (java.lang.reflect.Proxy) y los proxies de Spring AOP.\n\nEn entrevistas se suele distinguir Adapter (cambia la interfaz) de Decorator (agrega comportamiento manteniendo la interfaz) y de Proxy (controla el acceso). El mismo diagrama puede confundir; la INTENCION es la diferencia.\n\nConceptos avanzados: Adapter puede ser de clase (herencia, cuando se adapta una clase concreta) o de objetos (composicion, cuando se adapta una interfaz). Decorator permite anidar multiples capas (BufferedGZIPInputStream es un Decorator sobre BufferedInputStream que a su vez envuelve a GZIPInputStream). Proxy tiene variantes: proxy estatico (generado manualmente o con herramientas como cglib) y proxy dinamico (java.lang.reflect.Proxy para interfaces, CGLIB para clases concretas). Composite permite tratar objetos individuales y composiciones de forma uniforme (como un arbol de componentes graficos). Facade simplifica un subsistema complejo detras de una interfaz simple; no debe confundirse con Adapter porque Facade simplifica, no adapta.\n\nErrores comunes en entrevistas: Confundir Decorator con Proxy: Decorator agrega comportamiento al objeto envuelto (como logging o cifrado), Proxy controla el acceso (lazy loading, cache, autorizacion). No recordar que Proxy puede ser de alto nivel (Spring AOP) o de bajo nivel (java.lang.reflect). Olvidar que Composite implica una relacion padre-hijo que puede ser recursiva. Confundir Facade con Adapter: Facade simplifica una API compleja, Adapter convierte una interfaz en otra. Usar Adapter cuando la solucion correcta es un Facade o viceversa.",
+      "content": "Los patrones estructurales se ocupan de como se componen clases y objetos para formar estructuras mas grandes. Los clasicos de entrevista son Adapter, Decorator, Proxy y Composite.\n\nAdapter convierte la interfaz de una clase en otra que el cliente espera, sin tocar ninguna de las dos. Un caso real: adaptar una libreria externa a la interfaz propia del proyecto.\n\nDecorator agrega responsabilidades a un objeto de forma dinamica y transparente, envolviendolo. En la JDK se ve en java.io: BufferedInputStream envuelve a FileInputStream y suma funcionalidad. Es el patron de los 'wrappers'. Se implementa componiendo: la clase decoradora implementa la misma interfaz y delega, anadiendo comportamiento.\n\nProxy controla el acceso a un objeto real: lazy loading, cache, control de acceso o logging, manteniendo la misma interfaz. En Java existe el proxy dinamico (java.lang.reflect.Proxy) y los proxies de Spring AOP.\n\nEn entrevistas se suele distinguir Adapter (cambia la interfaz) de Decorator (agrega comportamiento manteniendo la interfaz) y de Proxy (controla el acceso). El mismo diagrama puede confundir; la INTENCION es la diferencia.\n\nConceptos avanzados: Adapter puede ser de clase (herencia, cuando se adapta una clase concreta) o de objetos (composicion, cuando se adapta una interfaz). Decorator permite anidar multiples capas (BufferedGZIPInputStream es un Decorator sobre BufferedInputStream que a su vez envuelve a GZIPInputStream). Proxy tiene variantes: proxy estatico (generado manualmente o con herramientas como cglib) y proxy dinamico (java.lang.reflect.Proxy para interfaces, CGLIB para clases concretas). Composite permite tratar objetos individuales y composiciones de forma uniforme (como un arbol de componentes graficos). Facade simplifica un subsistema complejo detras de una interfaz simple; no debe confundirse con Adapter porque Facade simplifica, no adapta.\n\nErrores comunes en entrevistas: Confundir Decorator con Proxy: Decorator agrega comportamiento al objeto sin controlar acceso; Proxy controla acceso pero no necesariamente agrega funcionalidad al negocio. Olvidar que Composite implementa la misma interfaz que las hojas, lo que permite el patrón de traversar el arbol recursivamente. Adapter de clases (herencia) es mas rigido que Adapter de objetos (composición) porque acopla fuertemente la implementacion.",
       "examples": [
         "class LectorXmlAdapter implements Repositorio { private LectorXml externo; ... } // Adapter",
         "class CifradoStream extends Stream { private Stream base; ... } // Decorator",
@@ -34,7 +34,7 @@
     {
       "id": "dp-behavioral",
       "title": "Patrones de comportamiento",
-      "content": "Los patrones de comportamiento tratan algoritmos y la asignacion de responsabilidades entre objetos. Los mas relevantes para entrevistas son Strategy, Observer, Template Method y State.\n\nStrategy define una familia de algoritmos encapsulados e intercambiables: se declara una interfaz de estrategia y se inyecta la implementacion concreta. En Java moderno se usa muchisimo con lambdas: una interfaz funcional es la estrategia. Ejemplo clasico: metodos de pago (tarjeta, cripto) intercambiables.\n\nObserver define una relacion de uno-a-muchos: cuando el sujeto cambia, notifica a todos sus observadores. La JDK lo abandono en favor de la programacion funcional, pero el concepto esta detras de listeners, events y reactive streams.\n\nTemplate Method define el esqueleto de un algoritmo en un metodo y deja pasos concretos a las subclases. Se usa mucho en frameworks: el framework define el flujo y el desarrollador implementa los hooks (en Spring, por ejemplo, los callbacks de JdbcTemplate).\n\nState permite que un objeto cambie su comportamiento segun su estado interno, encapsulando cada estado en una clase. Es la base de las maquinas de estados y se confunde con Strategy: State cambia el algoritmo cuando cambia el estado; Strategy lo elige el cliente.\n\nChain of Responsibility encadena handlers donde cada uno decide si procesa la peticion o la delega al siguiente. Es la base de filtros HTTP, logging chain y middleware en general. Se usa en Servlet Filters, Spring HandlerInterceptor y pipelines de datos.\n\nConceptos avanzados: Strategy puede implementarse como enum con metodo abstracto (enum con comportamiento) o como interfaz funcional (lambda). Observer presenta problemas de memory leaks si no se dan de baja los observadores; en JavaFX se usa WeakReference. Template Method puede ser fragile ante cambios en el orden de pasos; una alternativa mas flexible es composicion (inyectar comportamientos como estrategias). State puede escalarse con un mapa de transiciones en lugar de un switch gigante. Chain of Responsibility puede configurarse dinamicamente (agregar/quitar handlers en runtime) y cada handler puede decidir si la cadena continua o se detiene.\n\nErrores comunes en entrevistas: Confundir Strategy con State: Strategy elige el algoritmo en la creacion del objeto; State cambia dinamicamente durante la vida del objeto. No considerar el problema de notificacion circular en Observer (un observador que notifica al sujeto crea un loop infinito). Usar Template Method cuando Strategy seria mas flexible (Template Method esta atado a herencia). Olvidar que Chain of Responsibility puede degradar el rendimiento si la cadena es muy larga y todos los handlers procesan la peticion. Confundir Strategy con una simple condicional: Strategy encapsula el algoritmo detras de una interfaz, no es un if-else.",
+      "content": "Los patrones de comportamiento tratan algoritmos y la asignacion de responsabilidades entre objetos. Los mas relevantes para entrevistas son Strategy, Observer, Template Method y State.\n\nStrategy define una familia de algoritmos encapsulados e intercambiables: se declara una interfaz de estrategia y se inyecta la implementacion concreta. En Java moderno se usa muchisimo con lambdas: una interfaz funcional es la estrategia. Ejemplo clasico: metodos de pago (tarjeta, cripto) intercambiables.\n\nObserver define una relacion de uno-a-muchos: cuando el sujeto cambia, notifica a todos sus observadores. La JDK lo abandono en favor de la programacion funcional, pero el concepto esta detras de listeners, events y reactive streams.\n\nTemplate Method define el esqueleto de un algoritmo en un metodo y deja pasos concretos a las subclases. Se usa mucho en frameworks: el framework define el flujo y el desarrollador implementa los hooks (en Spring, por ejemplo, los callbacks de JdbcTemplate).\n\nState permite que un objeto cambie su comportamiento segun su estado interno, encapsulando cada estado en una clase. Es la base de las maquinas de estados y se confunde con Strategy: State cambia el algoritmo cuando cambia el estado; Strategy lo elige el cliente.\n\nChain of Responsibility encadena handlers donde cada uno decide si procesa la peticion o la delega al siguiente. Es la base de filtros HTTP, logging chain y middleware en general. Se usa en Servlet Filters, Spring HandlerInterceptor y pipelines de datos.\n\nConceptos avanzados: Strategy puede implementarse como enum con metodo abstracto (enum con comportamiento) o como interfaz funcional (lambda). Observer presenta problemas de memory leaks si no se dan de baja los observadores; en JavaFX se usa WeakReference. Template Method puede ser fragile ante cambios en el orden de pasos; una alternativa mas flexible es composicion (inyectar comportamientos como estrategias). State puede escalarse con un mapa de transiciones y un enumerador de estados, o con una maquina de estados declarativa.\n\nErrores comunes en entrevistas: Confundir Strategy con State: Strategy se elige externamente (por el cliente) y es inmutable; State cambia internamente segun el comportamiento del objeto. Observer sin desuscripcion causa memory leaks. Template Method acopla fuertemente a la subclase; composicion suele ser mas flexible. Olvidar que Chain of Responsibility debe tener un handler por defecto al final que lance excepcion o registre el fallo.",
       "examples": [
         "interface EstrategiaPago { void pagar(int monto); }\nclass PagoTarjeta implements EstrategiaPago { public void pagar(int m) { ... } } // Strategy",
         "lista.stream().sorted(Comparator.reverseOrder()); // Strategy con lambda",
@@ -48,7 +48,7 @@
     {
       "id": "dp-solid",
       "title": "Principios SOLID",
-      "content": "SOLID son cinco principios de diseno orientado a objetos que complementan a los patrones y se preguntan con mucha frecuencia: Single Responsibility (una clase una responsabilidad), Open/Closed (abierta a extension, cerrada a modificacion), Liskov Substitution (las subclases deben ser sustituibles por su base), Interface Segregation (interfaces pequenas y especificas) y Dependency Inversion (depender de abstracciones, no de concretos).\n\nDependency Inversion es la base de la inyeccion de dependencias: el codigo de alto nivel depende de interfaces (abstracciones) y las implementaciones concretas se inyectan. En Spring, esto se traduce en inyectar por interfaz y usar @Qualifier/@Primary para elegir la implementacion.\n\nOpen/Closed se logra con polimorfismo y composicion: en lugar de modificar una clase existente para agregar un caso, se agrega una nueva implementacion de la interfaz (por eso Strategy es tan usado).\n\nLiskov es el mas sutil: si una subclase rompe el contrato de la base (por ejemplo, lanzar excepciones que la base no declara), el polimorfismo falla. Un ejemplo de violacion clasico es la jerarquia Cuadrado/Hereda de Rectangulo.\n\nEn entrevistas se suele pedir explicar cada principio con un ejemplo de violacion y su correccion. Saber aplicar SOLID demuestra madurez de diseno mas alla de conocer frameworks.\n\nConceptos avanzados: Single Responsibility no significa una clase por metodo, sino una razon para cambiar. Open/Closed se puede lograr con Strategy, Decorator o Template Method. Liskov tiene implicaciones en tipos de retorno: la covarianza de retornos es segura, la contravarianza de argumentos tambien. Interface Segregation afecta a clientes que no deberian depender de metodos que no usan (el problema clasico de interfaces \"gigantes\"). Dependency Inversion se aplica tanto a dependencias internas como externas (bases de datos, APIs).\n\nErrores comunes en entrevistas: Confundir Single Responsibility con una unica responsabilidad por metodo (es por razon de cambio, no por cantidad de metodos). Aplicar Open/Closed a nivel de clases cuando a nivel de modulo o paquete seria mas apropiado. No considerar que Liskov aplica a invariantes: si la subclase debilita precondiciones o fortalece postcondiciones, rompe el contrato. Usar Interface Segregation para crear interfaces de un solo metodo (que se convierten en interfaces funcionales, no siempre la mejor solucion). Olvidar que Dependency Inversion es un principio, no un patron; la inyeccion de dependencias es la implementacion del principio.",
+      "content": "SOLID son cinco principios de diseno orientado a objetos que complementan a los patrones y se preguntan con mucha frecuencia: Single Responsibility (una clase una responsabilidad), Open/Closed (abierta a extension, cerrada a modificacion), Liskov Substitution (las subclases deben ser sustituibles por su base), Interface Segregation (interfaces pequenas y especificas) y Dependency Inversion (depender de abstracciones, no de concretos).\n\nDependency Inversion es la base de la inyeccion de dependencias: el codigo de alto nivel depende de interfaces (abstracciones) y las implementaciones concretas se inyectan. En Spring, esto se traduce en inyectar por interfaz y usar @Qualifier/@Primary para elegir la implementacion.\n\nOpen/Closed se logra con polimorfismo y composicion: en lugar de modificar una clase existente para agregar un caso, se agrega una nueva implementacion de la interfaz (por eso Strategy es tan usado).\n\nLiskov es el mas sutil: si una subclase rompe el contrato de la base (por ejemplo, lanzar excepciones que la base no declara), el polimorfismo falla. Un ejemplo de violacion clasico es la jerarquia Cuadrado/Hereda de Rectangulo.\n\nEn entrevistas se suele pedir explicar cada principio con un ejemplo de violacion y su correccion. Saber aplicar SOLID demuestra madurez de diseno mas alla de conocer frameworks.\n\nConceptos avanzados: Single Responsibility no significa una clase por metodo, sino una razon para cambiar. Open/Closed se puede lograr con Strategy, Decorator o Template Method. Liskov tiene implicaciones en tipos de retorno: la covarianza de retornos es segura, la contravarianza de argumentos tambien. Interface Segregation afecta a clientes que no deberian depender de metodos que no usan (el problema clasico de interfaces 'gigantes'). Dependency Inversion se aplica tanto a dependencias internas como externas (bases de datos, APIs).\n\nErrores comunes en entrevistas: Confundir Single Responsibility con una unica responsabilidad por clase; es una razon para cambiar (que puede abarcar multiples metodos relacionados). Olvidar que Interface Segregation se aplica al cliente: si un cliente no usa todos los metodos de una interfaz, esa interfaz es demasiado grande para el. Confundir Dependency Inversion con Inyeccion de Dependencias: DIP es un principio de diseno; DI es un patron que lo implementa.",
       "examples": [
         "// Single Responsibility: separar validacion de persistencia",
         "class ValidadorCuenta { ... }  class CuentaRepository { ... }",
@@ -57,6 +57,54 @@
         "// Liskov: no romper el contrato\nif (x instanceof Rectangulo r) r.setAncho(2);",
         "// Interface Segregation\ncase InterfazGrande { void a(); void b(); void c(); }\ncase InterfazPequenaA { void a(); }\ncase InterfazPequenaB { void b(); }",
         "// Open/Closed con Strategy\ninterface EstrategiaDescuento {\n  double calcular(double precio);\n}\nclass DescuentoClienteVip implements EstrategiaDescuento {\n  public double calcular(double precio) { return precio * 0.9; }\n}\n// Sin tocar la clase existente, se agrega un nuevo descuento"
+      ]
+    },
+    {
+      "id": "dp-behavioral-advanced",
+      "title": "Patrones de comportamiento avanzados",
+      "content": "Command, Mediator y Visitor son patrones de comportamiento que se preguntan frecuentemente en entrevistas intermedias-avanzadas. Command encapsula una peticion como objeto, Mediator centraliza la comunicacion entre objetos y Visitor separa algoritmos de la estructura de objetos.\n\nCommand convierte una operacion en un objeto con execute() y undo(), permitiendo colas de comandos, logging, transacciones y deshacer/rehacer. Es la base de sistemas de undo/redo en editores, transacciones de bases de datos y sistemas de tareas diferidas (como Spring @Async con cola). Cada comando encapsula el receptor (el objeto que realiza la accion) y los parametros necesarios.\n\nMediator define un objeto que coordina la interaccion entre un conjunto de objetos sin que estos se conozcan directamente, reduciendo el acoplamiento. Un chat room es el ejemplo clasico: los usuarios no se envian mensajes directamente, sino que el mediador (el chat room) reenvia los mensajes. En Java, java.util.Timer usa un mediador para gestionar la ejecucion de tareas. En UI, un dialogo de formulario donde los campos se validan entre si es un mediador.\n\nVisitor permite definir nuevos operaciones sobre una jerarquia de objetos sin modificar las clases. Se usa cuando la estructura es estable pero las operaciones cambian frecuentemente. El visitor recorre la estructura (composite) y ejecuta la operacion correspondiente en cada tipo de nodo via doble dispatch (accept + visit). Ejemplo clasico: calcular el costo total de un carrito de productos (cada tipo de producto calcula su costo de forma diferente). En la JDK, java.nio.file.FileVisitor recorre el arbol de archivos.\n\nConceptos avanzados: Command implementa Undo con memento o estado previo; los comandos pueden ser granulados (un paso) o macro-comandos (varios pasos). Mediator puede ser centralizado (un solo mediador) o distribuido (medidores peer-to-peer). Visitor rompe el principio abierto/cerrado para tipos pero lo cumple para operaciones; se usa con double dispatch via accept(Visitor v) y visit(TipoNodo t). En Java moderno, pattern matching en switch puede reemplazar visitor para jerarquias simples.\n\nErrores comunes en entrevistas: Command sin undo es solo un patron de encapsulacion de operacion; el valor real esta en el historial de comandos. Mediator puede convertirse en un God Object si concentra demasiada logica; el mediador solo coordina, no ejecuta la logica de negocio. Visitor requiere una jerarquia estable: si se agregan nuevos tipos de nodos, todos los visitors deben actualizarse (viola OCP para tipos). Confundir Mediator con Observer: Observer es uno-a-muchos sin centralizacion; Mediator coordina many-to-many.",
+      "examples": [
+        "interface Command {\n  void execute();\n  void undo();\n}\n\npublic class TextCommand {\n  private final Editor editor;\n  private final String previousText;\n  public void execute() { editor.insertText(text); }\n  public void undo() { editor.setText(previousText); }\n} // Command con undo",
+        "public class CommandHistory {\n  private final Deque<Command> stack = new ArrayDeque<>();\n  public void execute(Command cmd) { cmd.execute(); stack.push(cmd); }\n  public void undo() { if (!stack.isEmpty()) stack.pop().undo(); }\n} // Cola de comandos",
+        "class ChatRoom {\n  private final Map<String, Usuario> usuarios = new HashMap<>();\n  public void enviar(String de, String a, String msg) {\n    usuarios.get(a).recibir(de, msg);\n  }\n} // Mediator centralizado",
+        "interface Visitor<T> {\n  void visit(Producto p);\n  void visit(Servicio s);\n  void visit(Descuento d);\n}\n\nclass CostoVisitor implements Visitor<Double> {\n  double total = 0;\n  public void visit(Producto p) { total += p.getPrecio(); }\n  public void visit(Servicio s) { total += s.getTarifa(); }\n  public void visit(Descuento d) { total -= d.getMonto(); }\n} // Visitor que calcula costo",
+        "interface ElementoCarrito {\n  void accept(Visitor visitor);\n}\n\nclass Producto implements ElementoCarrito {\n  public void accept(Visitor v) { v.visit(this); }\n} // accept para double dispatch",
+        "public class Editor {\n  private String texto = \"\";\n  private final CommandHistory historial = new CommandHistory();\n  public void ejecutar(Command cmd) { historial.execute(cmd); }\n  public void deshacer() { historial.undo(); }\n} // Editor con undo/redo",
+        "abstract class ElementoAST {\n  abstract void accept(Visitor v);\n}\nclass Numero extends ElementoAST {\n  double valor;\n  void accept(Visitor v) { v.visit(this); }\n}\nclass Suma extends ElementoAST {\n  ElementoAST izq, der;\n  void accept(Visitor v) { v.visit(this); }\n} // Visitor sobre AST"
+      ]
+    },
+    {
+      "id": "dp-structural-advanced",
+      "title": "Patrones estructurales avanzados",
+      "content": "Flyweight y Bridge son patrones estructurales avanzados que se preguntan en entrevistas de nivel intermedio-avanzado. Flyweight optimiza el uso de memoria compartiendo objetos inmutables; Bridge separa una abstraccion de su implementacion para que ambas varien independientemente.\n\nFlyweight reduce el consumo de memoria compartiendo objetos inmutables de grano fino cuando hay muchos objetos similares. El patron separa el estado intrinseco (compartido, inmutable) del estado extrinseco (unico, variable). Un editor de texto con miles de caracteres puede compartir los objetos Character si el tipo, tamaño y fuente son iguales: cada 'A' en Times New Roman 12pt apunta al mismo flyweight. La factoria de flyweights (CharacterFactory) retorna instancias existentes o crea nuevas solo cuando no existen.\n\nBridge separa una abstraccion (por ejemplo, forma geometrica) de su implementacion (por ejemplo, renderizador grafico), permitiendo que ambas jerarquias varien independientemente. Sin Bridge, si hay 3 formas x 3 colores = 9 clases; con Bridge, 3 + 3 = 6 clases y se combinan por composicion. Se usa cuando hay multiples variantes de una abstraccion y la implementacion debe ser intercambiable en runtime (como driver de base de datos o motor de renderizado).\n\nEl diagrama UML de Flyweight muestra la factoria (CharacterFactory) con un mapa de cache (Map<CharKey, Flyweight>). La interfaz Flyweight expone una operacion que recibe el estado extrinseco. Bridge usa una referencia (implementacion) en la abstraccion: la forma contiene una referencia al renderizador, no hereda de el.\n\nConceptos avanzados: Flyweight es transparente para el cliente solo si el objeto es verdaderamente inmutable; si no, el patrón falla silenciosamente. Se puede combinar con Factory Method para la creacion de flyweights. Bridge se confunde con Strategy: Bridge separa dos jerarquias (abstraccion e implementacion); Strategy encapsula un algoritmo intercambiable. Bridge es mas amplio: la implementacion puede ser cualquier dependencia externa.\n\nErrores comunes en entrevistas: Usar Flyweight sin verificar que el estado intrinseco es verdaderamente inmutable; un flyweight mutable comparte estado y causa bugs. Confundir Bridge con Adapter: Adapter convierte una interfaz existente; Bridge diseña una nueva separacion de abstraccion/implementacion. Olvidar que el extrinseco se pasa como argumento al metodo del flyweight, no se almacena en el.",
+      "examples": [
+        "class CharacterFactory {\n  private final Map<Character, CharacterFlyweight> pool = new HashMap<>();\n  public CharacterFlyweight get(char c) {\n    return pool.computeIfAbsent(c, CharacterFlyweight::new);\n  }\n} // Flyweight factory",
+        "class CharacterFlyweight {\n  private final char character;\n  public CharacterFlyweight(char c) { this.character = c; }\n  public void render(int row, int col, String font) {\n    System.out.println(\"Draw '\" + character + \"' at \" + row + \",\" + col + \" in \" + font);\n  }\n} // Flyweight inmutable",
+        "abstract class Forma {\n  protected Renderizador renderizador;\n  Forma(Renderizador r) { this.renderizador = r; }\n  abstract void dibujar();\n}\nclass Circulo extends Forma {\n  double radio;\n  Circulo(Renderizador r, double radio) { super(r); this.radio = radio; }\n  void dibujar() { renderizador.renderCirculo(radio); }\n} // Bridge",
+        "interface Renderizador {\n  void renderCirculo(double radio);\n  void renderRectangulo(double w, double h);\n}\nclass SVGRenderizador implements Renderizador { ... }\nclass CanvasRenderizador implements Renderizador { ... } // Implementacion de Bridge",
+        "class TextoEditor {\n  private final CharacterFactory factory = new CharacterFactory();\n  private final List<CharacterFlyweight> chars = new ArrayList<>();\n  public void agregar(char c, int row, int col) {\n    factory.get(c).render(row, col, \"Arial-12\");\n  }\n} // Uso de Flyweight",
+        "Forma c = new Circulo(new SVGRenderizador(), 5.0);\nc.dibujar(); // Bridge: forma + renderizador intercambiable",
+        "class Punto {\n  int x, y; // estado extrinseco\n}\n// El flyweight se reutiliza, el extrinseco se pasa al metodo"
+      ]
+    },
+    {
+      "id": "dp-architecture",
+      "title": "Arquitectura de software",
+      "content": "Los patrones de arquitectura definen como se organiza un sistema a nivel macro. Los mas preguntados en entrevistas son Capas (Layered), Clean Architecture, Hexagonal y Microservicios. Cada una resuelve un trade-off diferente entre separacion, escalabilidad y complejidad.\n\nArquitectura por Capas (Layered) organiza el sistema en capas horizontales: presentation -> application -> domain -> infrastructure. Cada capa solo depende de la inferior. Pros: separacion clara, facil de entender para equipos nuevos. Contras: puede crear capas innecesarias (diving), acoplamiento entre capas no adyacentes, y el dominio queda atrapado en la capa de infraestructura (cambio en la DB afecta al dominio). Se usa en monolitos simples y CRUD.\n\nClean Architecture (Uncle Bob) organiza el codigo en circulos concentricos: entities (reglas de negocio puras) -> use cases (casos de uso de la aplicacion) -> interface adapters (controllers, presenters, gateways) -> frameworks & drivers (Spring, JPA, HTTP). La regla de dependencia: el codigo de adentro NO conoce afuera. El dominio es puro Java, sin anotaciones Spring ni JPA. Los adaptadores implementan interfaces definidas en el circulo interno.\n\nHexagonal (Ports & Adapters, Alistair Cockburn) dice: la aplicacion tiene puertos (interfaces) que definen como se comunica con el mundo exterior, y adaptadores que implementan esos puertos para conectar con bases de datos, UIs, APIs, etc. El dominio es un hexagono con puertos de entrada (driving) y puertos de salida (driven). Para cambiar de PostgreSQL a MongoDB, solo se cambia el adaptador de salida, no el dominio. Spring Boot es naturalmente hexagonal si se separan interfaces de persistencia de las implementaciones.\n\nMicroservicios descompone el monolito en servicios pequenos, independientes y desplegables. Cuándo usar: autonomia de equipo (Conway's Law), escalabilidad independiente, diversidad tecnologica (cada servicio con su stack). Cuándo NO: complejidad de operaciones (monitoreo, deploy, tracing), latencia de red entre servicios, consistencia de datos distribuida (requiere sagas o event sourcing). Conway's Law dice que la arquitectura del software refleja la estructura del equipo organizativo.\n\nTabla comparativa: Layered es simple pero acoplada; Clean es estricta pero verbosa; Hexagonal es flexible y testeable; Microservicios son escalables pero complejos. En entrevistas, el error comun es pensar que una arquitectura es mejor que otra: todas son trade-offs. Clean/Hexagonal se usan juntas frecuentemente (el dominio hexagonal es el circulo interno de Clean). Microservicios son un estilo de deployment, no un patron de codigo interno.\n\nConceptos avanzados: Onion Architecture (Jeffrey Palermo) es similar a Clean pero con el dominio como nucleo. DCI (Data, Context, Interaction) modela comportamientos sobre datos. Event-Driven Architecture usa eventos como mecanismo de comunicacion entre componentes. CQRS separa lecturas de escrituras en modelos distintos.\n\nErrores comunes en entrevistas: Confundir Clean Architecture con Clean Code (el primero es estructura, el segundo es estilo de codigo). Aplicar microservicios sin necesidad real (un monolito bien disenado puede ser mejor que microservicios para equipos pequenos). Olvidar que Hexagonal y Clean son patrones de arquitectura interna; Microservicios es un estilo de deploy. No entender Conway's Law: la arquitectura debe alinearse con la estructura del equipo.",
+      "examples": [
+        "// Layered: separacion por capas",
+        "presentation/ -> controller/PedidoController.java",
+        "application/ -> service/PedidoService.java",
+        "domain/ -> model/Pedido.java",
+        "infrastructure/ -> repository/PedidoRepositoryJpa.java",
+        "// Clean Architecture: dominio puro sin anotaciones Spring",
+        "public class Pedido {\n  private final List<Item> items;\n  private final Direccion envio;\n  public BigDecimal calcularTotal() {\n    return items.stream().map(Item::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);\n  }\n}",
+        "// Hexagonal: puerto y adaptador",
+        "public interface PuertoPersistencia {\n  Pedido guardar(Pedido p);\n  Optional<Pedido> buscarPorId(String id);\n}\n\n@Repository\nclass JpaPedidoAdapter implements PuertoPersistencia {\n  public Pedido guardar(Pedido p) { return repository.save(p); }\n  public Optional<Pedido> buscarPorId(String id) { return repository.findById(id); }\n}",
+        "// Microservicios: Conway's Law en accion",
+        "// Equipo de pagos -> servicio de pagos (Java + PostgreSQL)",
+        "// Equipo de envios -> servicio de envios (Go + MongoDB)",
+        "// Comunicacion por eventos (Kafka) para desacoplar"
       ]
     }
   ],
@@ -231,6 +279,142 @@
           3
         ],
         "explanation": "Strategy es el mas basico (intercambio de algoritmos), luego Observer (notificacion uno-a-muchos), Template Method (flujo con hooks) y Chain of Responsibility (encadenamiento dinamico de handlers).",
+        "type": "ORDER"
+      },
+      {
+        "id": "dp-q12",
+        "text": "Que patron encapsula una peticion como objeto permitiendo undo/redo y colas de comandos?",
+        "options": [
+          "Mediator",
+          "Command",
+          "Visitor",
+          "Strategy"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Command encapsula cada operacion en un objeto con execute() y undo(), permitiendo historial de comandos, colas y transacciones diferidas.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q13",
+        "text": "En el patron Visitor, que mecanismo se usa para resolver la doble despacha?",
+        "options": [
+          "La interfaz Visitor expone un metodo visit() por cada tipo de nodo, y cada nodo implementa accept(Visitor) que llama a visitor.visit(this)",
+          "Se usa reflection para detectar el tipo en runtime",
+          "Se usa un switch sobre el tipo del objeto",
+          "Se usan lambdas para resolver la despacha"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Double dispatch: el visitor llama accept(nodo) que internamente llama visitor.visit(this), resolviendo ambos (tipo de visitor y tipo de nodo) en tiempo de ejecucion.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q14",
+        "text": "En Clean Architecture, cual es la regla de dependencia?",
+        "options": [
+          "El codigo de adentro no conoce afuera; las capas externas dependen de las internas",
+          "El codigo de afuera no conoce adentro; las capas internas dependen de las externas",
+          "Cada capa puede depender de cualquier otra",
+          "Solo la capa de presentacion puede depender de dominio"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "La regla de dependencia: el codigo del nucleo (entities, use cases) no conoce nada del exterior; los adaptadores y frameworks dependen del nucleo, no al reves.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q15",
+        "text": "Flyweight optimiza el uso de memoria separando el estado intrinseco del extrinseco.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: el intrinseco (compartido, inmutable) vive en el flyweight; el extrinseco (variable, no compartido) se pasa como argumento al metodo.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "dp-q16",
+        "text": "Que patron permite cambiar la implementacion de una abstraccion en runtime sin usar herencia?",
+        "options": [
+          "Singleton",
+          "Flyweight",
+          "Bridge",
+          "Facade"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "Bridge separa abstraccion e implementacion por composicion, permitiendo intercambiar la implementacion (renderizador, DB, etc.) en runtime.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q17",
+        "text": "Conway's Law dice que:",
+        "options": [
+          "La arquitectura del software refleja la estructura del equipo organizativo",
+          "Los sistemas deben estar en capas",
+          "Los patrones se aplican de forma jerarquica",
+          "La complejidad crece exponencialmente con el tiempo"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Conway's Law establece que las organizaciones disenan sistemas que copian la estructura comunicativa del equipo. Es clave para decidir entre monolito y microservicios.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q18",
+        "text": "En Hexagonal Architecture (Ports & Adapters), que son los puertos?",
+        "options": [
+          "Interfaces que definen como la aplicacion se comunica con el mundo exterior",
+          "Endpoints HTTP",
+          "Bases de datos",
+          "Configuraciones de red"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Los puertos son interfaces: puertos de entrada (driving) como controllers y puertos de salida (driven) como repositorios. Los adaptadores implementan esos puertos.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "dp-q19",
+        "text": "Cuales son razones para NO usar microservicios?",
+        "options": [
+          "Complejidad de operaciones y monitoreo distribuido",
+          "Latencia de red entre servicios",
+          "Consistencia de datos distribuida (requiere sagas/event sourcing)",
+          "Todos los anteriores"
+        ],
+        "correctIndexes": [
+          3
+        ],
+        "explanation": "Microservicios agregan complejidad operacional, latencia de red y problemas de consistencia distribuida. Para equipos pequenos o dominios simples, un monolito bien disenado es preferible.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "dp-q20",
+        "text": "Ordena estas arquitecturas de la mas simple a la mas compleja en terminos de estructura:",
+        "options": [
+          "Hexagonal",
+          "Layered",
+          "Clean Architecture",
+          "Microservicios"
+        ],
+        "correctIndexes": [
+          1,
+          2,
+          0,
+          3
+        ],
+        "explanation": "Layered es la mas simple (capas basicas), Clean agrega circulos concentricos estrictos, Hexagonal formaliza puertos/adaptadores, Microservicios descompone el sistema en servicios independientes con complejidad operacional.",
         "type": "ORDER"
       }
     ]
