@@ -12,4 +12,7 @@ export const colors = {
   codeBg: "#2b2b2b",
   codeBorder: "#3c3f41",
   codeText: "#a9b7c6",
+  shadow: "0 2px 8px rgba(0,0,0,0.25)",
+  shadowLg: "0 8px 24px rgba(0,0,0,0.35)",
+  gradient: "linear-gradient(135deg, #1c2330 0%, #1a1f2e 100%)",
 } as const;

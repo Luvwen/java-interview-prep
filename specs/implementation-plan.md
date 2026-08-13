@@ -190,10 +190,10 @@ La V3 entrego contenido extenso, actividades interactivas y una UI con Chakra UI
 
 | Iter | Entregables | Verificacion | Estado |
 |---|---|---|---|
-| V4-1 | Reordenar modulos en `index.json` + actualizar orden en `TheoryModules` de la UI + actualizar `description` de modulos afectados | `mvn test` + `npm run build` | **Pendiente** |
-| V4-2 | Cambiar tema del IDE virtual a Monokai: actualizar `CodeEditor.tsx` con colores Monokai, actualizar PrismJS theme | `npm run build` + verificacion visual | **Pendiente** |
-| V4-3 | Reformatear contenido de los 12 modulos: integrar fragmentos de codigo inline dentro del `content` de cada topic (formato markdown con bloques de codigo), eliminar o reducir el array `examples` separado | `mvn test` + `npm run build` | **Pendiente** |
-| V4-4 | Crear nuevo modulo "Casos Reales" (`real-world.json`): situaciones cotidianas con codigo completo y explicaciones detalladas. Registrar en `index.json` | `mvn test` + `npm run build` | **Pendiente** |
+| V4-1 | Reordenar modulos en `index.json` + actualizar orden en `TheoryModules` de la UI + actualizar `description` de modulos afectados | `mvn test` + `npm run build` | **Completada** |
+| V4-2 | Cambiar tema del IDE virtual a Monokai: actualizar `CodeEditor.tsx` con colores Monokai, actualizar PrismJS theme | `npm run build` + verificacion visual | **Completada** |
+| V4-3 | Reformatear contenido de los 12 modulos: integrar fragmentos de codigo inline dentro del `content` de cada topic (formato markdown con bloques de codigo), eliminar o reducir el array `examples` separado | `mvn test` + `npm run build` | **Completada** |
+| V4-4 | Crear nuevo modulo "Casos Reales" (`real-world.json`): situaciones cotidianas con codigo completo y explicaciones detalladas. Registrar en `index.json` | `mvn test` + `npm run build` | **Completada** |
 
 ### Detalle por iteracion
 
@@ -634,3 +634,104 @@ Los `examples` se muestran todos juntos debajo del `content`. El usuario pide qu
 - Cada caso real tiene al menos 2 ejercicios de practica con su resolucion completa.
 - Los casos reales cubren situaciones que aparecen en entrevistas y en el dia a dia laboral.
 - Toda la funcionalidad existente sigue funcionando (backward compatible).
+
+## Fase 10 (V5) — Pulido final, mobile, progreso en frontend y deploy en Render
+
+> Plan de la quinta version de la app. Complementa a la V4 y se ejecuta con el mismo workflow de spec-driven development.
+
+### Resumen
+
+La V4 entrego modulos reordenados, Monokai, codigo inline y Casos Reales. La V5 se enfoca en cinco frentes: **(1) agregar indices (TOC) en cada modulo** para navegacion rapida entre topics, **(2) pulir el layout** (espaciado, tipografia, cards, sombras), **(3) hacer que toda la app funcione en mobile** (hamburger menu, code overflow, layouts adaptivos), **(4) mover el progreso al frontend** (localStorage + guest ID automatico) para que al hostear cada usuario tenga su progreso, y **(5) preparar el deploy en Render** (Dockerfile multi-stage, SPA fallback, application.properties).
+
+### Iteraciones
+
+| Iter | Entregables | Verificacion | Estado |
+|---|---|---|---|
+| V5-1 | Module TOC: tabla de contenidos sticky en ModulePage con topics clickeables y highlight del topic actual via IntersectionObserver | `npm run build` | **Completada** |
+| V5-2 | Layout polish: cards con border-radius 16px, sombras sutiles, gradientes, tipografia mejorada (letterSpacing, fontWeight), transiciones suaves | `npm run build` | **Completada** |
+| V5-3 | Mobile: hamburger menu con Drawer en header, code overflow-x auto en CodeEditor y CodeBlock, paddings responsivos | `npm run build` | **Completada** |
+| V5-4 | Frontend progress: ProgressStore en localStorage, GuestId UUID automatico, api.ts lee/escribe localmente, stats y streak computados localmente | `npm run build` | **Completada** |
+| V5-5 | Deploy prep: Dockerfile multi-stage (node → java), render.yaml, application.properties, WebConfig.java (SPA fallback), web/pom.xml (resource copying) | `mvn test` + `npm run build` | **Completada** |
+| V5-6 | Verificacion final: build completo, test, checklist de deploy | Todos los anteriores | **Completada** |
+
+### Detalle por iteracion
+
+#### V5-1: Module TOC (Tabla de Contenidos)
+
+**Objetivo**: Al abrir un modulo, mostrar un indice sticky con los topics del modulo. Click en un topic hace scroll suave.
+
+**Implementacion**:
+- Componente `ModuleTOC` en `ModulePage.tsx`
+- Desktop: sticky panel a la derecha con lista de topics
+- Mobile: panel collapsible con boton "Indice del modulo"
+- `IntersectionObserver` para highlight del topic actual
+- Scroll suave con `element.scrollIntoView({ behavior: "smooth" })`
+
+**Archivos**: `ui/src/pages/ModulePage.tsx`
+
+#### V5-2: Layout Polish
+
+**Objetivo**: Mejorar la sensacion visual sin cambiar la paleta.
+
+**Cambios**:
+- `colors.ts`: agregar tokens `shadow`, `shadowLg`, `gradient`
+- `theme.ts`: transiciones globales, border-radius 10px en botones
+- Cards: `borderRadius: 16px`, `boxShadow`, `gradient` background
+- Headings: `letterSpacing: -0.02em`, `fontWeight: 700`
+- Container: `maxW: 1040px`
+- Transiciones: `all 0.2s ease` en cards y botones
+
+**Archivos**: `colors.ts`, `theme.ts`, `CatalogPage.tsx`, `ModulePage.tsx`, `App.tsx`
+
+#### V5-3: Mobile Responsiveness
+
+**Objetivo**: Que toda la app funcione en mobile (< 768px).
+
+**Soluciones**:
+- Header: hamburger menu con `Drawer` de Chakra en mobile, botones horizontales en desktop
+- Code: `overflow-x: auto` en CodeEditor y CodeBlock (antes era `hidden`)
+- Container: paddings responsivos (`px: { base: 3, md: 4 }`)
+- Nav items: visibles en desktop, en drawer en mobile
+
+**Archivos**: `App.tsx`, `CodeEditor.tsx`, `CodeBlock.tsx`
+
+#### V5-4: Frontend Progress + Guest ID
+
+**Objetivo**: Mover progreso al frontend. Guest ID automatico.
+
+**Arquitectura**:
+- `store/GuestId.ts`: UUID v4 via `crypto.randomUUID()`, guardado en `javatheory_guest_id`
+- `store/ProgressStore.ts`: localStorage con chave `javatheory_progress`
+  - `getProgress()`, `markModule()`, `recordQuizResult()`, `reset()`
+- `api.ts`: `getProgress()` y `resetProgress()` ahora usan localStorage
+- `completeModule()` actualiza localStorage ademas de llamar al backend
+- `getStats()` y `getStreak()` computados localmente desde el progreso
+
+**Archivos**: `store/GuestId.ts` (nuevo), `store/ProgressStore.ts` (nuevo), `api.ts`
+
+#### V5-5: Deploy Prep (Render)
+
+**Objetivo**: Preparar para deployar en Render como un solo servicio.
+
+**Implementacion**:
+- `Dockerfile`: multi-stage (node:20 → eclipse-temurin:21-jdk → eclipse-temurin:21-jre)
+- `render.yaml`: service type web, docker runtime
+- `application.properties`: `server.port=${PORT:8080}`
+- `WebConfig.java`: SPA fallback (todas las rutas sirven `index.html`)
+- `web/pom.xml`: resource copying de `ui/dist` a `static/`
+
+**Archivos**: `Dockerfile` (nuevo), `render.yaml` (nuevo), `application.properties` (nuevo), `WebConfig.java` (nuevo), `web/pom.xml`
+
+### Criterios de exito de V5
+
+- El TOC funciona con scroll suave y highlight del topic actual.
+- Las cards tienen sombras, gradientes y bordes redondeados.
+- El hamburger menu funciona en mobile.
+- El codigo es scrollable en pantallas chicas.
+- El progreso persiste en localStorage al recargar la pagina.
+- El guest ID se genera automaticamente en el primer acceso.
+- El Dockerfile builda la app completa (frontend + backend).
+- `render.yaml` esta configurado para Render.
+- El SPA fallback funciona (recargar en `/module/core-java` no da 404).
+- `mvn test` pasa (44/44).
+- `npm run build` no tiene errores de TypeScript.

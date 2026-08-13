@@ -14,12 +14,19 @@ const theme = extendTheme({
         bg: colors.bg,
         color: colors.textPrimary,
       },
+      "*": {
+        transition: "all 0.15s ease",
+      },
     },
   },
   components: {
     Button: {
       defaultProps: {
         colorScheme: "blue",
+      },
+      baseStyle: {
+        borderRadius: "10px",
+        fontWeight: 500,
       },
     },
   },

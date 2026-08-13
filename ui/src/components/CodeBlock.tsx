@@ -18,12 +18,23 @@ export default function CodeBlock({ code }: { code: string }) {
         borderColor="#3e3d32"
         borderRadius="8px"
         p={4}
-        overflow="hidden"
+        overflowX="auto"
+        overflowY="visible"
         fontSize="0.85rem"
         lineHeight="1.6"
         fontFamily="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace"
       >
-        <Code ref={ref} as="code" className="language-java" bg="transparent" color="#f8f8f2" p={0} display="block" whiteSpace="pre">
+        <Code
+          ref={ref}
+          as="code"
+          className="language-java"
+          bg="transparent"
+          color="#f8f8f2"
+          p={0}
+          display="block"
+          whiteSpace="pre"
+          minWidth="0"
+        >
           {code}
         </Code>
       </Box>

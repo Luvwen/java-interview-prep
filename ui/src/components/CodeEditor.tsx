@@ -69,7 +69,7 @@ export default function CodeEditor({
       borderRadius="8px"
       border="1px solid"
       borderColor="#3e3d32"
-      overflow="hidden"
+      overflow="auto"
     >
       <Box display="flex" fontFamily="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace" fontSize="0.85rem" lineHeight="1.6">
         {showLineNumbers && (

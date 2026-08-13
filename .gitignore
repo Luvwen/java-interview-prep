@@ -49,3 +49,16 @@ ui/.vite/
 
 # Local progress
 .javatheory/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+credentials*
+secrets*
+application-local.*
+!application-local.properties.example

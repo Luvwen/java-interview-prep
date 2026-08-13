@@ -19,26 +19,28 @@ function CatalogPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
 
   return (
     <Box>
-      <Heading size="lg" mb={6}>Modulos</Heading>
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+      <Heading size="lg" mb={2} letterSpacing="-0.02em">Modulos</Heading>
+      <Text color={colors.textMuted} mb={6}>Aprende Java desde los fundamentos hasta frameworks avanzados.</Text>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5}>
         {modules.map((module) => (
           <Box
             key={module.id}
             as="button"
             textAlign="left"
-            bg={colors.surface}
+            bg={colors.gradient}
             border="1px solid"
             borderColor={colors.border}
-            borderRadius="12px"
+            borderRadius="16px"
             p={5}
             cursor="pointer"
-            transition="all 0.15s"
-            _hover={{ borderColor: colors.accent, transform: "translateY(-2px)" }}
+            transition="all 0.2s ease"
+            boxShadow={colors.shadow}
+            _hover={{ borderColor: colors.accent, transform: "translateY(-3px)", boxShadow: colors.shadowLg }}
             onClick={() => onOpenModule(module.id)}
           >
             <VStack align="start" spacing={2}>
               <StateBadge state={module.state} />
-              <Heading size="sm">{module.title}</Heading>
+              <Heading size="sm" letterSpacing="-0.01em">{module.title}</Heading>
               <Text fontSize="sm" color={colors.textMuted} noOfLines={2}>{module.description}</Text>
             </VStack>
           </Box>

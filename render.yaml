@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: java-theory
+    runtime: docker
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xms256m -Xmx512m"

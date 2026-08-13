@@ -73,7 +73,7 @@ Aplicacion **CLI** escrita en **Java** para aprender/practicar Java de cara a en
 | Dependencias   | Minimas; priorizar la **libreria estandar**                                                      | Reducir superficie de errores y mantener el foco en conceptos core de Java. Excepcion justificada: **Jackson** para persistencia JSON.                                            |
 | UI (v1)        | CLI (consola, stdin/stdout)                                                                      | Definido en la descripcion funcional; sin GUI ni web en la primera version.                                                                                                       |
 | UI (fase 2)    | **React + Vite + TypeScript** (frontend SPA en `ui/`) + **Spring Boot REST** (backend en `web/`) | UI web moderna; backend estandar de industria, muy relevante en entrevistas. TypeScript por ser el estandar actual de React y porque modela los DTOs del backend de forma tipada. |
-| Persistencia   | **JSON con Jackson** en `~/.javatheory/progress.json`                                            | Legible, versionable y reutilizable por la CLI y la UI (mismo archivo de progreso).                                                                                               |
+| Persistencia   | **localStorage** del navegador (`javatheory_progress`) + Guest ID UUID v4 (`javatheory_guest_id`) | Sin backend para progreso; cada usuario tiene su progreso en su navegador. El backend sirve contenido y evalua quizzes. |
 
 ## 3. Justificacion de decisiones (ADR resumidos)
 
@@ -96,10 +96,11 @@ Aplicacion **CLI** escrita en **Java** para aprender/practicar Java de cara a en
 - **Motivo**: la descripcion funcional prioriza contenido y mecanica de estudio sobre UX grafica. Una CLI es rapida de construir, testeable y suficiente para catalogo/teoria/quiz/progreso.
 - **Alternativa descartada**: GUI/web — fuera de alcance en la primera version (ver no-alcance del funcional).
 
-### D-05: Persistencia local en JSON con Jackson
+### D-05: Persistencia en localStorage (V5)
 
-- **Motivo**: no-alcance define sin servidor ni DB central. El progreso vive en **`~/.javatheory/progress.json`**: no ensucia el repo y sobrevive a clones/reinstalaciones. Se usa **Jackson** (libreria ligera y estandar) porque el JSON es legible, versionable y reutilizable por la futura UI (mismo archivo que la CLI).
-- **Alternativa descartada**: texto plano/properties propio (menos flexible para estructuras anidadas) y guardar dentro del repo (se mezclaria con el codigo).
+- **Motivo**: al hostear la app, el backend seria multi-usuario (todos comparten el mismo archivo). Mover el progreso a `localStorage` del navegador resuelve esto: cada usuario tiene su progreso en su navegador. Guest ID automatico (UUID v4) via `crypto.randomUUID()` para identificacion basica.
+- **Alternativa descartada**: backend multi-usuario con sesiones (requiere Spring Auth y DB), localStorage + sync con backend (complejidad innecesaria para el alcance actual).
+- **Consecuencia**: el backend依然 es necesario para contenido (modulos JSON) y evaluacion de quizzes, pero ya no persiste progreso.
 
 ### D-06: Dependencias minimas, priorizar la libreria estandar
 
@@ -118,6 +119,11 @@ Aplicacion **CLI** escrita en **Java** para aprender/practicar Java de cara a en
 ### D-09: Contrato REST por casos de uso (misma logica que la CLI)
 
 - **Motivo**: los endpoints exponen exactamente los casos de uso de la CLI (UC-01 a UC-06) reutilizando `core` (servicios + persistencia). El quiz NO filtra las respuestas correctas: el frontend recibe las preguntas y envia solo los indices elegidos (`POST .../quiz`), recibiendo `score`, `total`, `passed` y feedback por pregunta. Devolver `correctIndexes` en la respuesta seria un leak del contrato, por eso se omite en `GET .../quiz`.
+
+### D-10: Deploy en Render con Dockerfile multi-stage (V5)
+
+- **Motivo**: Render soporta Docker nativamente. Un Dockerfile multi-stage (node → java) builda el frontend y backend en un solo paso, produciendo una imagen optimizada (~300MB JRE). SPA fallback via `WebConfig.java`确保 que recargar en rutas del SPA no devuelva 404.
+- **Alternativa descartada**: Railway (similar pero Render tiene free tier mas generoso), deploy separado frontend/backend (mas complejidad de CORS y dos servicios).
 
 ## 4. Arquitectura de la aplicacion
 
@@ -212,15 +218,15 @@ stateDiagram-v2
     Completado --> [*]
 ```
 
-### 4.5 Arquitectura objetivo (fase 2: UI web)
+### 4.5 Arquitectura objetivo (fase 2: UI web — V5)
 
-En la fase 2 el proyecto pasa a **multi-modulo Maven**: el modulo `core` conserva dominio/servicios/infraestructura/contenido (lo que hoy es la app CLI) y el modulo `web` expone una API REST (Spring Boot) consumida por el frontend React + Vite. Ambos acceden al mismo `progress.json`, garantizando la coexistencia CLI + UI.
+En la fase 2 el proyecto pasa a **multi-modulo Maven**: el modulo `core` conserva dominio/servicios/infraestructura/contenido y el modulo `web` expone una API REST (Spring Boot) consumida por el frontend React + Vite. El progreso se persiste en **localStorage** del navegador (no en el backend). Deploy en **Render** via Dockerfile multi-stage.
 
 ```mermaid
 flowchart LR
     subgraph FE["ui/ — Frontend (React + Vite + TS)"]
         C["Catalogo"]
-        T["Vista de teoria"]
+        T["Vista de teoria + TOC"]
         Q["Quiz interactivo"]
         D["Dashboard de progreso"]
         MQ["Quiz mixto"]
@@ -229,15 +235,17 @@ flowchart LR
         FC["Flashcards"]
         EX["Examen"]
         ST["Estadisticas"]
+        RW["Casos Reales"]
+        PS["ProgressStore (localStorage)"]
     end
     subgraph WEB["Modulo web (Spring Boot REST, :8080)"]
         API["Controllers REST /api/..."]
         APP2["Servicios (application)"]
+        WC["WebConfig (SPA fallback)"]
     end
     subgraph CORE["Modulo core (compartido)"]
         DOM["Dominio + servicios"]
-        INF["ProgressRepository (Jackson)"]
-        FILE[("~/.javatheory/progress.json")]
+        ML["ModuleLoader (JSON)"]
     end
     subgraph CLI2["CLI (fase 1, coexistente)"]
         CLIAPP["Main / menu / quiz runner"]
@@ -335,7 +343,7 @@ En desarrollo se levantan dos procesos: `mvn -pl web spring-boot:run` (backend e
 
 - **JDK 21 LTS** (fijada; instalada 21.0.9).
 - **Maven** local, modulo unico en v1; **multi-modulo** en fase 2 (`core` + `web`).
-- **Persistencia**: JSON con **Jackson** en `~/.javatheory/progress.json`.
+- **Persistencia**: progreso en **localStorage** del navegador (`javatheory_progress`). Guest ID UUID v4 en `javatheory_guest_id`. El backend sirve contenido y evalua quizzes pero no persiste progreso.
 - **Aprobacion de quiz**: **70%** minimo de respuestas correctas.
 - **Progreso global**: modulos `completado` / total de modulos.
 - **Root package**: `com.javatheory`.

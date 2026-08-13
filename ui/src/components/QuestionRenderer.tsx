@@ -255,23 +255,25 @@ function BugHuntBody({
     <VStack align="stretch" spacing={3}>
       {question.code && (
         <Box
+          as="pre"
           bg="gray.900"
           color="green.300"
           p={4}
           borderRadius="8px"
           fontFamily="monospace"
           fontSize="xs"
-          whiteSpace="pre-wrap"
+          whiteSpace="pre"
           lineHeight="tall"
-          overflow="hidden"
+          overflowX="auto"
+          m={0}
         >
           {question.code.split("\n").map((line, i) => (
-            <div key={i}>
+            <span key={i}>
               <span style={{ color: "#666", marginRight: "1em", userSelect: "none" }}>
-                {String(i + 1).padStart(2)}
+                {String(i + 1).padStart(2, " ")}
               </span>
-              {line}
-            </div>
+              {line + "\n"}
+            </span>
           ))}
         </Box>
       )}

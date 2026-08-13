@@ -1,13 +1,22 @@
+import { useState } from "react";
 import {
   Box,
   Container,
+  Drawer,
+  DrawerBody,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
   Flex,
   Heading,
   HStack,
+  VStack,
   Button,
   SimpleGrid,
   Text,
   Icon,
+  IconButton,
 } from "@chakra-ui/react";
 import {
   BookOpen,
@@ -22,6 +31,8 @@ import {
   Code2,
   Bug,
   Briefcase,
+  Menu,
+  Coffee,
 } from "lucide-react";
 import CatalogPage from "./pages/CatalogPage";
 import ModulePage from "./pages/ModulePage";
@@ -40,20 +51,31 @@ import { useNavigation, type NavState } from "./useNavigation";
 import { colors } from "./colors";
 
 const activities = [
-  { id: "time-attack" as const, title: "Contra Reloj", desc: "Responde contra un cronometro por pregunta. Pon a prueba tu velocidad.", icon: Clock },
+  { id: "time-attack" as const, title: "Contra Reloj", desc: "Responde contra un cronometro por pregunta.", icon: Clock },
   { id: "mixed-quiz" as const, title: "Quiz Mixto", desc: "Selecciona modulos y cantidad. Mezcla de formatos.", icon: Shuffle },
-  { id: "error-review" as const, title: "Repasar Errores", desc: "Repasa las preguntas que fallaste. Acertar 2 veces seguidas las elimina.", icon: AlertTriangle },
-  { id: "flashcards" as const, title: "Flashcards", desc: "Voltea tarjetas con conceptos clave y autoevalua si los sabias.", icon: Layers },
-  { id: "exam" as const, title: "Examen Simulado", desc: "Simula una entrevista: tiempo limitado, sin ir atras.", icon: FileText },
-  { id: "code-fill" as const, title: "Rellenar Codigo", desc: "Completa blanks en fragmentos de codigo Java. IDE interactivo.", icon: Code2 },
-  { id: "bug-hunt" as const, title: "Encontrar el Bug", desc: "Identifica errores intencionales en codigo Java. Debugging real.", icon: Bug },
-  { id: "statistics" as const, title: "Estadisticas", desc: "Ve tu desempeno por modulo: aciertos, errores y topicos debiles.", icon: Trophy },
+  { id: "error-review" as const, title: "Repasar Errores", desc: "Repasa las preguntas que fallaste.", icon: AlertTriangle },
+  { id: "flashcards" as const, title: "Flashcards", desc: "Voltea tarjetas con conceptos clave.", icon: Layers },
+  { id: "exam" as const, title: "Examen Simulado", desc: "Simula una entrevista: tiempo limitado.", icon: FileText },
+  { id: "code-fill" as const, title: "Rellenar Codigo", desc: "Completa blanks en fragmentos de codigo.", icon: Code2 },
+  { id: "bug-hunt" as const, title: "Encontrar el Bug", desc: "Identifica errores en codigo Java.", icon: Bug },
+  { id: "statistics" as const, title: "Estadisticas", desc: "Ve tu desempeno por modulo.", icon: Trophy },
+];
+
+const navItems = [
+  { id: "catalog" as const, label: "Modulos", icon: BookOpen },
+  { id: "activities" as const, label: "Actividades", icon: Gamepad2 },
+  { id: "real-world" as const, label: "Casos Reales", icon: Briefcase },
+  { id: "progress" as const, label: "Progreso", icon: BarChart3 },
 ];
 
 function App() {
   const { view, moduleId, navigate } = useNavigation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const go = (state: NavState) => navigate(state);
+  const go = (state: NavState) => {
+    navigate(state);
+    setDrawerOpen(false);
+  };
 
   const openModule = (id: string) => go({ view: "module", moduleId: id });
   const backToCatalog = () => go({ view: "catalog", moduleId: null });
@@ -69,52 +91,86 @@ function App() {
     view === "bug-hunt" ||
     view === "statistics";
 
+  const isActive = (id: string) => {
+    if (id === "catalog") return view === "catalog";
+    if (id === "activities") return isActivity;
+    if (id === "real-world") return view === "real-world";
+    if (id === "progress") return view === "progress";
+    return false;
+  };
+
   return (
     <Box minH="100vh" bg={colors.bg}>
-      <Container maxW="960px" px={4} pb={12}>
-        <Flex as="header" align="center" justify="space-between" py={5} borderBottom="1px solid" borderColor={colors.border} mb={6}>
-          <Heading size="md" color={colors.accent}>
-            Java Theory
-          </Heading>
-          <HStack gap={2}>
-            <Button
-              size="sm"
-              variant={view === "catalog" ? "solid" : "ghost"}
-              color={view === "catalog" ? "white" : colors.textMuted}
-              onClick={() => go({ view: "catalog", moduleId: null })}
-              leftIcon={<BookOpen size={16} />}
-            >
-              Modulos
-            </Button>
-            <Button
-              size="sm"
-              variant={isActivity ? "solid" : "ghost"}
-              color={isActivity ? "white" : colors.textMuted}
-              onClick={() => go({ view: "activities", moduleId: null })}
-              leftIcon={<Gamepad2 size={16} />}
-            >
-              Actividades
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "real-world" ? "solid" : "ghost"}
-              color={view === "real-world" ? "white" : colors.textMuted}
-              onClick={() => go({ view: "real-world", moduleId: null })}
-              leftIcon={<Briefcase size={16} />}
-            >
-              Casos Reales
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "progress" ? "solid" : "ghost"}
-              color={view === "progress" ? "white" : colors.textMuted}
-              onClick={() => go({ view: "progress", moduleId: null })}
-              leftIcon={<BarChart3 size={16} />}
-            >
-              Progreso
-            </Button>
+      <Container maxW="1040px" px={{ base: 3, md: 4 }} pb={12}>
+        <Flex as="header" align="center" justify="space-between" py={4} borderBottom="1px solid" borderColor={colors.border} mb={8}>
+          <HStack
+            as="button"
+            spacing={2}
+            onClick={() => go({ view: "catalog", moduleId: null })}
+            _hover={{ opacity: 0.8 }}
+            transition="opacity 0.15s"
+          >
+            <Icon as={Coffee} color={colors.accent} boxSize={6} />
+            <Heading size="md" color={colors.accent} letterSpacing="-0.02em">
+              Java Prep
+            </Heading>
           </HStack>
+
+          <HStack gap={2} display={{ base: "none", md: "flex" } as never}>
+            {navItems.map((item) => (
+              <Button
+                key={item.id}
+                size="sm"
+                variant={isActive(item.id) ? "solid" : "ghost"}
+                color={isActive(item.id) ? "white" : colors.textMuted}
+                onClick={() => go({ view: item.id, moduleId: null })}
+                leftIcon={<item.icon size={16} />}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </HStack>
+
+          <IconButton
+            aria-label="Menu"
+            icon={<Menu size={20} />}
+            display={{ base: "flex", md: "none" } as never}
+            variant="ghost"
+            color={colors.textMuted}
+            onClick={() => setDrawerOpen(true)}
+            size="sm"
+          />
         </Flex>
+
+        <Drawer isOpen={drawerOpen} placement="right" onClose={() => setDrawerOpen(false)}>
+          <DrawerOverlay />
+          <DrawerContent bg={colors.surface}>
+            <DrawerCloseButton color={colors.textMuted} />
+            <DrawerHeader borderBottom="1px solid" borderColor={colors.border}>
+              <HStack spacing={2}>
+                <Icon as={Coffee} color={colors.accent} boxSize={5} />
+                <Heading size="sm" color={colors.accent}>Java Prep</Heading>
+              </HStack>
+            </DrawerHeader>
+            <DrawerBody>
+              <VStack align="stretch" spacing={2} mt={4}>
+                {navItems.map((item) => (
+                  <Button
+                    key={item.id}
+                    variant={isActive(item.id) ? "solid" : "ghost"}
+                    color={isActive(item.id) ? "white" : colors.textMuted}
+                    justifyContent="flex-start"
+                    leftIcon={<item.icon size={18} />}
+                    onClick={() => go({ view: item.id, moduleId: null })}
+                    borderRadius="10px"
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </VStack>
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>
 
         <Box as="main">
           {view === "catalog" && <CatalogPage onOpenModule={openModule} />}
@@ -126,22 +182,23 @@ function App() {
           )}
           {view === "activities" && (
             <Box>
-              <Heading size="lg" mb={2}>Actividades</Heading>
+              <Heading size="lg" mb={2} letterSpacing="-0.02em">Actividades</Heading>
               <Text color={colors.textMuted} mb={6}>Practica con modos de juego diferentes al quiz normal.</Text>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
                 {activities.map((act) => (
                   <Box
                     key={act.id}
                     as="button"
                     textAlign="left"
-                    bg={colors.surface}
+                    bg={colors.gradient}
                     border="1px solid"
                     borderColor={colors.border}
-                    borderRadius="12px"
+                    borderRadius="16px"
                     p={5}
                     cursor="pointer"
-                    transition="all 0.15s"
-                    _hover={{ borderColor: colors.accent, transform: "translateY(-2px)" }}
+                    transition="all 0.2s ease"
+                    boxShadow={colors.shadow}
+                    _hover={{ borderColor: colors.accent, transform: "translateY(-3px)", boxShadow: colors.shadowLg }}
                     onClick={() => go({ view: act.id, moduleId: null })}
                   >
                     <Flex align="center" gap={3} mb={2}>

@@ -6,6 +6,7 @@ import type {
   QuizResult,
   RealWorldCase,
 } from "./types";
+import { progressStore } from "./store/ProgressStore";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -47,13 +48,17 @@ export const api = {
       body: JSON.stringify({ answers, textAnswers: textAnswers ?? null }),
     }),
 
-  completeModule: (id: string) =>
-    request<void>(`/api/modules/${id}/complete`, { method: "POST" }),
+  completeModule: (id: string) => {
+    progressStore.markModule(id, "COMPLETED");
+    return request<void>(`/api/modules/${id}/complete`, { method: "POST" });
+  },
 
-  getProgress: () => request<Progress>("/api/progress"),
+  getProgress: (): Promise<Progress> => Promise.resolve(progressStore.getProgress()),
 
-  resetProgress: () =>
-    request<void>("/api/progress", { method: "DELETE" }),
+  resetProgress: (): Promise<void> => {
+    progressStore.reset();
+    return Promise.resolve();
+  },
 
   getMixedQuiz: (moduleIds: string[], count: number) =>
     request<Quiz>("/api/quiz/mixed", {
@@ -80,9 +85,46 @@ export const api = {
       body: JSON.stringify({ quizId, moduleIds, answers, durationSeconds, textAnswers: textAnswers ?? null, questionIds: questionIds ?? null }),
     }),
 
-  getStats: () => request<Record<string, ModuleStats>>("/api/stats"),
+  getStats: (): Promise<Record<string, ModuleStats>> => {
+    const progress = progressStore.getProgress();
+    const result: Record<string, ModuleStats> = {};
+    for (const [moduleId, stats] of Object.entries(progress.questionStats)) {
+      const moduleAttempts = progress.attempts.filter((a) => a.moduleIds.includes(moduleId));
+      const total = stats.correct + stats.wrong;
+      result[moduleId] = {
+        moduleId,
+        title: moduleId,
+        correct: stats.correct,
+        wrong: stats.wrong,
+        bestPercent: total > 0 ? Math.round((stats.correct * 100) / total) : 0,
+        avgPercent: total > 0 ? Math.round((stats.correct * 100) / total) : 0,
+        avgTimeSeconds: moduleAttempts.length > 0
+          ? Math.round(moduleAttempts.reduce((s, a) => s + a.durationSeconds, 0) / moduleAttempts.length)
+          : 0,
+        attempts: moduleAttempts.length,
+      };
+    }
+    return Promise.resolve(result);
+  },
 
-  getStreak: () => request<{ current: number; lastDate: string | null }>("/api/streak"),
+  getStreak: (): Promise<{ current: number; lastDate: string | null }> => {
+    const progress = progressStore.getProgress();
+    const dates = [...new Set(progress.attempts.map((a) => a.date.split("T")[0]))].sort().reverse();
+    let current = 0;
+    const today = new Date().toISOString().split("T")[0];
+    let checkDate = today;
+    for (const d of dates) {
+      if (d === checkDate) {
+        current++;
+        const prev = new Date(checkDate);
+        prev.setDate(prev.getDate() - 1);
+        checkDate = prev.toISOString().split("T")[0];
+      } else {
+        break;
+      }
+    }
+    return Promise.resolve({ current, lastDate: dates[0] ?? null });
+  },
 
   fetchRealWorldCases: () => request<RealWorldCase[]>("/api/real-world"),
 };
