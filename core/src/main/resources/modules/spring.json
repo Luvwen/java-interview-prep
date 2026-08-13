@@ -15,6 +15,28 @@
         "@Lazy\n@Component\npublic class ReportGenerator {\n    public ReportGenerator() { System.out.println(\"Se creo el report generator\"); }\n}",
         "@Primary\n@Service\npublic class EmailServicePrincipal implements EmailService { ... }",
         "@Service\npublic class OrderService {\n    private final EmailSender sender;\n    public OrderService(@Qualifier(\"smtp\") EmailSender sender) { this.sender = sender; }\n}"
+      ],
+      "sections": [
+        {
+          "title": "Inversion de Control y constructor injection",
+          "text": "Spring construye las dependencias de cada clase en lugar de que las cree manualmente con new. La forma recomendada de inyectar es por constructor: se declara un campo final y un constructor que lo recibe. Desde Spring 4.3, si hay un solo constructor no hace falta anotarlo con @Autowired. Esto garantiza inmutabilidad y que el objeto siempre este en un estado valido.",
+          "code": "@Service\npublic class CuentaService {\n    private final CuentaRepository repo;\n    public CuentaService(CuentaRepository repo) {\n        this.repo = repo;\n    }\n}"
+        },
+        {
+          "title": "Definiendo beans: @Component vs @Bean",
+          "text": "Spring detecta beans con anotaciones de estereotipo (@Component, @Service, @Repository, @Controller) mediante escaneo de paquetes. Cuando se necesita configuracion explicita o integrar terceros, se usan metodos @Bean dentro de una clase @Configuration. @Bean en @Configuration crea un proxy CGLIB, por lo que llamar a otros metodos @Bean retorna el mismo singleton.",
+          "code": "@Configuration\npublic class AppConfig {\n    @Bean\n    public DataSource dataSource() {\n        HikariDataSource ds = new HikariDataSource();\n        ds.setJdbcUrl(\"jdbc:h2:mem:testdb\");\n        ds.setUsername(\"sa\");\n        ds.setPassword(\"\");\n        return ds;\n    }\n\n    @Bean\n    public JdbcTemplate jdbcTemplate(DataSource ds) {\n        return new JdbcTemplate(ds);\n    }\n}"
+        },
+        {
+          "title": "Desambiguacion: @Primary y @Qualifier",
+          "text": "Cuando existen multiples beans del mismo tipo, Spring no sabe cual elegir y lanza NoUniqueBeanDefinitionException. @Primary marca un bean como preferido, mientras que @Qualifier(\"nombre\") desambigua en el punto de inyeccion especifico. Tambien se pueden crear qualifiers personalizados con meta-anotaciones.",
+          "code": "@Primary\n@Service\npublic class EmailServicePrincipal implements EmailService {\n    @Override\n    public void enviar(String destino, String asunto) {\n        // implementacion principal\n    }\n}\n\n@Service\npublic class OrderService {\n    private final EmailSender sender;\n    public OrderService(@Qualifier(\"smtp\") EmailSender sender) {\n        this.sender = sender;\n    }\n}"
+        },
+        {
+          "title": "Lazy loading y condicionales",
+          "text": "@Lazy retrasa la instanciacion del bean hasta que se use por primera vez, util para romper ciclos de dependencia o ahorrar recursos con beans costosos. @ConditionalOnProperty permite que un bean solo se registre si una propiedad especifica tiene un valor determinado en application.yml, habilitando configuracion dinamica por perfil.",
+          "code": "@Lazy\n@Component\npublic class ReportGenerator {\n    public ReportGenerator() {\n        System.out.println(\"Se creo el report generator\");\n    }\n}\n\n@Component\n@ConditionalOnProperty(name = \"app.feature.cache\", havingValue = \"true\")\npublic class CacheConfig {\n    @Bean\n    public CacheManager cacheManager() {\n        return new ConcurrentMapCacheManager(\"users\");\n    }\n}"
+        }
       ]
     },
     {
@@ -29,6 +51,23 @@
         "@Scope(\"request\")\n@Component\npublic class RequestContext {\n    private String userId;\n}",
         "@DependsOn(\"cacheInitializer\")\n@Component\npublic class ApplicationDataLoader { ... }",
         "@Component\npublic class MetricsCollector implements ApplicationListener<ContextRefreshedEvent> {\n    @Override\n    public void onApplicationEvent(ContextRefreshedEvent event) { ... }\n}"
+      ],
+      "sections": [
+        {
+          "title": "Etapas del ciclo de vida",
+          "text": "Un bean de Spring atraviesa cuatro etapas: instanciacion, inyeccion de dependencias, inicializacion y destruccion. El contenedor ordena el grafo de dependencias para inyectar en el orden correcto. Cuando se necesita ejecutar logica al iniciar o destruir, se usan @PostConstruct y @PreDestroy. Estas ultimas estan en desuso desde Spring 6 / Jakarta EE.",
+          "code": "@Component\npublic class AppRunner {\n    @PostConstruct\n    void init() {\n        System.out.println(\"Arrancando - dependencias inyectadas\");\n    }\n\n    @PreDestroy\n    void shutdown() {\n        System.out.println(\"Cerrando - liberando recursos\");\n    }\n}"
+        },
+        {
+          "title": "Scopes: singleton, prototype, request, session",
+          "text": "El scope define cuantas instancias existen: singleton (una sola por contenedor, el default), prototype (una nueva por cada inyeccion), request (una por request HTTP) y session (una por sesion de usuario). Los beans prototype no reciben @PreDestroy porque Spring no gestiona su ciclo de vida completo. Si un bean prototype abre recursos, la limpieza debe ser manual.",
+          "code": "@Scope(\"prototype\")\n@Component\npublic class CarritoCompra {\n    private List<ItemCarrito> items = new ArrayList<>();\n\n    public void agregar(ItemCarrito item) {\n        items.add(item);\n    }\n\n    public List<ItemCarrito> getItems() {\n        return items;\n    }\n}\n\n@Scope(\"request\")\n@Component\npublic class RequestContext {\n    private String userId;\n    public String getUserId() { return userId; }\n    public void setUserId(String userId) { this.userId = userId; }\n}"
+        },
+        {
+          "title": "Orden de inicializacion y dependencias",
+          "text": "@DependsOn(\"otroBean\") fuerza que otro bean se inicialice antes, util cuando no hay relacion directa de dependencia pero hay un orden requerido. BeanFactoryPostProcessor ejecuta logica antes de que se creen los beans, permitiendo modificar el BeanDefinition. Si se inyecta un bean prototype dentro de un singleton, el prototype se crea una sola vez (anti-patron); para evitarlo se usa ObjectFactory o @Lookup.",
+          "code": "@DependsOn(\"cacheInitializer\")\n@Component\npublic class ApplicationDataLoader {\n    private final Map<String, Config> configCache;\n    public ApplicationDataLoader(CacheInitializer cache) {\n        this.configCache = cache.getAll();\n    }\n}\n\n@Component\npublic class MetricsCollector implements ApplicationListener<ContextRefreshedEvent> {\n    @Override\n    public void onApplicationEvent(ContextRefreshedEvent event) {\n        System.out.println(\"Contexto listo, registrando metricas\");\n    }\n}"
+        }
       ]
     },
     {
@@ -43,6 +82,23 @@
         "# application-dev.yml\nserver:\n  port: 8081\nlogging:\n  level:\n    root: DEBUG",
         "@ConfigurationProperties(prefix = \"app.datasource\")\npublic class DataSourceProperties {\n    private String url;\n    private String username;\n    // getters y setters\n}",
         "@Profile(\"staging\")\n@Service\npublic class StagingPaymentService implements PaymentService { ... }"
+      ],
+      "sections": [
+        {
+          "title": "Starters y autoconfiguracion",
+          "text": "Un starter es un POM que agrupa dependencias y su autoconfiguracion, como spring-boot-starter-web que trae Spring MVC, Jackson y Tomcat embebido. La autoconfiguracion usa anotaciones condicionales como @ConditionalOnClass o @ConditionalOnMissingBean: si el classpath contiene spring-web, Boot levanta DispatcherServlet y Tomcat sin configuracion manual.",
+          "code": "@SpringBootApplication\npublic class App {\n    public static void main(String[] args) {\n        SpringApplication.run(App.class, args);\n    }\n}\n\n// Para excluir una autoconfiguracion especifica:\n@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)\npublic class AppWithoutDb {\n    public static void main(String[] args) {\n        SpringApplication.run(AppWithoutDb.class, args);\n    }\n}"
+        },
+        {
+          "title": "@SpringBootApplication desglosado",
+          "text": "@SpringBootApplication combina tres anotaciones: @SpringBootConfiguration (marca la clase como fuente de configuracion), @EnableAutoConfiguration (activa la autoconfiguracion basada en el classpath) y @ComponentScan (escanea paquetes desde la ubicacion de la clase principal hacia abajo). Por eso la clase principal debe estar en el paquete mas alto.",
+          "code": "// Equivalente a @SpringBootApplication:\n@SpringBootConfiguration\n@EnableAutoConfiguration\n@ComponentScan\npublic class App {\n    public static void main(String[] args) {\n        SpringApplication.run(App.class, args);\n    }\n}"
+        },
+        {
+          "title": "Configuracion externa y perfiles",
+          "text": "Spring Boot acepta configuracion en application.yml o application.properties. Los profiles permiten segmentar configuracion por entorno (dev, test, prod). @ConfigurationProperties vincula un prefijo de yml a un POJO tipado con validacion y relax binding (acepta kebab-case, camelCase, SCREAMING_SNAKE_CASE). Se puede activar un profile con spring.profiles.active=dev, la variable de entorno SPRING_PROFILES_ACTIVE, o el flag -Dspring.profiles.active=dev.",
+          "code": "# application.yml\nserver:\n  port: 8080\n\nspring:\n  profiles:\n    active: dev\n\napp:\n  mail:\n    host: localhost\n    port: 1025\n    headers:\n      X-Custom: value\n\n# application-dev.yml (tiene prioridad sobre application.yml)\nserver:\n  port: 8081\nlogging:\n  level:\n    root: DEBUG\n\n# application-prod.yml\nserver:\n  port: 80\nmanagement:\n  server:\n    port: 9090"
+        }
       ]
     },
     {
@@ -57,6 +113,23 @@
         "@CrossOrigin(origins = \"http://localhost:3000\", methods = RequestMethod.GET)\n@GetMapping(\"/api/cuentas\")\npublic List<CuentaDto> listar() { ... }",
         "@GetMapping(\"/api/reportes/{id}/descarga\")\npublic ResponseEntity<Resource> descargar(@PathVariable Long id) {\n    Resource resource = ...;\n    return ResponseEntity.ok()\n        .header(HttpHeaders.CONTENT_DISPOSITION, \"attachment; filename=report.pdf\")\n        .body(resource);\n}",
         "@ExceptionHandler(MethodArgumentNotValidException.class)\n@ResponseStatus(HttpStatus.BAD_REQUEST)\npublic Map<String, String> handleValidation(MethodArgumentNotValidException ex) {\n    Map<String, String> errors = new HashMap<>();\n    ex.getBindingResult().getFieldErrors().forEach(e -> errors.put(e.getField(), e.getDefaultMessage()));\n    return errors;\n}"
+      ],
+      "sections": [
+        {
+          "title": "Definiendo endpoints REST",
+          "text": "@RestController combina @Controller y @ResponseBody: los objetos retornados se serializan a JSON automaticamente con Jackson. Los mapeos se declaran con @GetMapping, @PostMapping, @PutMapping, @DeleteMapping o el generico @RequestMapping. La inversion de dependencias permite que el controller delegue en un servicio y que la logica de negocio quede fuera de la capa web.",
+          "code": "@RestController\n@RequestMapping(\"/api/cuentas\")\npublic class CuentaController {\n    private final CuentaService cuentaService;\n\n    public CuentaController(CuentaService cuentaService) {\n        this.cuentaService = cuentaService;\n    }\n\n    @GetMapping(\"/{id}\")\n    public CuentaDto findById(@PathVariable(\"id\") Long id) {\n        return cuentaService.findById(id);\n    }\n\n    @PostMapping\n    public ResponseEntity<CuentaDto> crear(@Valid @RequestBody CuentaRequest req) {\n        CuentaDto created = cuentaService.crear(req);\n        return ResponseEntity.status(HttpStatus.CREATED).body(created);\n    }\n\n    @PutMapping(\"/{id}\")\n    public CuentaDto actualizar(@PathVariable Long id, @RequestBody CuentaRequest req) {\n        return cuentaService.actualizar(id, req);\n    }\n}"
+        },
+        {
+          "title": "Manejo de errores centralizado",
+          "text": "@RestControllerAdvice centraliza el manejo de errores en toda la aplicacion. Los metodos @ExceptionHandler capturan excepciones especificas y retornan respuestas con el codigo HTTP correcto. Devolver 200 siempre o excepciones HTTP crudas es una anti-practica. @ResponseStatus en una excepcion marca el codigo HTTP por defecto, pero tiene prioridad sobre el metodo si se combinan.",
+          "code": "@RestControllerAdvice\npublic class ErrorHandler {\n    @ExceptionHandler(CuentaNoEncontrada.class)\n    @ResponseStatus(HttpStatus.NOT_FOUND)\n    public ApiError handleNotFound(CuentaNoEncontrada ex) {\n        return new ApiError(\"CUENTA_NO_ENCONTRADA\", ex.getMessage());\n    }\n\n    @ExceptionHandler(MethodArgumentNotValidException.class)\n    @ResponseStatus(HttpStatus.BAD_REQUEST)\n    public Map<String, String> handleValidation(MethodArgumentNotValidException ex) {\n        Map<String, String> errors = new HashMap<>();\n        ex.getBindingResult().getFieldErrors()\n            .forEach(e -> errors.put(e.getField(), e.getDefaultMessage()));\n        return errors;\n    }\n}"
+        },
+        {
+          "title": "CORS y descarga de archivos",
+          "text": "@CrossOrigin configura CORS por controller o por metodo, controlando que origenes, metodos y headers son aceptados. ResponseEntity permite controlar el codigo HTTP, headers y body de la respuesta de forma programatica, siendo mas flexible que @ResponseStatus. Para descargar archivos se retorna un Resource con el header Content-Disposition.",
+          "code": "@CrossOrigin(origins = \"http://localhost:3000\", methods = RequestMethod.GET)\n@GetMapping(\"/api/cuentas\")\npublic List<CuentaDto> listar() {\n    return cuentaService.listar();\n}\n\n@GetMapping(\"/api/reportes/{id}/descarga\")\npublic ResponseEntity<Resource> descargar(@PathVariable Long id) {\n    Resource resource = reportService.generarPdf(id);\n    return ResponseEntity.ok()\n        .header(HttpHeaders.CONTENT_DISPOSITION,\n                \"attachment; filename=report.pdf\")\n        .body(resource);\n}"
+        }
       ]
     },
     {
@@ -71,6 +144,28 @@
         "@Component\n@ConditionalOnProperty(name = \"app.feature.cache\", havingValue = \"true\")\npublic class CacheConfig { ... }",
         "@Component\n@ConditionalOnBean(CacheManager.class)\npublic class CacheService { ... }",
         "@Component\n@ConditionalOnMissingBean(RedisConnectionFactory.class)\npublic class LocalCacheConfig { ... }"
+      ],
+      "sections": [
+        {
+          "title": "Activando profiles",
+          "text": "Los profiles segmentan la configuracion por entorno (dev, test, staging, production). Se pueden activar con spring.profiles.active en application.yml, la variable de entorno SPRING_PROFILES_ACTIVE, o el argumento de linea de comandos -Dspring.profiles.active=dev. Un documento YAML con separadores --- permite definir configuracion comun y especifica por profile en un solo archivo.",
+          "code": "# application.yml con multi-documento\nspring:\n  config:\n    activate:\n      on-profile: dev\nserver:\n  port: 8081\nlogging:\n  level:\n    root: DEBUG\n---\nspring:\n  config:\n    activate:\n      on-profile: prod\nserver:\n  port: 80\nmanagement:\n  server:\n    port: 9090\n\n# Activar desde linea de comandos:\n# java -jar app.jar -Dspring.profiles.active=prod"
+        },
+        {
+          "title": "@ConfigurationProperties tipado",
+          "text": "@ConfigurationProperties vincula un prefijo de yml/properties a un POJO tipado con validacion JSR 380, relax binding y soporte para objetos anidados. Se usa @EnableConfigurationProperties para registrar el POJO como bean y @Validated para activar la validacion. Relax binding acepta multiples formatos: app.mail.host, app.mail.host-name y APP_MAIL_HOST.",
+          "code": "@ConfigurationProperties(prefix = \"app.mail\")\n@Validated\npublic class MailProperties {\n    @NotBlank\n    private String host;\n    private int port = 587;\n    @Email\n    private String from;\n    private Map<String, String> headers = new HashMap<>();\n    private Security security = new Security();\n\n    // getters y setters\n\n    public static class Security {\n        private boolean startTls = true;\n        private String trust;\n        // getters y setters\n    }\n}"
+        },
+        {
+          "title": "Configuracion condicional con beans",
+          "text": "@ConditionalOnProperty registra un bean solo si una propiedad tiene un valor especifico. @ConditionalOnBean y @ConditionalOnMissingBean registran un bean solo si otro bean existe o no existe en el contexto, lo cual es fundamental para la autoconfiguracion de starters. @ConditionalOnClass registra un bean solo si una clase especifica esta en el classpath.",
+          "code": "@Component\n@ConditionalOnProperty(name = \"app.feature.cache\", havingValue = \"true\")\npublic class CacheConfig {\n    @Bean\n    public CacheManager cacheManager() {\n        return new ConcurrentMapCacheManager(\"users\", \"orders\");\n    }\n}\n\n@Component\n@ConditionalOnBean(CacheManager.class)\npublic class CacheService {\n    private final CacheManager cacheManager;\n    public CacheService(CacheManager cacheManager) {\n        this.cacheManager = cacheManager;\n    }\n}\n\n@Component\n@ConditionalOnMissingBean(RedisConnectionFactory.class)\npublic class LocalCacheConfig {\n    @Bean\n    public CacheManager localCacheManager() {\n        return new ConcurrentMapCacheManager();\n    }\n}"
+        },
+        {
+          "title": "Orden de precedencia de configuracion",
+          "text": "Spring Boot sigue un orden estricto de precedencia: argumentos de linea de comandos > variables de entorno > archivos externos (config/, application-{profile}.yml) > archivos internos (application.yml) > default properties. El bean Environment encapsula todas las propiedades y permite inyectarlo para acceder a cualquier valor de configuracion de forma programatica.",
+          "code": "@Component\npublic class ConfigPrinter {\n    private final Environment env;\n\n    public ConfigPrinter(Environment env) {\n        this.env = env;\n    }\n\n    @PostConstruct\n    void printConfig() {\n        System.out.println(\"Active profiles: \"\n            + String.join(\", \", env.getActiveProfiles()));\n        System.out.println(\"Server port: \"\n            + env.getProperty(\"server.port\", \"8080\"));\n        System.out.println(\"App name: \"\n            + env.getProperty(\"spring.application.name\", \"default\"));\n    }\n}"
+        }
       ]
     },
     {
@@ -85,6 +180,23 @@
         "@Service\npublic class PaymentProcessor {\n    private final TransactionTemplate txTemplate;\n    public PaymentProcessor(PlatformTransactionManager txManager) {\n        this.txTemplate = new TransactionTemplate(txManager);\n    }\n    public void procesar(Pago pago) {\n        txTemplate.executeWithoutResult(status -> {\n            paymentRepo.save(pago);\n            notificationService.enviar(pago);\n        });\n    }\n}",
         "@Component\npublic class OrderEventHandler {\n    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)\n    public void onOrderCreated(OrderCreatedEvent event) {\n        emailService.enviarConfirmacion(event.getOrderId());\n    }\n}",
         "@Service\npublic class ReportGenerator {\n    @Transactional(readOnly = true)\n    public List<Reporte> listarReportes() {\n        return reportRepo.findAll();\n    }\n}"
+      ],
+      "sections": [
+        {
+          "title": "Propagacion y aislamiento transaccional",
+          "text": "La propagacion define como se comporta una transaccion cuando ya existe otra activa. REQUIRED (default) se une a la existente; REQUIRES_NEW siempre crea una nueva suspendiendo la externa; NESTED anida con savepoints. El aislamiento controla visibilidad entre transacciones concurrentes: READ_COMMITTED, REPEATABLE_READ y SERIALIZABLE. readOnly optimiza para solo lectura y timeout define el limite antes de abortar.",
+          "code": "@Service\npublic class TransferService {\n    @Transactional(\n        propagation = Propagation.REQUIRED,\n        isolation = Isolation.READ_COMMITTED,\n        timeout = 30\n    )\n    public void transferir(Long origen, Long destino, BigDecimal monto) {\n        cuentaRepository.debitar(origen, monto);\n        cuentaRepository.acreditar(destino, monto);\n    }\n}\n\n@Service\npublic class AuditService {\n    @Transactional(propagation = Propagation.REQUIRES_NEW)\n    public void registrarAuditoria(String accion) {\n        auditRepo.save(new AuditLog(accion, LocalDateTime.now()));\n    }\n}"
+        },
+        {
+          "title": "Rollback y manejo de excepciones",
+          "text": "Por defecto, Spring revierte solo en RuntimeException y Error (excepciones unchecked). Checked exceptions como IOException NO provocan rollback a menos que se especifique: @Transactional(rollbackFor = Exception.class). El error mas comun en entrevistas es la self-invocation: si metodoA() llama a metodoB() ambos con @Transactional, solo A pasa por el proxy y la transaccion de B no se gestiona.",
+          "code": "@Transactional(rollbackFor = Exception.class)\npublic void procesarArchivo(File archivo) throws IOException {\n    List<Registro> registros = parser.parse(archivo);\n    for (Registro reg : registros) {\n        registroRepo.save(reg);\n    }\n}\n\n@Service\npublic class ReportService {\n    private final ReportService self;\n\n    public ReportService(@Lazy ReportService self) {\n        this.self = self;\n    }\n\n    public void generar() {\n        self.generarInterno(); // llamar al proxy, no this.generarInterno()\n    }\n\n    @Transactional(propagation = Propagation.REQUIRES_NEW)\n    public void generarInterno() { /* ... */ }\n}"
+        },
+        {
+          "title": "TransactionTemplate programatico",
+          "text": "TransactionTemplate es la forma programatica de gestionar transacciones: envuelve el codigo en una lambda y devuelve el resultado, permitiendo control fino del commit y rollback. Es util cuando la logica transaccional no se puede expresar declarativamente, como en iteraciones o condiciones complejas. @TransactionalEventListener escucha eventos de Spring y ejecuta el listener despues del commit.",
+          "code": "@Service\npublic class PaymentProcessor {\n    private final TransactionTemplate txTemplate;\n\n    public PaymentProcessor(PlatformTransactionManager txManager) {\n        this.txTemplate = new TransactionTemplate(txManager);\n    }\n\n    public void procesar(Pago pago) {\n        txTemplate.executeWithoutResult(status -> {\n            paymentRepo.save(pago);\n            notificationService.enviar(pago);\n        });\n    }\n}\n\n@Component\npublic class OrderEventHandler {\n    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)\n    public void onOrderCreated(OrderCreatedEvent event) {\n        emailService.enviarConfirmacion(event.getOrderId());\n    }\n}"
+        }
       ]
     },
     {
@@ -99,6 +211,28 @@
         "public interface CuentaProjection {\n    String getNumeroCuenta();\n    BigDecimal getSaldo();\n}\n// en el repositorio:\nList<CuentaProjection> findByEstado(EstadoCuenta estado);",
         "@EntityListeners(AuditingEntityListener.class)\npublic class Cuenta {\n    @CreatedDate\n    private LocalDateTime fechaCreacion;\n    @LastModifiedDate\n    private LocalDateTime fechaModificacion;\n    @CreatedBy\n    private String creadoPor;\n}",
         "public interface CuentaSpecs {\n    Specification<Cuenta> conSaldoMayorQue(BigDecimal minimo);\n    Specification<Cuenta> deEstado(EstadoCuenta estado);\n}\n// uso:\nrepo.findAll(Specs.conSaldoMayorQue(min).and(Specs.deEstado(ACTIVA)));"
+      ],
+      "sections": [
+        {
+          "title": "Repositorios y consultas derivadas",
+          "text": "Al definir una interfaz que extiende JpaRepository, Spring crea automaticamente una implementacion con operaciones CRUD basicas. Las consultas derivadas se definen con nombres de metodo que siguen una convencion: findByNombre, findByEdadGreaterThan, findByEstadoIn. Spring parsea el nombre y genera JPQL sin escribir una sola linea de SQL.",
+          "code": "public interface CuentaRepository extends JpaRepository<Cuenta, Long> {\n    List<Cuenta> findByEstado(EstadoCuenta estado);\n    Optional<Cuenta> findByNumeroCuenta(String numero);\n    List<Cuenta> findBySaldoGreaterThan(BigDecimal minimo);\n    List<Cuenta> findByNombreContainingIgnoreCase(String nombre);\n    List<Cuenta> findByEstadoIn(List<EstadoCuenta> estados);\n    boolean existsByNumeroCuenta(String numero);\n    long countByEstado(EstadoCuenta estado);\n}"
+        },
+        {
+          "title": "Consultas @Query JPQL y nativas",
+          "text": "Para consultas complejas se usa @Query: con JPQL (basado en entidades) o SQL nativo. @Param mapea los parametros del metodo a los placeholders. Las consultas derivadas generan JPQL, no SQL directo: los nombres de campos en el metodo deben coincidir con los atributos de la entidad, no con las columnas de la tabla.",
+          "code": "@Query(\"SELECT c FROM Cuenta c WHERE c.fechaApertura BETWEEN :inicio AND :fin\")\nList<Cuenta> findByRangoFechas(\n    @Param(\"inicio\") LocalDate inicio,\n    @Param(\"fin\") LocalDate fin\n);\n\n@Query(value = \"SELECT * FROM cuentas WHERE saldo > ?1\",\n       nativeQuery = true)\nList<Cuenta> cuentasConSaldoMayor(BigDecimal minimo);\n\n@Query(\"SELECT c FROM Cuenta c WHERE c.estado = :estado \"\n    + \"AND c.saldo > :minimo ORDER BY c.fechaApertura DESC\")\nList<Cuenta> buscarActivasConSaldo(\n    @Param(\"estado\") EstadoCuenta estado,\n    @Param(\"minimo\") BigDecimal minimo\n);"
+        },
+        {
+          "title": "Paginacion, sorting y proyecciones",
+          "text": "Page<T> retorna metadata adicional (total de paginas, total de elementos) y ejecuta una segunda consulta COUNT, mientras que List solo retorna los datos. Las proyecciones de interfaz permiten seleccionar campos especificos: Spring Data genera un proxy que solo expone esos campos, reduciendo el trafico con la base de datos.",
+          "code": "// Paginacion y sorting\nPage<Cuenta> findByEstado(EstadoCuenta estado, Pageable pageable);\n\nPage<Cuenta> page = repo.findByEstado(\n    ACTIVA,\n    PageRequest.of(0, 10, Sort.by(\"fechaApertura\").descending())\n);\nSystem.out.println(\"Pagina \" + page.getNumber() + \" de \" + page.getTotalPages());\n\n// Proyeccion de interfaz\npublic interface CuentaProjection {\n    String getNumeroCuenta();\n    BigDecimal getSaldo();\n}\n\nList<CuentaProjection> findByEstado(EstadoCuenta estado);"
+        },
+        {
+          "title": "Auditing y Specifications",
+          "text": "@CreatedDate, @LastModifiedDate, @CreatedBy y @LastModifiedBy son anotaciones de auditing que Spring Data rellena automaticamente. Se habilitan con @EnableJpaAuditing. Specifications permite construir consultas dinamicas de forma tipada: se componen predicados con .and(), .or() y .not(), ideal para filtros donde el usuario puede combinar multiples criterios.",
+          "code": "@EntityListeners(AuditingEntityListener.class)\npublic class Cuenta {\n    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)\n    private Long id;\n    private String numeroCuenta;\n\n    @CreatedDate\n    private LocalDateTime fechaCreacion;\n    @LastModifiedDate\n    private LocalDateTime fechaModificacion;\n    @CreatedBy\n    private String creadoPor;\n}\n\npublic interface CuentaSpecs {\n    Specification<Cuenta> conSaldoMayorQue(BigDecimal minimo);\n    Specification<Cuenta> deEstado(EstadoCuenta estado);\n}\n\nrepo.findAll(Specs.conSaldoMayorQue(min).and(Specs.deEstado(ACTIVA)));"
+        }
       ]
     },
     {
@@ -113,6 +247,28 @@
         "# informacion custom en /actuator/info\ninfo:\n  app:\n    name: Mi Aplicacion\n    version: 1.0.0\n  build:\n    artifact: my-app\n    group: com.example",
         "@Endpoint(id = \"cache-stats\")\npublic class CacheStatsEndpoint {\n    @ReadOperation\n    public Map<String, Object> stats() {\n        return Map.of(\"hits\", hitCount, \"misses\", missCount);\n    }\n}",
         "# Solo health e info por defecto (seguro para produccion)\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health,info"
+      ],
+      "sections": [
+        {
+          "title": "Endpoints comunes de monitorizacion",
+          "text": "Al agregar spring-boot-starter-actuator, la aplicacion expone endpoints bajo /actuator/. Los mas comunes son health (estado de la app y dependencias), info (informacion de la app), metrics (metricas de JVM y HTTP con Micrometer), beans (listado de beans del contexto) y mappings (mapeos de endpoints HTTP). Solo health e info estan habilitados por defecto.",
+          "code": "# application.yml\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health,info,metrics,beans,mappings\n  server:\n    port: 9090\n\n# La aplicacion principal sigue en :8080\n# Actuator se sirve en :9090"
+        },
+        {
+          "title": "Health indicators personalizados",
+          "text": "Los health indicators verifican la salud de partes especificas de la aplicacion. Spring Boot incluye indicadores para DataSource, Disco y Redis. Los custom se crean implementando HealthIndicator y devolviendo un objeto Health con estado UP o DOWN. Si algun indicador esta DOWN, el estado global de /actuator/health cambia a DOWN.",
+          "code": "@Component\npublic class DatabaseHealthIndicator implements HealthIndicator {\n    private final DataSource dataSource;\n\n    public DatabaseHealthIndicator(DataSource ds) {\n        this.dataSource = ds;\n    }\n\n    @Override\n    public Health health() {\n        try (Connection c = dataSource.getConnection()) {\n            return Health.up()\n                .withDetail(\"database\", \"accessible\")\n                .withDetail(\"version\", c.getMetaData().getDatabaseProductVersion())\n                .build();\n        } catch (SQLException e) {\n            return Health.down()\n                .withDetail(\"database\", e.getMessage())\n                .build();\n        }\n    }\n}"
+        },
+        {
+          "title": "Metricas con Micrometer",
+          "text": "Micrometer es el facade de metricas que usa Actuator: soporta multiples backends (Prometheus, Datadog, CloudWatch). Las custom metrics se registran con MeterRegistry: counter, gauge, timer y distribution summary son los tipos principales. Se pueden crear tags para filtrar metricas por dimensiones.",
+          "code": "@Component\npublic class CustomMetrics {\n    private final MeterRegistry registry;\n\n    public CustomMetrics(MeterRegistry registry) {\n        this.registry = registry;\n    }\n\n    public void registrarPedido(String tipo) {\n        registry.counter(\"pedidos.total\", \"tipo\", tipo).increment();\n    }\n\n    public void registrarTiempoProcesamiento(Duration duracion) {\n        registry.timer(\"pedidos.duracion\").record(duracion);\n    }\n\n    public void registrarCola(int tamanio) {\n        registry.gauge(\"pedidos.cola\", tamanio);\n    }\n}"
+        },
+        {
+          "title": "Endpoints personalizados",
+          "text": "@Endpoint y @WebEndpoint permiten crear endpoints Actuator personalizados: se anota un metodo con @ReadOperation, @WriteOperation o @DeleteOperation y se expone bajo /actuator/. Los info contributors personalizados agregan informacion a /actuator/info. En produccion se debe configurar management.endpoints.web.exposure.include para exponer solo los endpoints seguros.",
+          "code": "@Endpoint(id = \"cache-stats\")\npublic class CacheStatsEndpoint {\n    private long hitCount = 0;\n    private long missCount = 0;\n\n    @ReadOperation\n    public Map<String, Object> stats() {\n        double hitRate = hitCount == 0 ? 0.0\n            : (double) hitCount / (hitCount + missCount);\n        return Map.of(\n            \"hits\", hitCount,\n            \"misses\", missCount,\n            \"hitRate\", hitRate\n        );\n    }\n\n    @WriteOperation\n    public void resetStats() {\n        hitCount = 0;\n        missCount = 0;\n    }\n}"
+        }
       ]
     },
     {
@@ -127,6 +283,23 @@
         "@TestConfiguration\npublic class TestConfig {\n    @Bean\n    public Clock testClock() {\n        return Clock.fixed(Instant.parse(\"2024-01-15T10:00:00Z\"), ZoneId.of(\"UTC\"));\n    }\n}",
         "@JsonTest\npublic class CuentaDtoTest {\n    @Autowired private JacksonTester<CuentaDto> json;\n    @Test\n    void shouldSerialize() throws Exception {\n        CuentaDto dto = new CuentaDto(\"001\", ACTIVA, BigDecimal.TEN);\n        Assertions.assertThat(json.write(dto)).isEqualToJson(\"cuenta.json\");\n    }\n}",
         "@ActiveProfiles(\"test\")\n@SpringBootTest\nclass OrderServiceTest {\n    @MockBean private EmailService emailService;\n    @Autowired private OrderService orderService;\n    @Test\n    void shouldProcessOrder() {\n        orderService.process(new Order(\"item1\"));\n        verify(emailService).sendConfirmation(any());\n    }\n}"
+      ],
+      "sections": [
+        {
+          "title": "Test slices: contexto minimo",
+          "text": "@SpringBootTest carga el contexto completo (todos los beans, base de datos, servicios) y es ideal para tests de integracion. @WebMvcTest carga solo la capa web (controllers, filters, @ControllerAdvice) sin services ni repos. @DataJpaTest usa base de datos embebida con rollback automatico. @JsonTest carga solo el contexto de serializacion JSON con Jackson.",
+          "code": "@SpringBootTest\nclass CuentaServiceIntegrationTest {\n    @Autowired private CuentaService service;\n    @Autowired private CuentaRepository repo;\n\n    @Test\n    void shouldTransferir() {\n        Cuenta origen = repo.save(new Cuenta(\"001\", ACTIVA, new BigDecimal(\"1000\")));\n        Cuenta destino = repo.save(new Cuenta(\"002\", ACTIVA, new BigDecimal(\"500\")));\n        service.transferir(origen.getId(), destino.getId(), new BigDecimal(\"200\"));\n        assertThat(repo.findById(origen.getId()).get().getSaldo())\n            .isEqualByComparingTo(new BigDecimal(\"800\"));\n    }\n}\n\n@DataJpaTest\nclass CuentaRepositoryTest {\n    @Autowired private CuentaRepository repo;\n\n    @Test\n    void shouldFindByEstado() {\n        repo.save(new Cuenta(null, \"001\", ACTIVA, BigDecimal.TEN));\n        List<Cuenta> result = repo.findByEstado(ACTIVA);\n        assertThat(result).hasSize(1);\n    }\n}"
+        },
+        {
+          "title": "MockMvc para tests de controllers",
+          "text": "MockMvc testea endpoints REST sin levantar un servidor real. Se puede usar en modo standalone o inyectado via @AutoConfigureMockMvc en un @SpringBootTest. @MockBean agrega un mock al contexto de Spring, reemplazando el bean real. TestRestTemplate levanta la aplicacion completa y envia requests HTTP reales, siendo mas lento pero mas fiel.",
+          "code": "@WebMvcTest(CuentaController.class)\nclass CuentaControllerTest {\n    @Autowired private MockMvc mockMvc;\n    @MockBean private CuentaService cuentaService;\n\n    @Test\n    void shouldReturnCuenta() throws Exception {\n        when(cuentaService.findById(1L))\n            .thenReturn(new CuentaDto(\"001\", ACTIVA, BigDecimal.TEN));\n        mockMvc.perform(get(\"/api/cuentas/1\")\n                .contentType(MediaType.APPLICATION_JSON))\n            .andExpect(status().isOk())\n            .andExpect(jsonPath(\"$.numeroCuenta\").value(\"001\"))\n            .andExpect(jsonPath(\"$.estado\").value(\"ACTIVA\"));\n    }\n\n    @Test\n    void shouldReturn404WhenNotFound() throws Exception {\n        when(cuentaService.findById(99L))\n            .thenThrow(new CuentaNoEncontrada(99L));\n        mockMvc.perform(get(\"/api/cuentas/99\"))\n            .andExpect(status().isNotFound());\n    }\n}"
+        },
+        {
+          "title": "@MockBean, @SpyBean y @TestConfiguration",
+          "text": "@MockBean reemplaza el bean en el contexto de Spring (diferente de @Mock de Mockito que no interactua con Spring). @SpyBean crea un spy del bean real: intercepta llamadas pero delega en la implementacion por defecto. @TestConfiguration define beans adicionales que solo se cargan durante los tests, sin afectar el contexto de produccion.",
+          "code": "@ActiveProfiles(\"test\")\n@SpringBootTest\nclass OrderServiceTest {\n    @MockBean private EmailService emailService;\n    @SpyBean private AuditService auditService;\n    @Autowired private OrderService orderService;\n\n    @Test\n    void shouldProcessOrder() {\n        orderService.process(new Order(\"item1\"));\n        verify(emailService).sendConfirmation(any());\n        verify(auditService).registrar(anyString());\n    }\n}\n\n@TestConfiguration\npublic class TestConfig {\n    @Bean\n    public Clock testClock() {\n        return Clock.fixed(\n            Instant.parse(\"2024-01-15T10:00:00Z\"),\n            ZoneId.of(\"UTC\")\n        );\n    }\n}"
+        }
       ]
     }
   ],

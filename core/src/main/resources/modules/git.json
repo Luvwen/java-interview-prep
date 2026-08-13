@@ -15,6 +15,33 @@
         "git add -p src/Service.java   # agregar solo algunos hunks al staging",
         "git commit --amend -m \"Fix npe on login with null check\"   # corregir el ultimo commit",
         "git rm --cached config/secrets.properties   # dejar de rastrear un archivo sin borrarlo"
+      ],
+      "sections": [
+        {
+          "title": "Las tres areas de Git",
+          "text": "Git gestiona el estado de los archivos en tres areas: el working directory donde editas, el staging area (index) donde preparas cambios para commit, y el repositorio local donde se guardan los commits. Comprender esta separacion es clave para evitar confusiones en entrevistas, ya que git add mueve archivos de working a staging, no los confirma.",
+          "code": "# Ver el estado actual de los archivos\ngit status\n\n# Modificar un archivo\necho \"public class Main {}\" > src/Main.java\n\n# Mover cambios al staging area\ngit add src/Main.java\n\n# Confirmar los cambios (instantanea del repositorio)\ngit commit -m \"feat: add Main entry point\""
+        },
+        {
+          "title": "Flujo basico de trabajo",
+          "text": "El flujo tipico es: modificar archivos, agregarlos al staging con git add, confirmar con git commit y subir al remoto con git push. Cada commit es un snapshot completo del repositorio en ese momento, no un diff. El SHA-1 del commit depende de su contenido, su padre y el arbol de archivos.",
+          "code": "# Flujo completo de una modificacion\ngit status                           # ver archivos modificados\ngit add src/Main.java                # preparar el cambio\ngit commit -m \"Fix null pointer on login\"  # crear el commit\ngit push origin main                 # subir al remoto"
+        },
+        {
+          "title": "Mensajes de commit y Conventional Commits",
+          "text": "Los mensajes deben ser descriptivos y escritos en imperativo. Muchas organizaciones siguen Conventional Commits con prefijos como feat:, fix: o chore:. Un buen mensaje cuenta que cambio y por que, facilitando el seguimiento historico y la generacion automatica de changelogs.",
+          "code": "# Convenciones de mensajes de commit\nfeat: add user authentication endpoint\nfix: resolve null pointer on login\nchore: update Maven dependencies\ndocs: improve API documentation\nrefactor: extract validation logic\n\n# Ejemplo practico\ngit commit -m \"feat: add user authentication endpoint\"\ngit commit -m \"fix: resolve null pointer on login\"\ngit commit -m \"chore: update Maven dependencies\""
+        },
+        {
+          "title": ".gitignore y archivos rastreados",
+          "text": "El archivo .gitignore usa patrones glob para excluir archivos del rastreo: * coincide cualquier cadena y ** coincide directorios anidados. Sin embargo, un archivo ya rastreado no se ignora aunque este en .gitignore; primero hay que ejecutar git rm --cached para dejar de rastrearlo sin borrarlo del disco.",
+          "code": "# Contenido tipico de .gitignore\ntarget/\nnode_modules/\n*.log\n.idea/\n*.class\n\n# Dejar de rastrear un archivo que ya esta en el repositorio\ngit rm --cached config/secrets.properties\n\n# Commits atomicos con git add -p (elegir hunks especificos)\ngit add -p src/Service.java"
+        },
+        {
+          "title": "Amend y correcciones",
+          "text": "El comando git commit --amend reemplaza el ultimo commit con uno nuevo, util para corregir mensajes de commit o agregar archivos que se olvidaron antes de push. No usar en ramas compartidas porque reescribe el historial.",
+          "code": "# Corregir el mensaje del ultimo commit\ngit commit --amend -m \"Fix npe on login with null check\"\n\n# Agregar un archivo olvidado al ultimo commit\ngit add src/Validator.java\ngit commit --amend --no-edit\n\n# Verificar que el commit quedo correcto\ngit log --oneline -3"
+        }
       ]
     },
     {
@@ -29,6 +56,33 @@
         "git cherry-pick abc1234   # aplicar un commit especifico sobre la rama actual",
         "git rebase -i HEAD~3   # interactivo: reordenar, squashear o editar los ultimos 3 commits",
         "git merge --no-ff feature/login   # forzar merge commit incluso en fast-forward"
+      ],
+      "sections": [
+        {
+          "title": "Crear y gestionar ramas",
+          "text": "Crear una rama en Git es simplemente mover un puntero a un commit; es una operacion instantanea y liviana. El flujo tipico es crear una rama feature, trabajar en ella y luego integrarla a main. git switch es la forma moderna de cambiar de rama, reemplazando a git checkout para esta tarea.",
+          "code": "# Crear y cambiar a una nueva rama\ngit branch feature/login\ngit switch feature/login\n\n# Crear rama y cambiar en un solo paso\ngit checkout -b feature/login\n\n# Subir la rama al remoto y configurar upstream\ngit push -u origin feature/login\n\n# Listar ramas\ngit branch              # ramas locales\ngit branch -r           # ramas remotas\ngit branch -a           # todas las ramas"
+        },
+        {
+          "title": "Merge y fast-forward",
+          "text": "git merge integra los cambios de otra rama a la actual. Si la rama destino no tiene commits nuevos desde que se bifurco, ocurre un fast-forward (solo se mueve el puntero). Si hay commits en ambos lados, se crea un merge commit que une las historias. Con --no-ff se fuerza un merge commit incluso en fast-forward.",
+          "code": "# Merge con fast-forward (cuando es posible)\ngit switch main\ngit merge feature/login\n\n# Forzar merge commit siempre\ngit merge --no-ff feature/login\n\n# Ver el grafo de historial\ngit log --oneline --graph --all\n\n# Resultado tipico:\n# *   Merge commit\n# |\\\n# | * feat: add login form\n# | * feat: add login endpoint\n# * | fix: typo in README\n# |/  *"
+        },
+        {
+          "title": "Resolver conflictos de merge",
+          "text": "Cuando dos ramas modifican las mismas lineas de un archivo, Git no puede resolver automaticamente y marca un conflicto con los marcadores <<<<<<<, ======= y >>>>>>>. La resolucion consiste en editar el archivo para decidir que contenido conservar, eliminar los marcadores, agregar con git add y confirmar con git commit.",
+          "code": "# Intentar merge que produce conflicto\ngit merge feature/login\n# CONFLICT (content): Merge conflict in src/UserService.java\n\n# Abrir el archivo conflictivo y ver los marcadores:\n# <<<<<<< HEAD\n#     return authenticate(user, password);\n# =======\n#     return authenticate(user, token);\n# >>>>>>> feature/login\n\n# Resolver: editar el archivo, elegir el contenido correcto\n# Luego:\ngit add src/UserService.java\ngit commit -m \"resolve merge conflict in UserService\""
+        },
+        {
+          "title": "Rebase e historial limpio",
+          "text": "git rebase reaplica los commits de una rama sobre la punta de otra, creando una linea historica lineal y limpia. A diferencia de merge, no preserva el contexto de las ramas bifurcadas. La regla de oro es no rebasear ramas compartidas porque reescribe hashes. git rebase -i permite reordenar, squashear o editar commits.",
+          "code": "# Rebase feature sobre main para historial limpio\ngit switch feature/login\ngit rebase main\n\n# Rebase interactivo: reordenar, squashear o editar\ngit rebase -i HEAD~3\n# pick abc1234 feat: add login form\n# squash def5678 fix: validation in login\n# pick ghi9012 feat: add logout button\n\n# Despues de rebase, push con force (solo ramas personales)\ngit push --force-with-lease origin feature/login"
+        },
+        {
+          "title": "Cherry-pick y revert",
+          "text": "git cherry-pick aplica un commit especifico sobre la rama actual sin traer toda la rama original, util para portar un fix urgente. git revert crea un nuevo commit que deshace los cambios de un commit existente, la forma segura de deshacer cambios en ramas compartidas porque no reescribe historial.",
+          "code": "# Portar un fix especifico a la rama actual\ngit cherry-pick abc1234\n\n# Deshacer un commit de forma segura (crea un nuevo commit)\ngit revert abc1234\n\n# Revert de un merge commit\ngit revert -m 1 def5678\n\n# Ver los commits de una rama\ngit log --oneline feature/login"
+        }
       ]
     },
     {
@@ -43,6 +97,28 @@
         "git stash -m \"WIP: refactor del servicio de auth\"   # stash con descripcion",
         "git bisect start && git bisect bad HEAD && git bisect good v1.2.0   # encontrar el commit con bug",
         "git log --oneline --since=\"2 weeks ago\"   # commits de las ultimas 2 semanas"
+      ],
+      "sections": [
+        {
+          "title": "Pull requests y code review",
+          "text": "Un pull request es una propuesta de cambio que se discute y valida antes de integrar al codigo principal. Las buenas practicas incluyen: rama por feature, commits pequenos, PR pequeno con descripcion clara, y code review obligatorio. La CI ejecuta lint, tests y build en cada PR; el codigo se integra solo cuando todo pasa.",
+          "code": "# Crear feature y subir para PR\ngit checkout -b feature/add-search\ngit add . && git commit -m \"feat: add search endpoint\"\ngit push -u origin feature/add-search\n\n# Luego crear PR en GitHub/GitLab con:\n# - Titulo descriptivo\n# - Descripcion del cambio\n# - Reviewers asignados\n# - Checks de CI pasando"
+        },
+        {
+          "title": "Git stash para cambiar de contexto",
+          "text": "git stash guarda los cambios del working directory y el staging sin hacer commit, permitiendo cambiar de contexto rapidamente. git stash pop aplica y elimina el stash, mientras que git stash apply lo aplica sin eliminar. Se pueden nombrar stashes con -m para identificarlos facilmente.",
+          "code": "# Guardar cambios pendientes\ngit stash -m \"WIP: refactor del servicio de auth\"\n\n# Cambiar a otra rama para un fix urgente\ngit switch main\ngit checkout -b hotfix/null-check\n# ... hacer el fix ...\ngit commit -am \"fix: null check in UserService\"\n\n# Volver a la feature y restaurar\ngit switch feature/auth-refactor\ngit stash pop\n\n# Ver todos los stashes\ngit stash list\n# stash@{0}: On feature/auth-refactor: WIP: refactor del servicio de auth"
+        },
+        {
+          "title": "Git bisect para encontrar bugs",
+          "text": "git bisect usa busqueda binaria para encontrar que commit introdujo un bug, reduciendo el tiempo de investigacion dramaticamente. Se marca un commit conocido como malo (bad) y otro conocido como bueno (good), y Git va saltando entre commits para aislar el problematico. Es especialmente util en historiales largos.",
+          "code": "# Iniciar busqueda binaria\ngit bisect start\n\n# Marcar commit actual como malo\ngit bisect bad HEAD\n\n# Marcar un commit conocido bueno\ngit bisect good v1.2.0\n\n# Git checkouta un commit intermedio; probar:\ngit bisect good   # o\ngit bisect bad\n\n# Repetir hasta que Git identifique el commit culpable\n# Bisect: abc1234 is the first bad commit\n\n# Volver a la rama original\ngit bisect reset"
+        },
+        {
+          "title": "GitFlow vs GitHub Flow",
+          "text": "GitFlow define ramas main, develop, feature, release y hotfix con reglas estrictas de fusion, ideal para proyectos con ciclos de release planificados. GitHub Flow es mas ligero: solo main y ramas de feature con PR, ideal para despliegue continuo. La eleccion depende del ritmo de release del equipo.",
+          "code": "# GitHub Flow (simple)\n# 1. Crear rama desde main\n# 2. Hacer commits\n# 3. Abrir PR\n# 4. Code review + CI\n# 5. Merge a main\n# 6. Deploy automatico\n\n# GitFlow (pesado)\n# main (produccion) <- release/v1.0\n# develop (integracion) <- feature/login\n# feature/* -> develop\n# release/* -> main + develop\n# hotfix/* -> main + develop\n\n# Log de ramas en un proyecto GitFlow\ngit log --oneline --graph --all --decorate"
+        }
       ]
     },
     {
@@ -57,6 +133,28 @@
         "git reflog   # ver historial de movimientos del HEAD",
         "git commit -S -m \"feat: add signed commit support\"   # commit firmado con GPG",
         "git remote prune origin   # eliminar referencias a ramas remotas eliminadas"
+      ],
+      "sections": [
+        {
+          "title": "Clone, fetch, pull y push",
+          "text": "git clone copia un repositorio completo incluyendo su historia. git fetch trae los cambios del remoto sin aplicarlos al working tree. git pull es fetch + merge (o fetch + rebase con --rebase). git push sube commits locales al remoto. La diferencia clave entre fetch y pull es que pull modifica el working tree, fetch solo actualiza las referencias remotas.",
+          "code": "# Clonar un repositorio\ngit clone https://github.com/usuario/proyecto.git\n\n# Solo descargar cambios sin aplicar\ngit fetch origin\n\n# Descargar y aplicar cambios\ngit pull origin main\n\n# Reaplicar commits locales sobre el remoto\ngit pull --rebase origin main\n\n# Subir commits al remoto\ngit push origin feature/login\n\n# Subir nueva rama y configurar upstream\ngit push -u origin feature/search"
+        },
+        {
+          "title": "Gestion de remotos",
+          "text": "git remote administra las conexiones con repositorios remotos. git remote -v muestra las URLs asociadas, git remote add agrega un nuevo remoto y git remote prune elimina referencias a ramas remotas que ya no existen. Tener multiples remotes es comun para contribuir a proyectos open source.",
+          "code": "# Ver remotos configurados\ngit remote -v\n# origin  https://github.com/user/repo.git (fetch)\n# origin  https://github.com/user/repo.git (push)\n\n# Agregar un segundo remoto (upstream del proyecto original)\ngit remote add upstream https://github.com/original/proyecto.git\n\n# Sincronizar con upstream\ngit fetch upstream\ngit merge upstream/main\n\n# Limpiar referencias a ramas remotas eliminadas\ngit remote prune origin"
+        },
+        {
+          "title": "Reflog: recuperar commits perdidos",
+          "text": "git reflog registra todos los movimientos del HEAD, incluyendo resets, amends y checkouts. Si se ejecuta un git reset --hard y se pierden commits, reflog permite recuperarlos mostrando el hash anterior. Es una red de seguridad que registra cada cambio de puntero del HEAD.",
+          "code": "# Ver el historial de movimientos del HEAD\ngit reflog\n# abc1234 HEAD@{0}: commit: feat: add login\ndef5678 HEAD@{1}: reset: moving to HEAD~2\nghi9012 HEAD@{2}: commit: feat: add search\n\n# Recuperar un commit despues de reset --hard\ngit reset --hard abc1234\n\n# O crear una rama desde el commit recuperado\ngit branch recover-branch ghi9012\n\n# Tambien funciona para recuperar amends\ngit reflog\n# jkl0123 HEAD@{0}: commit (amend): fix: update message"
+        },
+        {
+          "title": "Signed commits y submodulos",
+          "text": "Los signed commits usan GPG para firmar la identidad del autor, verificando que el commit realmente proviene de quien dice ser. git commit -S crea un commit firmado. Los submodulos permiten incrustar un repositorio dentro de otro, util para dependencias propias pero dificultan la colaboracion porque requieren init y update separados.",
+          "code": "# Configurar firma GPG\ngit config --global user.signingkey ABCD1234\n\n# Crear commit firmado\ngit commit -S -m \"feat: add signed commit support\"\n\n# Verificar firmas\ngit log --show-signature\n\n# --- Submodulos ---\n# Agregar un repositorio como submodulo\ngit submodule add https://github.com/lib/utils.git libs/utils\n\n# Clonar un repositorio con submodulos\ngit clone --recursive https://github.com/user/proyecto.git\n\n# Actualizar submodulos existentes\ngit submodule update --init --recursive"
+        }
       ]
     }
   ],

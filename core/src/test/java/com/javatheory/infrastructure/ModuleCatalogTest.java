@@ -22,8 +22,8 @@ class ModuleCatalogTest {
         List<Module> modules = loader.loadAll();
         assertEquals(14, modules.size());
         assertEquals(List.of("core-java", "poo", "collections", "streams",
-                "concurrency", "jvm", "sql-jdbc", "spring", "testing",
-                "design-patterns", "rest-http", "git", "code-fill", "bug-hunt"),
+                "concurrency", "jvm", "testing", "sql-jdbc", "rest-http",
+                "spring", "design-patterns", "git", "code-fill", "bug-hunt"),
                 modules.stream().map(Module::id).toList());
     }
 

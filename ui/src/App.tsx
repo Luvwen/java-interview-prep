@@ -21,6 +21,7 @@ import {
   Trophy,
   Code2,
   Bug,
+  Briefcase,
 } from "lucide-react";
 import CatalogPage from "./pages/CatalogPage";
 import ModulePage from "./pages/ModulePage";
@@ -34,6 +35,7 @@ import ExamPage from "./pages/ExamPage";
 import StatisticsPage from "./pages/StatisticsPage";
 import CodeFillPage from "./pages/CodeFillPage";
 import BugHuntPage from "./pages/BugHuntPage";
+import RealWorldPage from "./pages/RealWorldPage";
 import { useNavigation, type NavState } from "./useNavigation";
 import { colors } from "./colors";
 
@@ -95,6 +97,15 @@ function App() {
             </Button>
             <Button
               size="sm"
+              variant={view === "real-world" ? "solid" : "ghost"}
+              color={view === "real-world" ? "white" : colors.textMuted}
+              onClick={() => go({ view: "real-world", moduleId: null })}
+              leftIcon={<Briefcase size={16} />}
+            >
+              Casos Reales
+            </Button>
+            <Button
+              size="sm"
               variant={view === "progress" ? "solid" : "ghost"}
               color={view === "progress" ? "white" : colors.textMuted}
               onClick={() => go({ view: "progress", moduleId: null })}
@@ -151,6 +162,7 @@ function App() {
           {view === "code-fill" && <CodeFillPage onExit={() => go({ view: "activities", moduleId: null })} />}
           {view === "bug-hunt" && <BugHuntPage onExit={() => go({ view: "activities", moduleId: null })} />}
           {view === "statistics" && <StatisticsPage onOpenModule={openModule} />}
+          {view === "real-world" && <RealWorldPage onExit={() => go({ view: "catalog", moduleId: null })} />}
           {view === "progress" && <ProgressPage onOpenModule={openModule} />}
         </Box>
       </Container>

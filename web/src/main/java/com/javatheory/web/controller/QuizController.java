@@ -67,10 +67,7 @@ public class QuizController {
 
     private QuizResponse toResponse(Quiz quiz) {
         List<QuizQuestionDto> questions = quiz.questions().stream()
-                .map(question -> new QuizQuestionDto(question.id(), question.text(),
-                        question.options(), question.type(),
-                        question.codeTemplate(), question.blanks(), question.code(),
-                        question.difficulty(), question.moduleId()))
+                .map(QuizQuestionDto::fromQuestion)
                 .toList();
         return new QuizResponse(quiz.id(), questions);
     }

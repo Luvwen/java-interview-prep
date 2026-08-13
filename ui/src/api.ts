@@ -4,6 +4,7 @@ import type {
   Progress,
   Quiz,
   QuizResult,
+  RealWorldCase,
 } from "./types";
 
 export class ApiError extends Error {
@@ -71,16 +72,19 @@ export const api = {
     moduleIds: string[],
     answers: number[][],
     durationSeconds?: number,
-    textAnswers?: Record<string, string[]>
+    textAnswers?: Record<string, string[]>,
+    questionIds?: string[]
   ) =>
     request<QuizResult>("/api/quiz/submit", {
       method: "POST",
-      body: JSON.stringify({ quizId, moduleIds, answers, durationSeconds, textAnswers: textAnswers ?? null }),
+      body: JSON.stringify({ quizId, moduleIds, answers, durationSeconds, textAnswers: textAnswers ?? null, questionIds: questionIds ?? null }),
     }),
 
   getStats: () => request<Record<string, ModuleStats>>("/api/stats"),
 
   getStreak: () => request<{ current: number; lastDate: string | null }>("/api/streak"),
+
+  fetchRealWorldCases: () => request<RealWorldCase[]>("/api/real-world"),
 };
 
 interface ModuleStats {

@@ -16,6 +16,7 @@ function MixedQuizPage({ onExit }: { onExit: () => void }) {
   const [count, setCount] = useState(5);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selected, setSelected] = useState<number[][]>([]);
+  const [codeFillAnswers, setCodeFillAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +39,7 @@ function MixedQuizPage({ onExit }: { onExit: () => void }) {
       const q = await api.getMixedQuiz(selectedModules, count);
       setQuiz(q);
       setSelected(q.questions.map((question) => question.type === "ORDER" ? question.options.map((_, i) => i) : []));
+      setCodeFillAnswers({});
     } catch (err) {
       if (err instanceof ApiError) setErrorStatus(err.status);
       else setError((err as Error).message);
@@ -49,16 +51,28 @@ function MixedQuizPage({ onExit }: { onExit: () => void }) {
     const type = quiz.questions[questionIndex].type;
     setSelected((prev) => {
       const next = prev.map((q) => [...q]);
-      if (type === "SINGLE" || type === "TRUE_FALSE") next[questionIndex] = [optionIndex];
+      if (type === "SINGLE" || type === "TRUE_FALSE" || type === "BUG_HUNT") next[questionIndex] = [optionIndex];
       else { const c = next[questionIndex]; next[questionIndex] = c.includes(optionIndex) ? c.filter((i) => i !== optionIndex) : [...c, optionIndex]; }
       return next;
     });
   };
 
+  const handleCodeFillChange = (questionId: string, answers: string[]) => {
+    setCodeFillAnswers((prev) => ({ ...prev, [questionId]: answers }));
+  };
+
   const submit = async () => {
     if (!quiz) return;
     setLoading(true);
-    try { setResult(await api.submitQuizV2(quiz.id, selectedModules, selected)); }
+    try {
+      const textAnswers: Record<string, string[]> = {};
+      for (const q of quiz.questions) {
+        if (q.type === "CODE_FILL" && codeFillAnswers[q.id]) {
+          textAnswers[q.id] = codeFillAnswers[q.id];
+        }
+      }
+      setResult(await api.submitQuizV2(quiz.id, selectedModules, selected, undefined, textAnswers));
+    }
     catch (err) { if (err instanceof ApiError) setErrorStatus(err.status); else setError((err as Error).message); }
     finally { setLoading(false); }
   };
@@ -78,7 +92,14 @@ function MixedQuizPage({ onExit }: { onExit: () => void }) {
   }
 
   if (quiz) {
-    const answeredAll = selected.every((q) => q.length > 0);
+    const answeredAll = quiz.questions.every((q, i) => {
+      if (q.type === "ORDER") return true;
+      if (q.type === "CODE_FILL") {
+        const ans = codeFillAnswers[q.id];
+        return ans && ans.length === (q.blanks?.length ?? 0) && ans.every((a) => a.trim() !== "");
+      }
+      return selected[i].length > 0;
+    });
     return (
       <Box>
         <Button variant="ghost" color={colors.accent} leftIcon={<ArrowLeft size={16} />} onClick={onExit} mb={4} size="sm">Salir</Button>
@@ -95,6 +116,8 @@ function MixedQuizPage({ onExit }: { onExit: () => void }) {
               onOrderChange={(order) => {
                 setSelected((prev) => { const next = [...prev]; next[qIndex] = order; return next; });
               }}
+              onCodeFillChange={handleCodeFillChange}
+              codeFillAnswers={codeFillAnswers[question.id]}
             />
           ))}
         </VStack>

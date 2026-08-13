@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/quiz")
@@ -60,6 +61,13 @@ public class QuizActivityController {
         Quiz quiz = resolveQuiz(request, mode);
         if (quiz == null) {
             return ResponseEntity.badRequest().build();
+        }
+
+        if (request.questionIds() != null && !request.questionIds().isEmpty()) {
+            List<Question> filtered = quiz.questions().stream()
+                    .filter(q -> request.questionIds().contains(q.id()))
+                    .collect(Collectors.toList());
+            quiz = new Quiz(quiz.id(), filtered);
         }
 
         List<List<Integer>> raw = request.answers() != null ? request.answers() : List.of();
@@ -117,10 +125,7 @@ public class QuizActivityController {
 
     private QuizResponse toResponse(Quiz quiz) {
         List<QuizQuestionDto> questions = quiz.questions().stream()
-                .map(question -> new QuizQuestionDto(question.id(), question.text(),
-                        question.options(), question.type(),
-                        question.codeTemplate(), question.blanks(), question.code(),
-                        question.difficulty(), question.moduleId()))
+                .map(QuizQuestionDto::fromQuestion)
                 .toList();
         return new QuizResponse(quiz.id(), questions);
     }

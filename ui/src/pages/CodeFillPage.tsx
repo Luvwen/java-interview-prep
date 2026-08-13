@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Box, Button, Heading, Text, VStack, Spinner, HStack, Wrap, WrapItem, Tag,
 } from "@chakra-ui/react";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, XCircle } from "lucide-react";
 import { api } from "../api";
 import { colors } from "../colors";
 import type { Quiz, QuizResult } from "../types";
@@ -24,11 +24,11 @@ const THEORY_MODULES = [
   { id: "streams", label: "Streams" },
   { id: "concurrency", label: "Concurrencia" },
   { id: "jvm", label: "JVM" },
-  { id: "sql-jdbc", label: "SQL/JDBC" },
-  { id: "spring", label: "Spring" },
   { id: "testing", label: "Testing" },
-  { id: "design-patterns", label: "Patrones" },
+  { id: "sql-jdbc", label: "SQL/JDBC" },
   { id: "rest-http", label: "REST/HTTP" },
+  { id: "spring", label: "Spring" },
+  { id: "design-patterns", label: "Patrones" },
   { id: "git", label: "Git" },
 ];
 
@@ -39,6 +39,8 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [blankCorrectness, setBlankCorrectness] = useState<boolean[]>([]);
 
   const [difficulty, setDifficulty] = useState<string>("easy");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
@@ -146,27 +148,49 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
   };
 
   const nextQuestion = () => {
-    if (current + 1 < quiz.questions.length) {
-      setCurrent(current + 1);
+    if (showFeedback) {
+      setShowFeedback(false);
+      setBlankCorrectness([]);
+      if (current + 1 < quiz.questions.length) {
+        setCurrent(current + 1);
+      }
+    } else {
+      const correctness = (question.blanks ?? []).map((expected, i) => {
+        const userVal = (currentAnswers[i] ?? "").trim().toLowerCase();
+        return expected.trim().toLowerCase() === userVal;
+      });
+      setBlankCorrectness(correctness);
+      setShowFeedback(true);
     }
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (current + 1 < quiz.questions.length) {
+      if (showFeedback) {
+        nextQuestion();
+      } else if (current + 1 < quiz.questions.length) {
         nextQuestion();
       }
     }
   };
 
   const prevQuestion = () => {
-    if (current > 0) {
+    if (current > 0 && !showFeedback) {
       setCurrent(current - 1);
     }
   };
 
   const submit = async () => {
+    if (!showFeedback) {
+      const correctness = (question.blanks ?? []).map((expected, i) => {
+        const userVal = (currentAnswers[i] ?? "").trim().toLowerCase();
+        return expected.trim().toLowerCase() === userVal;
+      });
+      setBlankCorrectness(correctness);
+      setShowFeedback(true);
+      return;
+    }
     setSubmitting(true);
     try {
       const textAnswers: Record<string, string[]> = {};
@@ -176,7 +200,7 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
         }
       }
       const answers = quiz.questions.map(() => []);
-      setResult(await api.submitQuizV2(quiz.id, [MODULE_ID], answers, undefined, textAnswers));
+      setResult(await api.submitQuizV2(quiz.id, [MODULE_ID], answers, undefined, textAnswers, quiz.questions.map(q => q.id)));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -189,7 +213,7 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
       <QuizFeedback
         title="Rellenar Codigo - Resultado"
         result={result}
-        onRetry={() => { setResult(null); setCurrent(0); setStarted(false); setQuiz(null); }}
+        onRetry={() => { setResult(null); setCurrent(0); setCodeFillAnswers({}); setStarted(false); setQuiz(null); setShowFeedback(false); setBlankCorrectness([]); }}
         onExit={onExit}
       />
     );
@@ -222,37 +246,76 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
 
         <Box mt={4}>
           <Text fontSize="sm" color={colors.textMuted} mb={2} fontWeight={600}>
-            Tus respuestas:
+            {showFeedback ? "Resultado:" : "Tus respuestas:"}
           </Text>
           <VStack align="stretch" spacing={2}>
-            {Array.from({ length: blankCount }).map((_, i) => (
-              <HStack key={i} spacing={3}>
-                <Text fontSize="sm" color={colors.textMuted} minW="80px">
-                  Blank {i + 1}:
-                </Text>
-                <Box
-                  as="input"
-                  flex={1}
-                  value={currentAnswers[i] ?? ""}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleBlankChange(i, e.target.value)}
-                  onKeyDown={handleInputKeyDown}
-                  bg="gray.800"
-                  color="green.300"
-                  border="1px solid"
-                  borderColor="gray.600"
-                  borderRadius="6px"
-                  px={3}
-                  py={2}
-                  fontFamily="monospace"
-                  fontSize="sm"
-                  _focus={{ borderColor: colors.accent, outline: "none" }}
-                />
-              </HStack>
-            ))}
+            {Array.from({ length: blankCount }).map((_, i) => {
+              const isCorrect = showFeedback ? (blankCorrectness[i] ?? false) : null;
+              let inputBg = "gray.800";
+              let inputBorder = "gray.600";
+              if (showFeedback) {
+                if (isCorrect) {
+                  inputBg = "rgba(55, 195, 138, 0.15)";
+                  inputBorder = colors.success;
+                } else {
+                  inputBg = "rgba(229, 83, 75, 0.15)";
+                  inputBorder = colors.error;
+                }
+              }
+              return (
+                <HStack key={i} spacing={3}>
+                  <Text fontSize="sm" color={colors.textMuted} minW="80px">
+                    Blank {i + 1}:
+                  </Text>
+                  <Box
+                    as="input"
+                    flex={1}
+                    value={currentAnswers[i] ?? ""}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleBlankChange(i, e.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    bg={inputBg}
+                    color="green.300"
+                    border="1px solid"
+                    borderColor={inputBorder}
+                    borderRadius="6px"
+                    px={3}
+                    py={2}
+                    fontFamily="monospace"
+                    fontSize="sm"
+                    disabled={showFeedback}
+                    _focus={{ borderColor: colors.accent, outline: "none" }}
+                  />
+                  {showFeedback && isCorrect && <CheckCircle size={18} color={colors.success} />}
+                  {showFeedback && !isCorrect && <XCircle size={18} color={colors.error} />}
+                  {showFeedback && !isCorrect && (
+                    <Text fontSize="xs" color={colors.textMuted} fontStyle="italic">
+                      {question.blanks?.[i]}
+                    </Text>
+                  )}
+                </HStack>
+              );
+            })}
           </VStack>
         </Box>
 
-        {question.explanation && (
+        {showFeedback && (
+          <Box
+            mt={4}
+            p={3}
+            bg={blankCorrectness.every(Boolean) ? "rgba(55, 195, 138, 0.1)" : "rgba(229, 83, 75, 0.1)"}
+            border="1px solid"
+            borderColor={blankCorrectness.every(Boolean) ? colors.success : colors.error}
+            borderRadius="8px"
+          >
+            <Text fontSize="sm" fontWeight="600" color={blankCorrectness.every(Boolean) ? colors.success : colors.error}>
+              {blankCorrectness.every(Boolean)
+                ? "Correcta!"
+                : `Incorrecta - ${blankCorrectness.filter(Boolean).length} de ${blankCorrectness.length} blanks correctos`}
+            </Text>
+          </Box>
+        )}
+
+        {showFeedback && question.explanation && (
           <Box mt={4} p={3} bg="gray.800" borderRadius="8px">
             <Text fontSize="sm" color={colors.textMuted}>
               <strong style={{ color: colors.accent }}>Explicacion:</strong> {question.explanation}
@@ -262,12 +325,12 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
       </Box>
 
       <HStack spacing={3}>
-        <Button variant="outline" isDisabled={current === 0} onClick={prevQuestion}>
+        <Button variant="outline" isDisabled={current === 0 || showFeedback} onClick={prevQuestion}>
           Anterior
         </Button>
         {current + 1 < quiz.questions.length ? (
           <Button colorScheme="blue" onClick={nextQuestion}>
-            Siguiente
+            {showFeedback ? "Siguiente" : "Verificar"}
           </Button>
         ) : (
           <Button
@@ -276,7 +339,7 @@ function CodeFillPage({ onExit }: { onExit: () => void }) {
             isLoading={submitting}
             onClick={submit}
           >
-            Enviar respuestas
+            {showFeedback ? "Enviar respuestas" : "Verificar"}
           </Button>
         )}
       </HStack>

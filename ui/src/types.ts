@@ -9,11 +9,18 @@ export interface ModuleSummary {
   state: ModuleState;
 }
 
+export interface TopicSection {
+  title: string;
+  text: string;
+  code?: string;
+}
+
 export interface Topic {
   id: string;
   title: string;
   content: string;
   examples: string[];
+  sections?: TopicSection[];
 }
 
 export interface ModuleDetail {
@@ -34,6 +41,7 @@ export interface QuizQuestion {
   explanation?: string;
   difficulty?: string;
   moduleId?: string;
+  correctIndexes?: number[];
 }
 
 export interface Quiz {
@@ -76,4 +84,38 @@ export interface Progress {
   overallPercent: number;
   questionStats: Record<string, QuestionStats>;
   attempts: Attempt[];
+}
+
+export interface RealWorldSection {
+  title: string;
+  text: string;
+  code?: string;
+}
+
+export interface RealWorldSolutionFile {
+  path: string;
+  code: string;
+}
+
+export interface RealWorldExerciseSolution {
+  files: RealWorldSolutionFile[];
+}
+
+export interface RealWorldExercise {
+  title: string;
+  description: string;
+  hints: string[];
+  solution: RealWorldExerciseSolution | null;
+}
+
+export interface RealWorldCase {
+  id: string;
+  title: string;
+  category: string;
+  difficulty: string;
+  problem: string;
+  sections: RealWorldSection[];
+  keyPoints: string[];
+  interviewQuestions: string[];
+  exercises: RealWorldExercise[];
 }

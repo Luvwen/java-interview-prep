@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Box, Button, Heading, Text, VStack, Spinner, HStack, Tag, Wrap, WrapItem, Radio,
 } from "@chakra-ui/react";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, XCircle } from "lucide-react";
 import { api } from "../api";
 import { colors } from "../colors";
 import type { Quiz, QuizResult } from "../types";
@@ -24,11 +24,11 @@ const THEORY_MODULES = [
   { id: "streams", label: "Streams" },
   { id: "concurrency", label: "Concurrencia" },
   { id: "jvm", label: "JVM" },
-  { id: "sql-jdbc", label: "SQL/JDBC" },
-  { id: "spring", label: "Spring" },
   { id: "testing", label: "Testing" },
-  { id: "design-patterns", label: "Patrones" },
+  { id: "sql-jdbc", label: "SQL/JDBC" },
   { id: "rest-http", label: "REST/HTTP" },
+  { id: "spring", label: "Spring" },
+  { id: "design-patterns", label: "Patrones" },
   { id: "git", label: "Git" },
 ];
 
@@ -40,6 +40,8 @@ function BugHuntPage({ onExit }: { onExit: () => void }) {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentCorrect, setCurrentCorrect] = useState(false);
 
   const [difficulty, setDifficulty] = useState<string>("easy");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
@@ -129,29 +131,46 @@ function BugHuntPage({ onExit }: { onExit: () => void }) {
   const question = quiz.questions[current];
 
   const nextQuestion = () => {
-    const newAnswers = [...answers];
-    newAnswers[current] = selected;
-    setAnswers(newAnswers);
-    setSelected([]);
-    if (current + 1 < quiz.questions.length) {
-      setCurrent(current + 1);
+    if (showFeedback) {
+      const newAnswers = [...answers];
+      newAnswers[current] = selected;
+      setAnswers(newAnswers);
+      setSelected([]);
+      setShowFeedback(false);
+      if (current + 1 < quiz.questions.length) {
+        setCurrent(current + 1);
+      }
+    } else {
+      const correct = question.correctIndexes
+        ? JSON.stringify([...selected].sort()) === JSON.stringify([...question.correctIndexes].sort())
+        : false;
+      setCurrentCorrect(correct);
+      setShowFeedback(true);
     }
   };
 
   const prevQuestion = () => {
-    if (current > 0) {
+    if (current > 0 && !showFeedback) {
       setSelected(answers[current - 1] ?? []);
       setCurrent(current - 1);
     }
   };
 
   const submit = async () => {
+    if (!showFeedback) {
+      const correct = question.correctIndexes
+        ? JSON.stringify([...selected].sort()) === JSON.stringify([...question.correctIndexes].sort())
+        : false;
+      setCurrentCorrect(correct);
+      setShowFeedback(true);
+      return;
+    }
     const newAnswers = [...answers];
     newAnswers[current] = selected;
     setAnswers(newAnswers);
     setSubmitting(true);
     try {
-      setResult(await api.submitQuizV2(quiz.id, [MODULE_ID], newAnswers));
+      setResult(await api.submitQuizV2(quiz.id, [MODULE_ID], newAnswers, undefined, undefined, quiz.questions.map(q => q.id)));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -164,7 +183,7 @@ function BugHuntPage({ onExit }: { onExit: () => void }) {
       <QuizFeedback
         title="Encontrar el Bug - Resultado"
         result={result}
-        onRetry={() => { setResult(null); setCurrent(0); setAnswers([]); setSelected([]); setStarted(false); setQuiz(null); }}
+        onRetry={() => { setResult(null); setCurrent(0); setAnswers([]); setSelected([]); setStarted(false); setQuiz(null); setShowFeedback(false); setCurrentCorrect(false); }}
         onExit={onExit}
       />
     );
@@ -202,37 +221,80 @@ function BugHuntPage({ onExit }: { onExit: () => void }) {
 
         <Box mt={4}>
           <Text fontSize="sm" color={colors.textMuted} mb={2} fontWeight={600}>
-            Selecciona la opcion que describe el bug:
+            {showFeedback ? (currentCorrect ? "Tu respuesta:" : "Resultado:") : "Selecciona la opcion que describe el bug:"}
           </Text>
           <VStack align="stretch" spacing={2}>
-            {question.options.map((option, oIndex) => (
-              <Box
-                key={oIndex}
-                as="label"
-                display="flex"
-                alignItems="center"
-                gap={3}
-                p={3}
-                borderRadius="8px"
-                cursor="pointer"
-                _hover={{ bg: colors.surfaceHover }}
-                bg={selected.includes(oIndex) ? colors.surfaceHover : "transparent"}
-                border="1px solid"
-                borderColor={selected.includes(oIndex) ? colors.borderSelected : "transparent"}
-              >
-                <Radio
-                  name={question.id}
-                  isChecked={selected[0] === oIndex}
-                  onChange={() => setSelected([oIndex])}
-                  colorScheme="blue"
-                />
-                <Text fontSize="sm">{option}</Text>
-              </Box>
-            ))}
+            {question.options.map((option, oIndex) => {
+              const isSelected = selected.includes(oIndex);
+              const isCorrectOption = question.correctIndexes?.includes(oIndex) ?? false;
+              let bg = "transparent";
+              let borderClr = "transparent";
+              if (showFeedback) {
+                if (isCorrectOption) {
+                  bg = "rgba(55, 195, 138, 0.15)";
+                  borderClr = colors.success;
+                } else if (isSelected && !currentCorrect) {
+                  bg = "rgba(229, 83, 75, 0.15)";
+                  borderClr = colors.error;
+                }
+              } else {
+                if (isSelected) {
+                  bg = colors.surfaceHover;
+                  borderClr = colors.borderSelected;
+                }
+              }
+              return (
+                <Box
+                  key={oIndex}
+                  as="label"
+                  display="flex"
+                  alignItems="center"
+                  gap={3}
+                  p={3}
+                  borderRadius="8px"
+                  cursor={showFeedback ? "default" : "pointer"}
+                  _hover={showFeedback ? {} : { bg: colors.surfaceHover }}
+                  bg={bg}
+                  border="1px solid"
+                  borderColor={borderClr}
+                >
+                  <Radio
+                    name={question.id}
+                    isChecked={isSelected}
+                    onChange={() => !showFeedback && setSelected([oIndex])}
+                    colorScheme="blue"
+                    isDisabled={showFeedback}
+                  />
+                  <Text fontSize="sm" flex={1}>{option}</Text>
+                  {showFeedback && isCorrectOption && <CheckCircle size={18} color={colors.success} />}
+                  {showFeedback && isSelected && !isCorrectOption && <XCircle size={18} color={colors.error} />}
+                </Box>
+              );
+            })}
           </VStack>
         </Box>
 
-        {question.explanation && (
+        {showFeedback && (
+          <Box
+            mt={4}
+            p={3}
+            bg={currentCorrect ? "rgba(55, 195, 138, 0.1)" : "rgba(229, 83, 75, 0.1)"}
+            border="1px solid"
+            borderColor={currentCorrect ? colors.success : colors.error}
+            borderRadius="8px"
+          >
+            <Text fontSize="sm" fontWeight="600" color={currentCorrect ? colors.success : colors.error}>
+              {currentCorrect ? "Correcta!" : "Incorrecta"}
+            </Text>
+            {!currentCorrect && question.correctIndexes && question.correctIndexes.length > 0 && (
+              <Text fontSize="sm" color={colors.textMuted} mt={1}>
+                La respuesta correcta es: <strong style={{ color: colors.success }}>{question.options[question.correctIndexes[0]]}</strong>
+              </Text>
+            )}
+          </Box>
+        )}
+
+        {showFeedback && question.explanation && (
           <Box mt={4} p={3} bg="gray.800" borderRadius="8px">
             <Text fontSize="sm" color={colors.textMuted}>
               <strong style={{ color: colors.accent }}>Explicacion:</strong> {question.explanation}
@@ -242,22 +304,22 @@ function BugHuntPage({ onExit }: { onExit: () => void }) {
       </Box>
 
       <HStack spacing={3}>
-        <Button variant="outline" isDisabled={current === 0} onClick={prevQuestion}>
+        <Button variant="outline" isDisabled={current === 0 || showFeedback} onClick={prevQuestion}>
           Anterior
         </Button>
         {current + 1 < quiz.questions.length ? (
-          <Button colorScheme="blue" isDisabled={selected.length === 0} onClick={nextQuestion}>
-            Siguiente
+          <Button colorScheme="blue" isDisabled={!showFeedback && selected.length === 0} onClick={nextQuestion}>
+            {showFeedback ? "Siguiente" : "Verificar"}
           </Button>
         ) : (
           <Button
             colorScheme="green"
             leftIcon={<Play size={16} />}
-            isDisabled={selected.length === 0}
+            isDisabled={!showFeedback && selected.length === 0}
             isLoading={submitting}
             onClick={submit}
           >
-            Enviar respuestas
+            {showFeedback ? "Enviar respuestas" : "Verificar"}
           </Button>
         )}
       </HStack>

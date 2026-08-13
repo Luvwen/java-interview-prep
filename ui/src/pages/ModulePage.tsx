@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import Prism from "prismjs";
-import "prismjs/components/prism-java";
+import { useEffect, useState } from "react";
+import "../monokai-prism.css";
 import {
   Box,
   Button,
@@ -10,13 +9,13 @@ import {
   Text,
   VStack,
   Spinner,
-  Code,
 } from "@chakra-ui/react";
 import { ArrowLeft, Check } from "lucide-react";
 import { api } from "../api";
 import { colors } from "../colors";
-import type { ModuleDetail, ModuleState } from "../types";
+import type { ModuleDetail, ModuleState, TopicSection } from "../types";
 import StateBadge from "../components/StateBadge";
+import CodeBlock from "../components/CodeBlock";
 
 function renderContent(text: string) {
   const paragraphs = text.split("\n\n");
@@ -32,30 +31,12 @@ function renderContent(text: string) {
   });
 }
 
-function CodeBlock({ code }: { code: string }) {
-  const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (ref.current) Prism.highlightElement(ref.current);
-  }, [code]);
-
+function SectionBlock({ section }: { section: TopicSection }) {
   return (
-    <Box mb={3}>
-      <Box
-        as="pre"
-        bg={colors.codeBg}
-        border="1px solid"
-        borderColor={colors.codeBorder}
-        borderRadius="8px"
-        p={4}
-        overflow="hidden"
-        fontSize="0.85rem"
-        lineHeight="1.6"
-        fontFamily="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace"
-      >
-        <Code ref={ref} as="code" className="language-java" bg="transparent" color={colors.codeText} p={0} display="block" whiteSpace="pre">
-          {code}
-        </Code>
-      </Box>
+    <Box mb={4}>
+      <Heading size="sm" color={colors.accent} mb={2}>{section.title}</Heading>
+      {renderContent(section.text)}
+      {section.code && <CodeBlock code={section.code} />}
     </Box>
   );
 }
@@ -107,16 +88,24 @@ function ModulePage({ moduleId, onOpenQuiz, onBack }: { moduleId: string; onOpen
         {module.topics.map((topic) => (
           <Box key={topic.id} bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="12px" p={5}>
             <Heading size="md" color={colors.accent} mb={3}>{topic.title}</Heading>
-            {renderContent(topic.content)}
-            {topic.examples.length > 0 && (
-              <Box mt={4}>
-                <Text fontSize="sm" color={colors.textMuted} textTransform="uppercase" letterSpacing="0.5px" mb={2} fontWeight={600}>
-                  Ejemplos
-                </Text>
-                {topic.examples.map((ex, i) => (
-                  <CodeBlock key={i} code={ex} />
-                ))}
-              </Box>
+            {topic.sections && topic.sections.length > 0 ? (
+              topic.sections.map((section, i) => (
+                <SectionBlock key={i} section={section} />
+              ))
+            ) : (
+              <>
+                {renderContent(topic.content)}
+                {topic.examples.length > 0 && (
+                  <Box mt={4}>
+                    <Text fontSize="sm" color={colors.textMuted} textTransform="uppercase" letterSpacing="0.5px" mb={2} fontWeight={600}>
+                      Ejemplos
+                    </Text>
+                    {topic.examples.map((ex, i) => (
+                      <CodeBlock key={i} code={ex} />
+                    ))}
+                  </Box>
+                )}
+              </>
             )}
           </Box>
         ))}

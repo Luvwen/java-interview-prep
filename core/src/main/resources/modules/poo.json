@@ -14,6 +14,23 @@
         "record Persona(String nombre, int edad) { public Persona { if (edad < 0) throw new IllegalArgumentException(); } }",
         "enum Color { ROJO(1), AZUL(2); private final int code; Color(int code) { this.code = code; } }",
         "var p = new Point(1, 2); System.out.println(p.x()); // accessor method"
+      ],
+      "sections": [
+        {
+          "title": "Clases, constructores y delegacion",
+          "text": "Una clase define el estado a traves de campos y el comportamiento a traves de metodos. Los constructores inicializan el objeto y pueden delegar en otros constructores con this() o super(). La llamada a super() debe ser siempre la primera sentencia del constructor.",
+          "code": "public class Animal {\n    private final String nombre;\n\n    public Animal(String nombre) {\n        this.nombre = nombre;\n    }\n\n    public void hablar() {\n        System.out.println(nombre + \" hace un sonido\");\n    }\n}\n\npublic class Perro extends Animal {\n    private final String raza;\n\n    public Perro(String nombre, String raza) {\n        super(nombre);\n        this.raza = raza;\n    }\n\n    @Override\n    public void hablar() {\n        System.out.println(nombre + \" ladra\");\n    }\n}"
+        },
+        {
+          "title": "Records: clases de datos inmutables",
+          "text": "Un record genera automaticamente el constructor canonico, accessor methods, equals, hashCode y toString. Es implicitamente final y sus campos son privados y finales. Puede implementar interfaces pero no extender clases. Se pueden agregar validaciones en el compact constructor.",
+          "code": "record Point(int x, int y) {\n    // Compact constructor para validacion\n    public Point {\n        if (x < 0 || y < 0) {\n            throw new IllegalArgumentException(\n                \"Las coordenadas no pueden ser negativas\"\n            );\n        }\n    }\n}\n\nrecord Persona(String nombre, int edad) {\n    public Persona {\n        if (edad < 0) throw new IllegalArgumentException();\n    }\n}\n\nvar p = new Point(3, 4);\nSystem.out.println(p.x());                      // 3\nSystem.out.println(p.equals(new Point(3, 4)));  // true\nSystem.out.println(p);                          // Point[x=3, y=4]"
+        },
+        {
+          "title": "Enums con estado y comportamiento",
+          "text": "Los enums pueden tener campos, constructores privados y metodos. Cada constante es un singleton y se pueden usar en switch sin break. Implementan java.lang.Enum automaticamente, por lo que disponen de name(), ordinal() y valueOf().",
+          "code": "enum Estado {\n    ACTIVO,\n    INACTIVO\n}\n\nenum Color {\n    ROJO(1),\n    AZUL(2),\n    VERDE(3);\n\n    private final int code;\n\n    Color(int code) {\n        this.code = code;\n    }\n\n    public int getCode() {\n        return code;\n    }\n\n    public static Color fromCode(int code) {\n        for (Color c : values()) {\n            if (c.code == code) return c;\n        }\n        throw new IllegalArgumentException(\"Codigo invalido: \" + code);\n    }\n}\n\n// Uso en switch\nColor c = Color.ROJO;\nswitch (c) {\n    case ROJO   -> System.out.println(\"Rojo\");\n    case AZUL   -> System.out.println(\"Azul\");\n    case VERDE  -> System.out.println(\"Verde\");\n}"
+        }
       ]
     },
     {
@@ -25,6 +42,23 @@
         "public final class Punto { private final int x, y; public Punto(int x, int y) { this.x = x; this.y = y; } }",
         "public List<String> getNombres() { return List.copyOf(nombres); } // copia defensiva",
         "public final class Periodo { private final LocalDate inicio, fin; public Periodo(LocalDate i, LocalDate f) { this.inicio = i; this.fin = f; } }"
+      ],
+      "sections": [
+        {
+          "title": "Comportamiento sobre getters y setters",
+          "text": "La encapsulacion real expone comportamiento, no datos. En vez de setSaldo(), usar depositar() y retirar() que validan las reglas de negocio. Esto garantiza que el objeto siempre este en un estado consistente y que nadie pueda saltarse las validaciones.",
+          "code": "public class Cuenta {\n    private double saldo;\n    private final String titular;\n\n    public Cuenta(String titular, double saldoInicial) {\n        if (saldoInicial < 0) throw new IllegalArgumentException();\n        this.titular = titular;\n        this.saldo = saldoInicial;\n    }\n\n    public void depositar(double monto) {\n        if (monto <= 0) throw new IllegalArgumentException();\n        saldo += monto;\n    }\n\n    public void retirar(double monto) {\n        if (monto <= 0 || monto > saldo) throw new IllegalArgumentException();\n        saldo -= monto;\n    }\n\n    public double getSaldo() {\n        return saldo;\n    }\n\n    public String getTitular() {\n        return titular;\n    }\n}"
+        },
+        {
+          "title": "Clases inmutables",
+          "text": "Una clase inmutable crea su estado en el constructor y nunca lo modifica. Se logra con campos final, sin setters, y devolviendo copias de colecciones. Los records son inmutables por defecto y son la forma moderna de crear clases de datos.",
+          "code": "public final class Periodo {\n    private final LocalDate inicio;\n    private final LocalDate fin;\n    private final List<String> etiquetas;\n\n    public Periodo(LocalDate inicio, LocalDate fin, List<String> etiquetas) {\n        this.inicio = inicio;\n        this.fin = fin;\n        // Copia defensiva al recibir\n        this.etiquetas = List.copyOf(etiquetas);\n    }\n\n    public LocalDate getInicio() { return inicio; }\n    public LocalDate getFin() { return fin; }\n\n    // Copia defensiva al devolver\n    public List<String> getEtiquetas() {\n        return List.copyOf(etiquetas);\n    }\n}"
+        },
+        {
+          "title": "Copias defensivas",
+          "text": "Una copia defensiva protege el estado interno tanto al recibir como al devolver colecciones. Sin ella, un caller podria modificar la referencia interna y romper la inmutabilidad del objeto. Usar List.copyOf() o new ArrayList(original) para copiar.",
+          "code": "public final class Equipo {\n    private final List<String> miembros;\n\n    // Copia defensiva al recibir\n    public Equipo(List<String> miembros) {\n        this.miembros = new ArrayList<>(miembros);\n    }\n\n    // Copia defensiva al devolver\n    public List<String> getMiembros() {\n        return List.copyOf(miembros);\n    }\n\n    public void agregarMiembro(String nombre) {\n        miembros.add(nombre);\n    }\n}\n\n// Sin copia defensiva (RIESGO):\npublic List<String> getNombresRiesgo() {\n    return this.nombres; // el caller puede hacer clear()\n}"
+        }
       ]
     },
     {
@@ -36,6 +70,23 @@
         "Animal a = new Perro(); a.hablar(); // polimorfismo: imprime Guau",
         "class Animal { Animal clone() { return new Animal(this); } } class Perro extends Animal { @Override Perro clone() { return new Perro(this); } }",
         "super.hablar(); // llama a la version de la superclase"
+      ],
+      "sections": [
+        {
+          "title": "Herencia simple y sobrescritura",
+          "text": "La herencia en Java es simple: una clase solo puede extender una superclase. La sobrescritura requiere misma firma, visibilidad igual o mayor, y excepciones iguales o mas restrictivas. La anotacion @Override verifica en compilacion que la sobrescritura es correcta.",
+          "code": "class Animal {\n    protected String nombre;\n\n    public Animal(String nombre) {\n        this.nombre = nombre;\n    }\n\n    public void hablar() {\n        System.out.println(nombre + \" hace un sonido\");\n    }\n\n    public final void dormir() {\n        System.out.println(nombre + \" duerme\");\n    }\n}\n\nfinal class Perro extends Animal {\n    public Perro(String nombre) {\n        super(nombre);\n    }\n\n    @Override\n    public void hablar() {\n        System.out.println(nombre + \" ladra\");\n    }\n}"
+        },
+        {
+          "title": "Polimorfismo y dispatch dinamico",
+          "text": "El dispatch dinamico resuelve el metodo a ejecutar en runtime segun la clase real del objeto. Con Animal a = new Perro(), a.hablar() ejecuta Perro.hablar(). Esto permite tratar objetos de diferente tipo de forma uniforme. El tipo declarado solo determina que metodos estan disponibles en compilacion.",
+          "code": "public class EjemploPolimorfismo {\n    public static void main(String[] args) {\n        Animal a1 = new Animal(\"Gato\");\n        Animal a2 = new Perro(\"Rex\");\n        Animal a3 = new Gato(\"Michi\");\n\n        // Polimorfismo: cada objeto responde con su implementacion\n        a1.hablar(); // Gato hace un sonido\n        a2.hablar(); // Rex ladra\n        a3.hablar(); // Michi maulla\n\n        // Errores comunes:\n        // a2.ladrar(); // NO compila: tipo declarado Animal\n        // Perro p = a2; // NO compila: asignacion insegura\n        Perro p = (Perro) a2; // OK: casting explicito\n        p.ladrar();\n    }\n}"
+        },
+        {
+          "title": "Sobrescritura vs sobrecarga",
+          "text": "La sobrescritura (override) usa misma firma y se resuelve en runtime. La sobrecarga (overload) usa distinta firma y se resuelve en compilacion. No son lo mismo: una tiene un '@Override' y funciona con polimorfismo, la otra solo agrega variantes de nombre.",
+          "code": "class Calculadora {\n    // Sobrecarga: misma tarea, distinta firma\n    public int sumar(int a, int b) { return a + b; }\n    public double sumar(double a, double b) { return a + b; }\n    public int sumar(int a, int b, int c) { return a + b + c; }\n}\n\nclass CalculadoraCientifica extends Calculadora {\n    // Sobrescritura: misma tarea, misma firma, diferente comportamiento\n    @Override\n    public int sumar(int a, int b) {\n        System.out.println(\"Suma con log\");\n        return a + b;\n    }\n}\n\n// En compilacion: calculadora.sumar(1, 2) resuelve Calculadora.sumar\n// En runtime: si es CalculadoraCientifica, resuelve la version sobrescrita"
+        }
       ]
     },
     {
@@ -47,6 +98,28 @@
         "public abstract class Vehiculo { protected int velocidad; public abstract void acelerar(); }",
         "public interface Printable { void print(); default void printPretty() { print(); } private void log(String s) { System.out.println(s); } }",
         "interface A { default void hacer() { } } interface B { default void hacer() { } } class C implements A, B { @Override public void hacer() { A.super.hacer(); } }"
+      ],
+      "sections": [
+        {
+          "title": "Interfaces: contrato sin estado",
+          "text": "Una interfaz define un contrato que las clases deben cumplir, pero no impone como lograrlo. Java permite implementar multiples interfaces, a diferencia de la herencia simple de clases. Los campos de una interfaz son implicitamente public static final.",
+          "code": "public interface Pagable {\n    double monto();\n\n    default void procesar() {\n        System.out.println(\"Pagando \" + monto());\n    }\n\n    default boolean esGratuito() {\n        return monto() == 0;\n    }\n}\n\npublic class Factura implements Pagable {\n    private final double total;\n\n    public Factura(double total) {\n        this.total = total;\n    }\n\n    @Override\n    public double monto() {\n        return total;\n    }\n}\n\npublic class CursoGratis implements Pagable {\n    @Override\n    public double monto() { return 0; }\n}"
+        },
+        {
+          "title": "Metodos default, static y privados",
+          "text": "Desde Java 8, las interfaces pueden tener metodos default con implementacion por defecto y metodos static. Desde Java 9, metodos privados para factorizar codigo comun entre metodos default. Esto evito romper implementaciones existentes al agregar nuevos metodos.",
+          "code": "public interface Printable {\n    void print();\n\n    // Metodo default: implementacion por defecto\n    default void printPretty() {\n        log(\"Imprimiendo formato bonito\");\n        print();\n    }\n\n    // Metodo static: pertenece a la interfaz\n    static Printable fromString(String s) {\n        return () -> System.out.println(s);\n    }\n\n    // Metodo privado: solo para uso interno (Java 9+)\n    private void log(String s) {\n        System.out.println(\"[LOG] \" + s);\n    }\n}"
+        },
+        {
+          "title": "Clases abstractas: estado y codigo compartido",
+          "text": "Una clase abstracta puede tener campos, constructores y metodos concretos. Es ideal para jerarquias donde las subclases comparten estado y comportamiento comun. Solo se puede extender una clase, pero una clase abstracta puede implementar interfaces.",
+          "code": "public abstract class Vehiculo {\n    protected int velocidad;\n    protected String marca;\n\n    public Vehiculo(String marca) {\n        this.marca = marca;\n        this.velocidad = 0;\n    }\n\n    public abstract void acelerar(int incremento);\n    public abstract void frenar();\n\n    public void mostrarEstado() {\n        System.out.println(marca + \" a \" + velocidad + \" km/h\");\n    }\n}\n\npublic class Coche extends Vehiculo {\n    public Coche(String marca) {\n        super(marca);\n    }\n\n    @Override\n    public void acelerar(int incremento) {\n        velocidad = Math.min(velocidad + incremento, 200);\n    }\n\n    @Override\n    public void frenar() {\n        velocidad = Math.max(velocidad - 50, 0);\n    }\n}"
+        },
+        {
+          "title": "Resolucion de conflictos entre interfaces",
+          "text": "Cuando una clase implementa dos interfaces con un metodo default identico, debe sobrescribir el metodo y decidir cual implementacion usar. Se puede invocar cada interfaz con InterfaceName.super.metodo(). Si los metodos tienen firmas distintas pero son compatibles, se resuelve con sobreescritura.",
+          "code": "interface A {\n    default void hacer() {\n        System.out.println(\"A.hacer\");\n    }\n}\n\ninterface B {\n    default void hacer() {\n        System.out.println(\"B.hacer\");\n    }\n}\n\n// La clase DEBE sobrescribir el metodo conflictivo\nclass C implements A, B {\n    @Override\n    public void hacer() {\n        A.super.hacer(); // decidir cual usar\n    }\n}\n\n// O combinar ambas\nclass D implements A, B {\n    @Override\n    public void hacer() {\n        A.super.hacer();\n        B.super.hacer();\n    }\n}"
+        }
       ]
     },
     {
@@ -58,6 +131,23 @@
         "// Delegacion: Coche.arrancar() delega en motor.encender()",
         "public class Logger { private final Appender appender; public Logger(Appender appender) { this.appender = appender; } public void log(String msg) { appender.append(msg); } }",
         "// Strategy pattern: contexto mantiene una referencia a una interfaz Strategy"
+      ],
+      "sections": [
+        {
+          "title": "Composicion vs herencia",
+          "text": "La composicion usa relacion 'tiene-un' en vez de 'es-un'. Evita el acoplamiento fuerte con una superclase y permite cambiar comportamiento en runtime. La herencia esta bien para jerarquias estables, pero en codigo moderno se prefiere composicion para flexibilidad y testabilidad.",
+          "code": "// COMPOSICION (preferida)\npublic class Coche {\n    private final Motor motor;\n    private final Frenos frenos;\n\n    public Coche(Motor motor, Frenos frenos) {\n        this.motor = motor;\n        this.frenos = frenos;\n    }\n\n    public void arrancar() {\n        motor.encender();\n    }\n\n    public void frenar() {\n        frenos.frenar();\n    }\n}\n\n// HERENCIA (cuando existe relacion 'es-un' real)\npublic class Perro extends Animal {\n    @Override\n    public void hablar() {\n        System.out.println(\"Guau\");\n    }\n}"
+        },
+        {
+          "title": "Delegacion y patrones Strategy",
+          "text": "La delegacion es el mecanismo central de la composicion: la clase compuesta delega llamadas a sus componentes. El patron Strategy permite intercambiar algoritmos en runtime inyectando una implementacion de una interfaz. Esto es imposible con herencia sola.",
+          "code": "public interface EstrategiaDescuento {\n    double calcular(double precio);\n}\n\npublic class DescuentoPorcentaje implements EstrategiaDescuento {\n    private final double porcentaje;\n    public DescuentoPorcentaje(double porcentaje) {\n        this.porcentaje = porcentaje;\n    }\n    @Override\n    public double calcular(double precio) {\n        return precio * (1 - porcentaje / 100);\n    }\n}\n\npublic class Carrito {\n    private EstrategiaDescuento descuento;\n\n    public void setDescuento(EstrategiaDescuento descuento) {\n        this.descuento = descuento;\n    }\n\n    public double totalConDescuento(double precio) {\n        return descuento.calcular(precio);\n    }\n}\n\n// En runtime:\nCarrito c = new Carrito();\nc.setDescuento(new DescuentoPorcentaje(10));\nc.totalConDescuento(100); // 90.0"
+        },
+        {
+          "title": "Decorator: envolver comportamiento",
+          "text": "El patron Decorator agrega comportamiento envolviendo un objeto con otra implementacion de la misma interfaz. Es la base de java.io (BufferedInputStream envuelve a FileInputStream). Permite combinar comportamientos flexiblemente sin herencia multiple.",
+          "code": "public interface Logger {\n    void log(String mensaje);\n}\n\npublic class ConsolaLogger implements Logger {\n    @Override\n    public void log(String mensaje) {\n        System.out.println(mensaje);\n    }\n}\n\n// Decorator: agrega timestamp\npublic class TimestampLogger implements Logger {\n    private final Logger delegado;\n\n    public TimestampLogger(Logger delegado) {\n        this.delegado = delegado;\n    }\n\n    @Override\n    public void log(String mensaje) {\n        delegado.log(\"[\" + java.time.LocalTime.now() + \"] \" + mensaje);\n    }\n}\n\n// Composicion: combinar comportamientos\nLogger logger = new TimestampLogger(new ConsolaLogger());\nlogger.log(\"Hola\"); // [14:30:22.123] Hola"
+        }
       ]
     }
   ],

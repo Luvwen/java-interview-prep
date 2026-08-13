@@ -13,7 +13,8 @@ type View =
   | "exam"
   | "statistics"
   | "code-fill"
-  | "bug-hunt";
+  | "bug-hunt"
+  | "real-world";
 
 interface NavState {
   view: View;
@@ -56,6 +57,7 @@ function parsePath(pathname: string): NavState {
     };
     if (subMap[sub]) return { view: subMap[sub], moduleId: null };
   }
+  if (parts[0] === "real-world") return { view: "real-world", moduleId: null };
   const viewMap: Record<string, View> = {
     progress: "progress",
     activities: "activities",

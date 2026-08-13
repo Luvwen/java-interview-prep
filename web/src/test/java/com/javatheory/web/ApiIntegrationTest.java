@@ -53,11 +53,11 @@ class ApiIntegrationTest {
     }
 
     @Test
-    void quizResponseHidesCorrectAnswers() throws Exception {
+    void quizResponseIncludesCorrectIndexes() throws Exception {
         mockMvc.perform(get("/api/modules/core-java/quiz"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.questions", hasSize(11)))
-                .andExpect(jsonPath("$.questions[0].correctIndexes").doesNotExist())
+                .andExpect(jsonPath("$.questions[0].correctIndexes").isArray())
                 .andExpect(jsonPath("$.questions[?(@.type=='TRUE_FALSE')]").isNotEmpty())
                 .andExpect(jsonPath("$.questions[?(@.type=='ORDER')]").isNotEmpty());
     }

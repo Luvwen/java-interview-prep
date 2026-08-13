@@ -58,7 +58,9 @@ public class StatsController {
         var quizOpt = quizService.mixedQuiz(moduleIds, 5);
         return quizOpt.map(quiz -> {
             List<QuizQuestionDto> questions = quiz.questions().stream()
-                    .map(q -> new QuizQuestionDto(q.id(), q.text(), q.options(), q.type()))
+                    .map(q -> new QuizQuestionDto(q.id(), q.text(), q.options(), q.type(),
+                            q.codeTemplate(), q.blanks(), q.code(),
+                            q.difficulty(), q.moduleId(), q.correctIndexes()))
                     .toList();
             return ResponseEntity.ok(new QuizResponse("daily-" + java.time.LocalDate.now(), questions));
         }).orElseGet(() -> ResponseEntity.badRequest().build());
