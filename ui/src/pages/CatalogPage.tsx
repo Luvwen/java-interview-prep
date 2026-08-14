@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Heading, SimpleGrid, Text, VStack } from "@chakra-ui/react";
 import { api } from "../api";
 import { colors } from "../colors";
-import type { ModuleSummary } from "../types";
+import type { ModuleSummary, ModuleState } from "../types";
 import StateBadge from "../components/StateBadge";
 import { SkeletonCard } from "../components/Skeletons";
 
@@ -12,7 +12,16 @@ function CatalogPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.listModules().then(setModules).catch((err: Error) => setError(err.message)).finally(() => setLoading(false));
+    Promise.all([api.listModules(), api.getProgress()])
+      .then(([backendModules, progress]) => {
+        const merged = backendModules.map((m) => ({
+          ...m,
+          state: (progress.moduleStates[m.id] as ModuleState) ?? m.state,
+        }));
+        setModules(merged);
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return (
