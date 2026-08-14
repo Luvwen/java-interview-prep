@@ -5,7 +5,7 @@ RUN npm ci
 COPY ui/ ./
 RUN npm run build
 
-FROM eclipse-temurin:21-jdk AS backend
+FROM maven:3.9-eclipse-temurin-21 AS backend
 WORKDIR /app
 COPY pom.xml ./
 COPY core/pom.xml core/
