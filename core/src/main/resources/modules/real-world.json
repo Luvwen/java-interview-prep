@@ -547,6 +547,156 @@
           }
         }
       ]
+    },
+    {
+      "id": "rw-microservices",
+      "title": "Arquitectura de Microservicios con Spring Cloud",
+      "category": "Arquitectura / Distribuida",
+      "difficulty": "advanced",
+      "problem": "Diseñar un sistema de microservicios que escale horizontalmente, tolere fallos y permita despliegues independientes sin downtime.",
+      "sections": [
+        {
+          "title": "Division de un monolito en microservicios",
+          "text": "El primer paso es identificar los bounded contexts del dominio. Cada bounded context se convierte en un microservicio autonomo con su propia base de datos. La comunicacion entre servicios se hace via HTTP/REST o mensajeria asincrona (Kafka, RabbitMQ).",
+          "code": "// Monolito: todo en una sola base de datos\n@Service\npublic class OrderService {\n    @Autowired private UserRepository userRepo;\n    @Autowired private ProductRepository productRepo;\n    @Autowired private OrderRepository orderRepo;\n}\n\n// Microservicios: cada servicio tiene su DB\n// order-service\n@Service\npublic class OrderService {\n    private final OrderRepository orderRepo;\n    private final UserClient userClient;  // Feign/REST client\n    private final ProductClient productClient;\n    \n    public Order createOrder(OrderRequest req) {\n        User user = userClient.getUser(req.userId());\n        Product product = productClient.getProduct(req.productId());\n        // ...\n    }\n}"
+        },
+        {
+          "title": "Service Discovery y Gateway",
+          "text": "Eureka o Consul permiten que los servicios se registren y descubran automaticamente. Spring Cloud Gateway actua como entry point unico, manejando routing, rate limiting y autenticacion.",
+          "code": "// Eureka Client - cada servicio se registra\n@SpringBootApplication\n@EnableDiscoveryClient\npublic class OrderServiceApplication {\n    public static void main(String[] args) {\n        SpringApplication.run(OrderServiceApplication.class, args);\n    }\n}\n\n// application.yml\neureka:\n  client:\n    service-url:\n      defaultZone: http://localhost:8761/eureka/\n\n// Gateway routing\nspring:\n  cloud:\n    gateway:\n      routes:\n        - id: order-service\n          uri: lb://order-service\n          predicates:\n            - Path=/api/orders/**\n        - id: user-service\n          uri: lb://user-service\n          predicates:\n            - Path=/api/users/**"
+        },
+        {
+          "title": "Resiliencia con Circuit Breaker",
+          "text": "Cuando un servicio dependiente falla, el circuit breaker abre y devuelve una respuesta de fallback en vez de propagar el error. Resilience4j es la alternativa moderna a Hystrix.",
+          "code": "@Service\npublic class OrderService {\n    \n    @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackStock")\n    public StockInfo checkStock(String productId) {\n        return inventoryClient.getStock(productId);\n    }\n    \n    public StockInfo fallbackStock(String productId, Exception e) {\n        log.warn(\"Inventory service unavailable, using cached data: {}\", e.getMessage());\n        return cachedStockService.get(productId);\n    }\n}\n\n// Configuracion\nresilience4j:\n  circuitbreaker:\n    instances:\n      inventory:\n        slidingWindowSize: 10\n        failureRateThreshold: 50\n        waitDurationInOpenState: 10s\n        permittedNumberOfCallsInHalfOpenState: 3"
+        }
+      ],
+      "keyPoints": [
+        "Cada microservicio tiene su propia base de datos (database per service)",
+        "Service Discovery (Eureka/Consul) para localizar servicios dinamicamente",
+        "API Gateway como entry point unico con routing y rate limiting",
+        "Circuit Breaker (Resilience4j) para tolerancia a fallos",
+        "Comunicacion sincrona (REST/Feign) vs asincrona (Kafka/RabbitMQ)",
+        "Distributed tracing (Sleuth/Micrometer) para debuggear requests跨-services"
+      ],
+      "interviewQuestions": [
+        "Como manejas la consistencia de datos entre microservicios?",
+        "Que estrategia de comunicacion usas: sincrona o asincrona? Por que?",
+        "Como implementas el circuit breaker y que configuracion elegirias?",
+        "Que es un saga y cuando lo usarias en vez de transacciones distribuidas?"
+      ],
+      "exercises": [
+        {
+          "title": "Implementar un circuit breaker con fallback",
+          "description": "Crea un servicio que consuma otro microservicio con Resilience4j. Implementa un fallback que devuelva datos cacheados cuando el servicio dependiente este caido.",
+          "hints": [
+            "Usa @CircuitBreaker con un metodo fallback",
+            "Configura slidingWindowSize y failureRateThreshold",
+            "Implementa un cache simple en memoria para el fallback"
+          ],
+          "solution": null
+        }
+      ]
+    },
+    {
+      "id": "rw-docker",
+      "title": "Containerizacion y Deployment con Docker",
+      "category": "DevOps / Infraestructura",
+      "difficulty": "intermediate",
+      "problem": "Crear una imagen Docker eficiente para una aplicacion Spring Boot, manejar multi-stage builds y orquestar multiples servicios con Docker Compose.",
+      "sections": [
+        {
+          "title": "Dockerfile optimizado para Spring Boot",
+          "text": "Un Dockerfile de calidad usa multi-stage builds para reducir el tamaño de la imagen final. La primera etapa compila la app, la segunda solo copia el JAR a una imagen JRE minimal.",
+          "code": "# Build stage\nFROM maven:3.9-eclipse-temurin-21 AS build\nWORKDIR /app\nCOPY pom.xml .\nCOPY core/pom.xml core/\nCOPY web/pom.xml web/\nRUN mvn dependency:go-offline -B\nCOPY core/ core/\nCOPY web/ web/\nRUN mvn package -DskipTests -B\n\n# Runtime stage\nFROM eclipse-temurin:21-jre\nWORKDIR /app\nCOPY --from=build /app/web/target/*.jar app.jar\nEXPOSE 8080\nENTRYPOINT [\"java\", \"-jar\", \"app.jar\"]"
+        },
+        {
+          "title": "Docker Compose para desarrollo local",
+          "text": "Docker Compose orquesta multiples containers: la app, bases de datos, colas de mensajeria y herramientas de monitoreo. Para desarrollo, monta el codigo como volumen para hot-reload.",
+          "code": "version: '3.8'\nservices:\n  app:\n    build: .\n    ports:\n      - \"8080:8080\"\n    environment:\n      - SPRING_PROFILES_ACTIVE=docker\n      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/mydb\n    depends_on:\n      - db\n      - redis\n    volumes:\n      - ./logs:/app/logs\n\n  db:\n    image: postgres:15-alpine\n    environment:\n      POSTGRES_DB: mydb\n      POSTGRES_USER: admin\n      POSTGRES_PASSWORD: secret\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - pgdata:/var/lib/postgresql/data\n\n  redis:\n    image: redis:7-alpine\n    ports:\n      - \"6379:6379\"\n\nvolumes:\n  pgdata:"
+        },
+        {
+          "title": "Multi-stage build con cache de dependencias",
+          "text": "El truco para builds rapidos es copiar primero pom.xml y descargar dependencias ANTES de copiar el codigo fuente. Asi, si solo cambia codigo (no dependencias), Docker reutiliza la capa cacheada.",
+          "code": "# Dependencias cacheadas (solo se reejecuta si pom.xml cambia)\nCOPY pom.xml .\nCOPY core/pom.xml core/\nCOPY web/pom.xml web/\nRUN mvn dependency:go-offline -B\n\n# Codigo fuente (esta capa se invalida frecuentemente)\nCOPY core/ core/\nCOPY web/ web/\nRUN mvn package -DskipTests -B\n\n# Sin multi-stage: imagen de 600MB+\n# Con multi-stage: imagen de 200MB-\n# Con cache de dependencias: build de 2min -> 30s"
+        }
+      ],
+      "keyPoints": [
+        "Multi-stage builds reducen la imagen de 600MB+ a ~200MB",
+        "Copiar pom.xml primero cachea la descarga de dependencias",
+        "Usar imágenes base minimas (jre-alpine, eclipse-temurin-jre)",
+        "Docker Compose orquesta servicios para desarrollo local",
+        "Volumes para persistir datos y hot-reload en desarrollo",
+        ".dockerignore evita copiar target/, node_modules/, .git/"
+      ],
+      "interviewQuestions": [
+        "Como reducir el tamaño de una imagen Docker para Java?",
+        "Que es un multi-stage build y por que es importante?",
+        "Como manejas secrets (passwords, API keys) en Docker?",
+        "Cuando usar Docker Compose vs Kubernetes?"
+      ],
+      "exercises": [
+        {
+          "title": "Crear un Dockerfile optimizado",
+          "description": "Escribe un Dockerfile multi-stage para una app Spring Boot que incluya cache de dependencias y una imagen final minimalista.",
+          "hints": [
+            "Usa maven como imagen de build y jre como runtime",
+            "Copiar pom.xml primero para cachear dependencias",
+            "Usa .dockerignore para excluir archivos innecesarios"
+          ],
+          "solution": null
+        }
+      ]
+    },
+    {
+      "id": "rw-kafka",
+      "title": "Comunicacion Asincrona con Apache Kafka",
+      "category": "Messaging / Eventos",
+      "difficulty": "advanced",
+      "problem": "Implementar un sistema de eventos asincronos con Kafka para desacoplar servicios, permitir audit log y soportar reconexion automatica ante fallos.",
+      "sections": [
+        {
+          "title": "Producer: publicar eventos de dominio",
+          "text": "Un productor Kafka envia eventos de dominio a un topic. Cada evento es inmutable y contiene el payload, metadata y timestamp. El producer maneja reintentos y acknowledgment.",
+          "code": "@Service\n@RequiredArgsConstructor\npublic class OrderEventPublisher {\n    \n    private final KafkaTemplate<String, OrderEvent> kafkaTemplate;\n    \n    @Value(\"${app.kafka.topics.orders}\")\n    private String ordersTopic;\n    \n    public CompletableFuture<SendResult<String, OrderEvent>> publish(OrderEvent event) {\n        return kafkaTemplate.send(ordersTopic, event.orderId(), event)\n            .completableFuture()\n            .whenComplete((result, ex) -> {\n                if (ex != null) {\n                    log.error(\"Failed to publish event {} for order {}\", \n                        event.type(), event.orderId(), ex);\n                } else {\n                    log.info(\"Published {} for order {} to partition {}\",\n                        event.type(), event.orderId(), \n                        result.getRecordMetadata().partition());\n                }\n            });\n    }\n}\n\n// Evento inmutable\npublic record OrderEvent(\n    String orderId,\n    String type,\n    Instant timestamp,\n    Map<String, Object> payload\n) {}"
+        },
+        {
+          "title": "Consumer: procesar eventos de forma idempotente",
+          "text": "Un consumer Kafka procesa eventos de un topic. Debe ser idempotente: procesar el mismo evento dos veces no debe causar efectos duplicados. Usa el event ID o un deduplication key.",
+          "code": "@Service\n@RequiredArgsConstructor\n@Slf4j\npublic class OrderEventHandler {\n    \n    private final NotificationService notificationService;\n    private final ProcessedEventRepository processedRepo;\n    \n    @KafkaListener(\n        topics = \"${app.kafka.topics.orders}\",\n        groupId = \"notification-service\",\n        containerFactory = \"kafkaListenerContainerFactory\"\n    )\n    public void handle(OrderEvent event) {\n        // Idempotencia: verificar si ya procesamos este evento\n        if (processedRepo.existsByEventId(event.orderId() + event.type())) {\n            log.info(\"Event already processed, skipping: {}\", event.orderId());\n            return;\n        }\n        \n        switch (event.type()) {\n            case \"ORDER_CREATED\" -> notificationService.sendOrderConfirmation(event);\n            case \"ORDER_SHIPPED\" -> notificationService.sendShippingUpdate(event);\n            case \"ORDER_CANCELLED\" -> notificationService.sendCancellation(event);\n        }\n        \n        processedRepo.save(new ProcessedEvent(event.orderId() + event.type()));\n    }\n}"
+        },
+        {
+          "title": "Manejo de errores y dead letter queue",
+          "text": "Cuando un consumer falla repetidamente, el evento se envia a una Dead Letter Queue (DLQ) para investigacion. Esto evita que un evento problematico bloquee todo el topic.",
+          "code": "@Bean\npublic ConcurrentKafkaListenerContainerFactory<String, OrderEvent> \n        kafkaListenerContainerFactory() {\n    \n    ConcurrentKafkaListenerContainerFactory<String, OrderEvent> factory =\n        new ConcurrentKafkaListenerContainerFactory<>();\n    factory.setConsumerFactory(consumerFactory());\n    factory.setCommonErrorHandler(defaultErrorHandler());\n    return factory;\n}\n\n@Bean\npublic DefaultErrorHandler defaultErrorHandler() {\n    // Retry 3 veces, luego enviar a DLQ\n    DefaultErrorHandler handler = new DefaultErrorHandler(\n        new DeadLetterPublishingRecoverer(kafkaTemplate(),\n            (record, ex) -> new TopicPartition(\"orders.DLT\", -1)),\n        new FixedBackoff(1000L, 3L)\n    );\n    handler.addNotRetryableExceptions(IllegalArgumentException.class);\n    return handler;\n}\n\n// Consumer de la DLQ para investigar\n@KafkaListener(topics = \"orders.DLT\")\npublic void handleDLT(OrderEvent event, Acknowledgment ack) {\n    log.error(\"Event sent to DLT: {} - Manual investigation needed\", event.orderId());\n    alertService.notifyOpsTeam(event);\n    ack.acknowledge();\n}"
+        }
+      ],
+      "keyPoints": [
+        "Kafka garantiza orden de mensajes dentro de una partition",
+        "Los consumers en un mismo grupo comparten la carga (load balancing)",
+        "Idempotencia: cada evento debe poder procesarse multiples veces sin efectos colaterales",
+        "Dead Letter Queue (DLQ) para eventos que fallan repetidamente",
+        "Compaction de topics para mantener solo el ultimo estado de cada entidad",
+        "Schema Registry para validar la estructura de eventos (Avro/JSON Schema)"
+      ],
+      "interviewQuestions": [
+        "Como garantizas la idempotencia en un consumer de Kafka?",
+        "Cual es la diferencia entre un consumer group y una partition?",
+        "Que haces cuando un evento falla repetidamente en el consumer?",
+        "Kafka vs RabbitMQ: cuando elegir uno u otro?"
+      ],
+      "exercises": [
+        {
+          "title": "Implementar un consumer idempotente con DLQ",
+          "description": "Crea un consumer Kafka que procese eventos de pedidos de forma idempotente, usando un deduplication key. Implementa un DLQ para eventos fallidos con retry de 3 intentos.",
+          "hints": [
+            "Usa @KafkaListener con un consumer group especifico",
+            "Almacena los IDs de eventos procesados para deduplicacion",
+            "Configura DefaultErrorHandler con DeadLetterPublishingRecoverer"
+          ],
+          "solution": null
+        }
+      ]
     }
   ]
 }

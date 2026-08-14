@@ -51,8 +51,15 @@ export interface Quiz {
 
 export interface QuestionFeedback {
   questionId: string;
+  questionText: string;
+  questionType: string;
   correct: boolean;
   explanation: string;
+  userAnswer: number[];
+  correctAnswer: number[];
+  options: string[];
+  userTextAnswer: string[];
+  correctTextAnswer: string[];
 }
 
 export interface QuizResult {

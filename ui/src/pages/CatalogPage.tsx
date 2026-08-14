@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Box, Heading, SimpleGrid, Text, Spinner, VStack } from "@chakra-ui/react";
+import { Box, Heading, SimpleGrid, Text, VStack } from "@chakra-ui/react";
 import { api } from "../api";
 import { colors } from "../colors";
 import type { ModuleSummary } from "../types";
 import StateBadge from "../components/StateBadge";
+import { SkeletonCard } from "../components/Skeletons";
 
 function CatalogPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
   const [modules, setModules] = useState<ModuleSummary[]>([]);
@@ -14,7 +15,15 @@ function CatalogPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
     api.listModules().then(setModules).catch((err: Error) => setError(err.message)).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
+  if (loading) return (
+    <Box>
+      <Heading size="lg" mb={2} letterSpacing="-0.02em">Modulos</Heading>
+      <Text color={colors.textMuted} mb={6}>Aprende Java desde los fundamentos hasta frameworks avanzados.</Text>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5}>
+        <SkeletonCard count={6} />
+      </SimpleGrid>
+    </Box>
+  );
   if (error) return <Text color={colors.error}>{error}</Text>;
 
   return (

@@ -78,17 +78,28 @@ public class QuizController {
         QuizResult result = quizService.evaluateWithTextAnswers(quiz, raw, request.textAnswers());
         progressService.recordResult(result);
 
+        List<QuestionFeedback> feedback = buildFeedback(quiz.questions(), raw, request.textAnswers());
+        return new QuizResultResponse(result.score(), result.total(), result.passed(), feedback);
+    }
+
+    private List<QuestionFeedback> buildFeedback(List<Question> questions, List<List<Integer>> raw,
+                                                  java.util.Map<String, List<String>> textAnswers) {
         List<QuestionFeedback> feedback = new ArrayList<>();
-        List<Question> questions = quiz.questions();
         for (int i = 0; i < questions.size(); i++) {
             List<Integer> answer = i < raw.size() ? raw.get(i) : List.of();
             Question question = questions.get(i);
+
             boolean correct;
+            List<String> userText = List.of();
+            List<String> correctText = List.of();
+
             if (question.type() == QuestionType.CODE_FILL) {
-                List<String> textAnswer = request.textAnswers() != null
-                        ? request.textAnswers().getOrDefault(question.id(), List.of())
+                List<String> textAnswer = textAnswers != null
+                        ? textAnswers.getOrDefault(question.id(), List.of())
                         : List.of();
                 correct = question.isCorrectCodeFill(textAnswer);
+                userText = textAnswer;
+                correctText = question.blanks() != null ? question.blanks() : List.of();
             } else if (question.type() == QuestionType.ORDER) {
                 correct = answer.equals(question.correctIndexes());
             } else if (question.type() == QuestionType.BUG_HUNT) {
@@ -96,8 +107,20 @@ public class QuizController {
             } else {
                 correct = question.isCorrect(new HashSet<>(answer));
             }
-            feedback.add(new QuestionFeedback(question.id(), correct, question.explanation()));
+
+            feedback.add(new QuestionFeedback(
+                    question.id(),
+                    question.text(),
+                    question.type().name(),
+                    correct,
+                    question.explanation(),
+                    answer,
+                    question.correctIndexes() != null ? question.correctIndexes() : List.of(),
+                    question.options() != null ? question.options() : List.of(),
+                    userText,
+                    correctText
+            ));
         }
-        return new QuizResultResponse(result.score(), result.total(), result.passed(), feedback);
+        return feedback;
     }
 }

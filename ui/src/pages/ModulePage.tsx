@@ -16,7 +16,6 @@ import {
   Icon,
   Text,
   VStack,
-  Spinner,
   useDisclosure,
 } from "@chakra-ui/react";
 import { ArrowLeft, Check, ChevronDown, ChevronUp, List } from "lucide-react";
@@ -25,6 +24,7 @@ import { colors } from "../colors";
 import type { ModuleDetail, ModuleState, TopicSection } from "../types";
 import StateBadge from "../components/StateBadge";
 import CodeBlock from "../components/CodeBlock";
+import { SkeletonModuleContent } from "../components/Skeletons";
 
 function renderContent(text: string) {
   const paragraphs = text.split("\n\n");
@@ -319,7 +319,7 @@ function ModulePage({ moduleId, onOpenQuiz, onBack }: { moduleId: string; onOpen
   }, [module]);
 
   if (error) return <Text color={colors.error}>{error}</Text>;
-  if (!module) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
+  if (!module) return <SkeletonModuleContent />;
 
   const markCompleted = async () => {
     setCompleting(true);

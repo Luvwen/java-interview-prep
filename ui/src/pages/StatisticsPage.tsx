@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  Box, Button, Flex, Heading, Progress, Spinner, Text, VStack, Badge, SimpleGrid,
+  Box, Button, Flex, Heading, Progress, Text, VStack, Badge, SimpleGrid,
 } from "@chakra-ui/react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { api } from "../api";
 import { colors } from "../colors";
 import type { Attempt } from "../types";
+import { SkeletonStats } from "../components/Skeletons";
 
 interface ModuleStats { moduleId: string; title: string; correct: number; wrong: number; bestPercent: number; avgPercent: number; avgTimeSeconds: number; attempts: number; }
 
@@ -21,12 +23,27 @@ function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }
   }, []);
 
   if (error) return <Text color={colors.error}>{error}</Text>;
-  if (!stats) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
+  if (!stats) return <SkeletonStats />;
 
   const entries = Object.values(stats);
   const totalCorrect = entries.reduce((s, e) => s + e.correct, 0);
   const totalWrong = entries.reduce((s, e) => s + e.wrong, 0);
   const totalAttempts = entries.reduce((s, e) => s + e.attempts, 0);
+  const totalAnswered = totalCorrect + totalWrong;
+  const globalPercent = totalAnswered > 0 ? Math.round((totalCorrect * 100) / totalAnswered) : 0;
+
+  const barData = entries
+    .filter((e) => e.correct + e.wrong > 0)
+    .map((e) => ({
+      name: e.title.length > 12 ? e.title.substring(0, 12) + "..." : e.title,
+      correctas: e.correct,
+      incorrectas: e.wrong,
+    }));
+
+  const pieData = [
+    { name: "Correctas", value: totalCorrect },
+    { name: "Incorrectas", value: totalWrong },
+  ];
 
   return (
     <Box>
@@ -44,6 +61,55 @@ function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }
           </Box>
         ))}
       </SimpleGrid>
+
+      {barData.length > 0 && (
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
+          <Box bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="12px" p={5}>
+            <Heading size="sm" mb={4}>Aciertos vs Errores por Modulo</Heading>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={barData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+                <XAxis dataKey="name" tick={{ fill: colors.textMuted, fontSize: 11 }} />
+                <YAxis tick={{ fill: colors.textMuted, fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: "8px" }}
+                  labelStyle={{ color: colors.textPrimary }}
+                />
+                <Bar dataKey="correctas" fill="#37c38a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="incorrectas" fill="#e5534b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+
+          <Box bg={colors.surface} border="1px solid" borderColor={colors.border} borderRadius="12px" p={5} display="flex" flexDirection="column" alignItems="center">
+            <Heading size="sm" mb={4}>Precision Global</Heading>
+            <Box position="relative" width="200px" height="200px">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={3}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    <Cell fill="#37c38a" />
+                    <Cell fill="#e5534b" />
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" textAlign="center">
+                <Text fontSize="2xl" fontWeight="700" color={colors.textPrimary}>{globalPercent}%</Text>
+                <Text fontSize="xs" color={colors.textMuted}>correctas</Text>
+              </Box>
+            </Box>
+            <Text fontSize="sm" color={colors.textMuted} mt={3}>{totalCorrect} de {totalAnswered} respuestas</Text>
+          </Box>
+        </SimpleGrid>
+      )}
 
       <Heading size="md" mb={4}>Por modulo</Heading>
       <VStack align="stretch" spacing={3} mb={8}>

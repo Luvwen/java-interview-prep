@@ -78,6 +78,12 @@ El frontend usa **Chakra UI v2** con dark mode profesional, tokens de color sema
 - **Progreso en frontend**: el progreso se persiste en `localStorage` del navegador (no en el backend). Guest ID automatico (UUID v4) generado en el primer acceso.
 - **Deploy en Render**: Dockerfile multi-stage (node + java), SPA fallback, un solo servicio.
 - **Header clickable**: el titulo "Java Prep" con icono de cafe (Coffee de lucide-react) lleva al catalogo al hacer click.
+- **Skeleton loaders**: spinners reemplazados por placeholders con animacion pulse en CatalogPage, ModulePage, QuizPage, StatisticsPage y ProgressPage.
+- **Quiz feedback mejorado**: el feedback muestra que respondio el usuario vs la respuesta correcta. Soporta SINGLE, MULTIPLE, TRUE_FALSE, ORDER, CODE_FILL y BUG_HUNT con colores y formato diferenciado.
+- **Flashcards con spaced repetition**: tarjetas marcadas "no sabia" se reciclan con frecuencia creciente. Stats persistidas en localStorage entre sesiones.
+- **Stats con graficos**: bar chart de aciertos/errores por modulo y donut chart de precision global usando recharts.
+- **Theme toggle**: boton Sun/Moon en el header para alternar entre dark y light mode. Preferencia persistida en localStorage.
+- **Casos reales expandidos**: 9 casos (antes 6): Microservicios, Docker, Kafka agregados.
 
 La UI web se organiza en vistas:
 
@@ -172,7 +178,7 @@ Reglas que antes eran preguntas abiertas y quedan fijadas:
 - **Persistencia**: el progreso se guarda en **localStorage** del navegador (`javatheory_progress`). Guest ID automatico (UUID v4) en `javatheory_guest_id`. El backend sirve contenido y evalua quizzes pero no persiste progreso.
 - **Contenido de los modulos**: 12 modulos (7 iniciales + 5 de ampliacion), con teoria de tipo **explicacion extensa**, almacenados como archivos JSON en `src/main/resources`.
 - **Orden de implementacion**: Core Java -> POO -> Colecciones -> Streams y lambdas -> Concurrencia -> JVM y memoria -> SQL/JDBC -> Spring -> Testing -> Patrones de diseno -> REST y HTTP -> Git.
-- **UI web**: la fase 2 (React + Vite + API REST en Spring Boot) tiene TOC en modulos (sticky en desktop, FAB+Drawer en mobile), layout pulido, mobile responsive, codigo con scroll horizontal, progreso en localStorage y deploy en Render. Header con icono de cafe y nombre "Java Prep" que lleva al catalogo. La SPA tiene vistas para catalogo, detalle de modulo, quiz, actividades, casos reales, progreso y estadisticas; sin autenticacion ni multiusuario (guest ID automatico).
+- **UI web**: la fase 2 (React + Vite + API REST en Spring Boot) tiene TOC en modulos (sticky en desktop, FAB+Drawer en mobile), layout pulido, mobile responsive, codigo con scroll horizontal, skeleton loaders, theme toggle dark/light, progreso en localStorage, stats con graficos (recharts) y deploy en Render. Header con icono de cafe y nombre "Java Prep" que lleva al catalogo. La SPA tiene vistas para catalogo, detalle de modulo, quiz, actividades, casos reales, progreso y estadisticas; sin autenticacion ni multiusuario (guest ID automatico).
 - **Formato `TRUE_FALSE`**: cada pregunta tiene `options: ["Verdadero", "Falso"]` y `correctIndexes` con un unico elemento (`[0]` verdadero, `[1]` falso); se corrige con la misma regla de coincidencia exacta que `SINGLE`.
 - **Formato `ORDER`**: `correctOrder` contiene la secuencia de indices correcta; se evalua contra el orden exacto proporcionado por el usuario.
 - **Quiz mixto (`QuizMode.MIXED`)**: genera una sesion aleatoria de preguntas mezclando `SINGLE`, `MULTIPLE`, `TRUE_FALSE` y `ORDER`; los modulos elegidos se filtran del banco global. Si `count` supera la cantidad de preguntas disponibles en los modulos seleccionados, se ajusta (clamp) al maximo disponible en vez de fallar.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -33,6 +33,8 @@ import {
   Briefcase,
   Menu,
   Coffee,
+  Sun,
+  Moon,
 } from "lucide-react";
 import CatalogPage from "./pages/CatalogPage";
 import ModulePage from "./pages/ModulePage";
@@ -48,7 +50,7 @@ import CodeFillPage from "./pages/CodeFillPage";
 import BugHuntPage from "./pages/BugHuntPage";
 import RealWorldPage from "./pages/RealWorldPage";
 import { useNavigation, type NavState } from "./useNavigation";
-import { colors } from "./colors";
+import { useTheme } from "./useTheme";
 
 const activities = [
   { id: "time-attack" as const, title: "Contra Reloj", desc: "Responde contra un cronometro por pregunta.", icon: Clock },
@@ -71,6 +73,12 @@ const navItems = [
 function App() {
   const { view, moduleId, navigate } = useNavigation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { theme, colors, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    document.body.style.backgroundColor = colors.bg;
+    document.body.style.color = colors.textPrimary;
+  }, [colors]);
 
   const go = (state: NavState) => {
     navigate(state);
@@ -131,15 +139,25 @@ function App() {
             ))}
           </HStack>
 
-          <IconButton
-            aria-label="Menu"
-            icon={<Menu size={20} />}
-            display={{ base: "flex", md: "none" } as never}
-            variant="ghost"
-            color={colors.textMuted}
-            onClick={() => setDrawerOpen(true)}
-            size="sm"
-          />
+          <HStack gap={2}>
+            <IconButton
+              aria-label="Toggle theme"
+              icon={theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              variant="ghost"
+              color={colors.textMuted}
+              onClick={toggleTheme}
+              size="sm"
+            />
+            <IconButton
+              aria-label="Menu"
+              icon={<Menu size={20} />}
+              display={{ base: "flex", md: "none" } as never}
+              variant="ghost"
+              color={colors.textMuted}
+              onClick={() => setDrawerOpen(true)}
+              size="sm"
+            />
+          </HStack>
         </Flex>
 
         <Drawer isOpen={drawerOpen} placement="right" onClose={() => setDrawerOpen(false)}>
@@ -167,6 +185,17 @@ function App() {
                     {item.label}
                   </Button>
                 ))}
+                <Button
+                  variant="ghost"
+                  color={colors.textMuted}
+                  justifyContent="flex-start"
+                  leftIcon={theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                  onClick={toggleTheme}
+                  borderRadius="10px"
+                  mt={4}
+                >
+                  {theme === "dark" ? "Modo claro" : "Modo oscuro"}
+                </Button>
               </VStack>
             </DrawerBody>
           </DrawerContent>

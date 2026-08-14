@@ -7,13 +7,13 @@ import {
   List,
   ListItem,
   Progress,
-  Spinner,
   Text,
 } from "@chakra-ui/react";
 import { api } from "../api";
 import { colors } from "../colors";
 import type { Progress as ProgressType } from "../types";
 import StateBadge from "../components/StateBadge";
+import { SkeletonCard } from "../components/Skeletons";
 
 function ProgressPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
   const [progress, setProgress] = useState<ProgressType | null>(null);
@@ -33,7 +33,7 @@ function ProgressPage({ onOpenModule }: { onOpenModule: (id: string) => void }) 
   };
 
   if (error) return <Text color={colors.error}>{error}</Text>;
-  if (!progress) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
+  if (!progress) return <SkeletonCard count={4} />;
 
   const entries = Object.entries(progress.moduleStates);
   const completed = entries.filter(([, state]) => state === "COMPLETED").length;

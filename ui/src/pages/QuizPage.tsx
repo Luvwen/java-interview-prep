@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Box, Button, Heading, Text, VStack, Spinner,
+  Box, Button, Heading, Text, VStack,
 } from "@chakra-ui/react";
 import { ArrowLeft } from "lucide-react";
 import { api } from "../api";
@@ -8,6 +8,7 @@ import { colors } from "../colors";
 import type { Quiz, QuizResult } from "../types";
 import QuestionRenderer from "../components/QuestionRenderer";
 import QuizFeedback from "../components/QuizFeedback";
+import { SkeletonQuiz } from "../components/Skeletons";
 
 function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -27,7 +28,7 @@ function QuizPage({ moduleId, onExit }: { moduleId: string; onExit: () => void }
   }, [moduleId]);
 
   if (error) return <Text color={colors.error}>{error}</Text>;
-  if (!quiz) return <Spinner size="lg" color={colors.accent} display="block" mx="auto" mt={12} />;
+  if (!quiz) return <SkeletonQuiz />;
 
   const toggleOption = (questionIndex: number, optionIndex: number) => {
     const type = quiz.questions[questionIndex].type;
