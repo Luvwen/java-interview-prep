@@ -28,9 +28,7 @@ function CatalogPage({ onOpenModule }: { onOpenModule: (id: string) => void }) {
     <Box>
       <Heading size="lg" mb={2} letterSpacing="-0.02em">Modulos</Heading>
       <Text color={colors.textMuted} mb={6}>Aprende Java desde los fundamentos hasta frameworks avanzados.</Text>
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5}>
-        <SkeletonCard count={6} />
-      </SimpleGrid>
+      <SkeletonCard count={6} />
     </Box>
   );
   if (error) return <Text color={colors.error}>{error}</Text>;

@@ -568,7 +568,7 @@
         {
           "title": "Resiliencia con Circuit Breaker",
           "text": "Cuando un servicio dependiente falla, el circuit breaker abre y devuelve una respuesta de fallback en vez de propagar el error. Resilience4j es la alternativa moderna a Hystrix.",
-          "code": "@Service\npublic class OrderService {\n    \n    @CircuitBreaker(name = "inventory", fallbackMethod = "fallbackStock")\n    public StockInfo checkStock(String productId) {\n        return inventoryClient.getStock(productId);\n    }\n    \n    public StockInfo fallbackStock(String productId, Exception e) {\n        log.warn(\"Inventory service unavailable, using cached data: {}\", e.getMessage());\n        return cachedStockService.get(productId);\n    }\n}\n\n// Configuracion\nresilience4j:\n  circuitbreaker:\n    instances:\n      inventory:\n        slidingWindowSize: 10\n        failureRateThreshold: 50\n        waitDurationInOpenState: 10s\n        permittedNumberOfCallsInHalfOpenState: 3"
+          "code": "@Service\npublic class OrderService {\n    \n    @CircuitBreaker(name = \"inventory\", fallbackMethod = \"fallbackStock\")\n    public StockInfo checkStock(String productId) {\n        return inventoryClient.getStock(productId);\n    }\n    \n    public StockInfo fallbackStock(String productId, Exception e) {\n        log.warn(\"Inventory service unavailable, using cached data: {}\", e.getMessage());\n        return cachedStockService.get(productId);\n    }\n}\n\n// Configuracion\nresilience4j:\n  circuitbreaker:\n    instances:\n      inventory:\n        slidingWindowSize: 10\n        failureRateThreshold: 50\n        waitDurationInOpenState: 10s\n        permittedNumberOfCallsInHalfOpenState: 3"
         }
       ],
       "keyPoints": [

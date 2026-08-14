@@ -1,9 +1,9 @@
-import { Box, Skeleton, SkeletonText, Stack } from "@chakra-ui/react";
+import { Box, SimpleGrid, Skeleton, SkeletonText, Stack } from "@chakra-ui/react";
 import { colors } from "../colors";
 
-export function SkeletonCard({ count = 1 }: { count?: number }) {
+export function SkeletonCard({ count = 1, columns = { base: 1, md: 2, lg: 3 } }: { count?: number; columns?: Record<string, number> }) {
   return (
-    <Stack spacing={4}>
+    <SimpleGrid columns={columns} spacing={5}>
       {Array.from({ length: count }).map((_, i) => (
         <Box
           key={i}
@@ -17,7 +17,7 @@ export function SkeletonCard({ count = 1 }: { count?: number }) {
           <SkeletonText mt={2} noOfLines={2} spacing={3} />
         </Box>
       ))}
-    </Stack>
+    </SimpleGrid>
   );
 }
 

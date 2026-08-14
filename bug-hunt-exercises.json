@@ -1,0 +1,1702 @@
+[
+  {
+    "id": "bh-conc-e1",
+    "text": "Find the bug in this code that creates and starts a thread:",
+    "options": [
+      "Line 1: The Runnable is defined correctly",
+      "Line 2: Thread object is created correctly",
+      "Line 3: run() is called instead of start(), so the code executes in the current thread, not in a new thread"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Calling run() directly executes the code in the current thread synchronously. start() is what actually launches a new thread of execution.",
+    "type": "BUG_HUNT",
+    "code": "Thread t = new Thread(() -> {\n    System.out.println(\"Running in: \" + Thread.currentThread().getName());\n});\nt.run();",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e2",
+    "text": "Find the bug in this code that uses ExecutorService:",
+    "options": [
+      "Line 1: ExecutorService is created with a fixed thread pool",
+      "Line 2: The tasks are submitted correctly",
+      "Line 3: The pool is never shut down, leaving threads that prevent JVM exit"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "ExecutorService creates non-daemon threads that keep the JVM alive. Without shutdown(), the application never terminates. Always call shutdown() or use try-with-resources.",
+    "type": "BUG_HUNT",
+    "code": "ExecutorService pool = Executors.newFixedThreadPool(2);\npool.submit(() -> System.out.println(\"Task 1\"));\npool.submit(() -> System.out.println(\"Task 2\"));",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e3",
+    "text": "Find the bug in this code that sleeps a thread:",
+    "options": [
+      "Line 1: Thread.sleep is called correctly",
+      "Line 2: The method declares it throws InterruptedException",
+      "Line 3: The catch block swallows the interrupt without restoring the flag"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "When InterruptedException is caught, the interrupt flag is cleared. Restore it with Thread.currentThread().interrupt() so callers can detect the interruption.",
+    "type": "BUG_HUNT",
+    "code": "public void procesar() throws InterruptedException {\n    while (true) {\n        try {\n            Thread.sleep(1000);\n        } catch (InterruptedException e) {\n            break;\n        }\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e4",
+    "text": "Find the bug in this code that uses a synchronized method:",
+    "options": [
+      "Line 1: The synchronized keyword is on the method",
+      "Line 2: The method modifies shared state",
+      "Line 3: The getter is not synchronized, allowing stale reads"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "If incrementar() is synchronized but getContador() is not, a reading thread may see a stale value. Both read and write of shared mutable state must be synchronized.",
+    "type": "BUG_HUNT",
+    "code": "private int contador = 0;\n\npublic synchronized void incrementar() {\n    contador++;\n}\n\npublic int getContador() {\n    return contador;\n}",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e5",
+    "text": "Find the bug in this code that uses setDaemon:",
+    "options": [
+      "Line 1: The Runnable is defined correctly",
+      "Line 2: The thread is started",
+      "Line 3: setDaemon(true) is called after start(), throwing IllegalThreadStateException"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "setDaemon() must be called before start(). Once a thread is started, its daemon status cannot be changed. Calling setDaemon(true) after start() throws IllegalThreadStateException.",
+    "type": "BUG_HUNT",
+    "code": "Thread t = new Thread(() -> {\n    while (true) { /* background work */ }\n});\nt.start();\nt.setDaemon(true);",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e6",
+    "text": "Find the bug in this code that uses CompletableFuture.get():",
+    "options": [
+      "Line 1: supplyAsync creates the future correctly",
+      "Line 2: The async chain transforms the result",
+      "Line 3: get() blocks indefinitely with no timeout"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "CompletableFuture.get() without a timeout can block forever if the future never completes. Always use get(timeout, TimeUnit) or handle exceptions.",
+    "type": "BUG_HUNT",
+    "code": "CompletableFuture<String> cf = CompletableFuture.supplyAsync(() -> {\n    Thread.sleep(10000);\n    return \"done\";\n});\nString result = cf.get();",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e7",
+    "text": "Find the bug in this code that uses ThreadLocal:",
+    "options": [
+      "Line 1: ThreadLocal is declared as a static field",
+      "Line 2: set() stores a value for the current thread",
+      "Line 3: The ThreadLocal is never removed, causing a memory leak in thread pools"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Thread pools reuse threads. If ThreadLocal values are never removed, they persist for the thread's lifetime and cause memory leaks. Always call remove() in a finally block.",
+    "type": "BUG_HUNT",
+    "code": "private static final ThreadLocal<UserContext> currentUser = new ThreadLocal<>();\n\npublic void handleRequest() {\n    currentUser.set(new UserContext(\"admin\"));\n    procesar();\n}",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e8",
+    "text": "Find the bug in this code that uses a volatile flag:",
+    "options": [
+      "Line 1: The volatile boolean flag is declared correctly",
+      "Line 2: The writer thread sets the flag",
+      "Line 3: The flag is set to true but never set back to false, causing an infinite loop"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The writer thread sets active to true but never sets it to false. The reader thread loops while active is true, spinning forever. The volatile keyword is correct but the logic never terminates.",
+    "type": "BUG_HUNT",
+    "code": "private volatile boolean active = true;\n\npublic void start() {\n    new Thread(() -> {\n        active = true;\n        try { Thread.sleep(1000); } catch (Exception e) {}\n    }).start();\n}\n\npublic void stop() {\n    while (active) {\n        Thread.onSpinWait();\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-e9",
+    "text": "Find the bug in this code that uses CountDownLatch:",
+    "options": [
+      "Line 1: The CountDownLatch is initialized with count 3",
+      "Line 2: Worker threads call countDown() correctly",
+      "Line 3: The latch cannot be reset — it is a one-shot mechanism"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "CountDownLatch is a one-shot mechanism: once the count reaches zero, it cannot be reset. For a reusable barrier, use CyclicBarrier instead.",
+    "type": "BUG_HUNT",
+    "code": "CountDownLatch latch = new CountDownLatch(3);\n\nlatch.countDown(); latch.countDown(); latch.countDown();\n// later, trying to reuse\nlatch.countDown(); // no effect, count cannot go below 0",
+    "difficulty": "easy",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m1",
+    "text": "Find the bug in this code that uses ReentrantLock:",
+    "options": [
+      "Line 1: ReentrantLock is declared correctly",
+      "Line 2: lock() is acquired correctly",
+      "Line 3: unlock() is not in a finally block, so the lock is never released on exception"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "If the code between lock() and unlock() throws, unlock() is never called and the lock is held forever, causing deadlock. Always put unlock() in a finally block.",
+    "type": "BUG_HUNT",
+    "code": "ReentrantLock lock = new ReentrantLock();\n\npublic void transferir() {\n    lock.lock();\n    int saldo = obtenerSaldo();\n    if (saldo < 0) throw new RuntimeException(\"Saldo negativo\");\n    actualizarSaldo(saldo - 100);\n    lock.unlock();\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m2",
+    "text": "Find the bug in this code that uses ConcurrentHashMap.computeIfAbsent:",
+    "options": [
+      "Line 1: The ConcurrentHashMap is declared correctly",
+      "Line 2: computeIfAbsent is thread-safe for single insertions",
+      "Line 3: The mapping function modifies the same map, causing a deadlock"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The mapping function must not modify the same ConcurrentHashMap. Doing so acquires a bucket lock and then tries to acquire another lock on the same map, causing a deadlock.",
+    "type": "BUG_HUNT",
+    "code": "ConcurrentHashMap<String, List<String>> map = new ConcurrentHashMap<>();\n\npublic void addEntry(String key, String value) {\n    map.computeIfAbsent(key, k -> {\n        List<String> list = new ArrayList<>();\n        map.put(k + \"_meta\", List.of(\"info\"));\n        return list;\n    }).add(value);\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m3",
+    "text": "Find the bug in this code that uses synchronized on static vs instance methods:",
+    "options": [
+      "Line 1: The static method is synchronized on the Class object",
+      "Line 2: The instance method is synchronized on 'this'",
+      "Line 3: Both methods synchronize on different monitors, so they don't mutually exclude each other"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "A static synchronized method locks on the Class object, while an instance synchronized method locks on 'this'. These are different monitors, so both can execute concurrently.",
+    "type": "BUG_HUNT",
+    "code": "public class Counter {\n    private int count = 0;\n\n    public static synchronized void staticIncrement() {\n        // locks on Counter.class\n    }\n\n    public synchronized void instanceIncrement() {\n        // locks on 'this'\n        count++;\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m4",
+    "text": "Find the bug in this code that uses BlockingQueue.offer():",
+    "options": [
+      "Line 1: ArrayBlockingQueue is created with capacity 10",
+      "Line 2: put() blocks if the queue is full",
+      "Line 3: offer() returns false when full, but the return value is ignored, silently dropping elements"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "offer() returns false when the queue is full instead of blocking. If the return value is ignored, elements are silently lost. Use put() to block until space is available.",
+    "type": "BUG_HUNT",
+    "code": "BlockingQueue<String> queue = new ArrayBlockingQueue<>(10);\n\npublic void producer() {\n    for (int i = 0; i < 100; i++) {\n        queue.offer(\"item\" + i);\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m5",
+    "text": "Find the bug in this code that uses a Semaphore:",
+    "options": [
+      "Line 1: Semaphore is initialized with 1 permit",
+      "Line 2: acquire() is called correctly",
+      "Line 3: release() is not in a finally block, leaking permits on exception"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "If an exception occurs between acquire() and release(), the permit is never returned, permanently reducing available permits. Always use try-finally.",
+    "type": "BUG_HUNT",
+    "code": "Semaphore semaphore = new Semaphore(1);\n\npublic void acceder() throws InterruptedException {\n    semaphore.acquire();\n    procesarRecurso();\n    semaphore.release();\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m6",
+    "text": "Find the bug in this code that uses AtomicInteger CAS:",
+    "options": [
+      "Line 1: AtomicInteger is declared correctly",
+      "Line 2: incrementAndGet() is atomic",
+      "Line 3: compareAndSet may silently fail if another thread changed the value between get() and CAS"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "compareAndSet(expected, newValue) only succeeds if the current value equals expected. If another thread changed the value between get() and compareAndSet(), the CAS fails silently. Retry in a loop or use updateAndGet().",
+    "type": "BUG_HUNT",
+    "code": "private final AtomicInteger counter = new AtomicInteger(0);\n\npublic void incrementIfEven() {\n    int current = counter.get();\n    if (current % 2 == 0) {\n        counter.compareAndSet(current, current + 1);\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m7",
+    "text": "Find the bug in this code that uses CompletableFuture exception handling:",
+    "options": [
+      "Line 1: supplyAsync creates the future",
+      "Line 2: thenApply transforms the result",
+      "Line 3: Exceptions from the async chain are not handled and propagate as CompletionException"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "If an exception occurs in the async chain and is not handled with exceptionally() or handle(), it propagates as CompletionException when get() is called, potentially masking the root cause.",
+    "type": "BUG_HUNT",
+    "code": "CompletableFuture<String> cf = CompletableFuture.supplyAsync(() -> {\n    if (true) throw new RuntimeException(\"boom\");\n    return \"ok\";\n});\n\nString result = cf.get(); // CompletionException wrapping RuntimeException",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-m8",
+    "text": "Find the bug in this code that uses CopyOnWriteArrayList in a loop:",
+    "options": [
+      "Line 1: CopyOnWriteArrayList is created correctly",
+      "Line 2: The for-each iteration is safe from ConcurrentModificationException",
+      "Line 3: add() inside the loop creates a new copy each time, and the iterator never sees new elements, causing an infinite loop"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "CopyOnWriteArrayList's iterator operates on a snapshot. Calling add() inside the loop creates a new array, but the iterator never sees new elements, causing an infinite loop.",
+    "type": "BUG_HUNT",
+    "code": "CopyOnWriteArrayList<String> list = new CopyOnWriteArrayList<>();\nlist.add(\"a\");\nlist.add(\"b\");\n\nfor (String item : list) {\n    list.add(\"new\");\n}",
+    "difficulty": "medium",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h1",
+    "text": "Find the bug in this code that causes a deadlock:",
+    "options": [
+      "Line 1: Thread 1 locks lockA then lockB",
+      "Line 2: Thread 2 locks lockB then lockA",
+      "Line 3: Both threads acquire locks in opposite order, creating a deadlock"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Thread 1 holds lockA and waits for lockB. Thread 2 holds lockB and waits for lockA. Neither can proceed. Solution: always acquire locks in the same global order.",
+    "type": "BUG_HUNT",
+    "code": "Object lockA = new Object();\nObject lockB = new Object();\n\nnew Thread(() -> {\n    synchronized (lockA) {\n        synchronized (lockB) { /* work */ }\n    }\n}).start();\n\nnew Thread(() -> {\n    synchronized (lockB) {\n        synchronized (lockA) { /* work */ }\n    }\n}).start();",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h2",
+    "text": "Find the bug in this code that has a 'this' escape problem:",
+    "options": [
+      "Line 1: The helper object is created correctly",
+      "Line 2: The reference is assigned to a field",
+      "Line 3: The field is not volatile, so another thread may see a partially constructed object"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Without volatile, the JVM may reorder instructions so another thread sees the reference before the constructor finishes. This is the 'this escape' problem. The field must be volatile.",
+    "type": "BUG_HUNT",
+    "code": "public class Host {\n    private Helper helper;\n\n    public void initialize() {\n        helper = new Helper();\n    }\n\n    public Helper getHelper() {\n        return helper;\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h3",
+    "text": "Find the bug in this code that uses thenApply instead of thenCompose:",
+    "options": [
+      "Line 1: supplyAsync creates the first future",
+      "Line 2: The chain transforms the result",
+      "Line 3: thenApply is used when thenCompose is needed, creating nested CompletableFuture<CompletableFuture<T>>"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "thenApply wraps the result in another layer (Future<Future<T>>). thenCompose is the flatMap equivalent: it unwraps the nested future. Use thenCompose when the function returns a CompletableFuture.",
+    "type": "BUG_HUNT",
+    "code": "CompletableFuture<String> userFuture = CompletableFuture.supplyAsync(() -> \"user123\");\n\nCompletableFuture<CompletableFuture<String>> detailsFuture =\n    userFuture.thenApply(userId -> fetchUserDetails(userId));",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h4",
+    "text": "Find the bug in this code that uses HashMap in a concurrent context:",
+    "options": [
+      "Line 1: The HashMap is used as a cache",
+      "Line 2: computeIfAbsent is used for lazy initialization",
+      "Line 3: HashMap is not thread-safe; concurrent access can cause data corruption or infinite loops"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "HashMap is not thread-safe. Concurrent operations can cause data corruption, lost updates, or infinite loops in bucket chains. Use ConcurrentHashMap instead.",
+    "type": "BUG_HUNT",
+    "code": "Map<String, List<String>> cache = new HashMap<>();\n\npublic List<String> getOrCreate(String key) {\n    return cache.computeIfAbsent(key, k -> new ArrayList<>());\n}",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h5",
+    "text": "Find the bug in this code that uses double-checked locking without volatile:",
+    "options": [
+      "Line 1: The singleton field is declared",
+      "Line 2: The double-checked locking pattern is used",
+      "Line 3: Without volatile, the reference may be visible before the object is fully constructed"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Double-checked locking requires volatile on the singleton field. Without it, instruction reordering can publish the reference before the constructor finishes.",
+    "type": "BUG_HUNT",
+    "code": "public class Singleton {\n    private static Singleton instance;\n\n    public static Singleton getInstance() {\n        if (instance == null) {\n            synchronized (Singleton.class) {\n                if (instance == null) {\n                    instance = new Singleton();\n                }\n            }\n        }\n        return instance;\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h6",
+    "text": "Find the bug in this code that uses StampedLock optimistic read for writing:",
+    "options": [
+      "Line 1: tryOptimisticRead is used",
+      "Line 2: validate checks the stamp",
+      "Line 3: The optimistic read is used to modify shared state, violating the read-only contract"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Optimistic reads in StampedLock are read-only. If you need to write, use writeLock(). Using an optimistic read stamp to modify data is a data race.",
+    "type": "BUG_HUNT",
+    "code": "private final StampedLock sl = new StampedLock();\nprivate int x = 10;\n\npublic void incrementX() {\n    long stamp = sl.tryOptimisticRead();\n    int value = x;\n    x = value + 1;\n    if (!sl.validate(stamp)) { /* handle */ }\n}",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h7",
+    "text": "Find the bug in this code that causes a race condition with lazy initialization:",
+    "options": [
+      "Line 1: The field is checked for null",
+      "Line 2: The object is created if null",
+      "Line 3: Without synchronization, two threads may both create the object, wasting resources or causing inconsistency"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Without synchronization, two threads can both see null, both create the object, and one's work is lost. Use synchronized, volatile, or a holder class pattern.",
+    "type": "BUG_HUNT",
+    "code": "private static Config instance;\n\npublic static Config getInstance() {\n    if (instance == null) {\n        instance = new Config(); // race: two threads may both create\n    }\n    return instance;\n}",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-conc-h8",
+    "text": "Find the bug in this code that uses parallelStream with blocking I/O:",
+    "options": [
+      "Line 1: parallelStream is used to process files",
+      "Line 2: The common ForkJoinPool is used by default",
+      "Line 3: Blocking I/O inside parallelStream starves the common pool for all parallelStream users"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The common ForkJoinPool is shared across the JVM. Blocking I/O inside parallelStream consumes threads from this pool, starving other parallelStream users.",
+    "type": "BUG_HUNT",
+    "code": "public void procesarArchivos(List<Path> archivos) {\n    archivos.parallelStream()\n        .forEach(archivo -> {\n            String contenido = Files.readString(archivo);\n        });\n}",
+    "difficulty": "hard",
+    "moduleId": "concurrency"
+  },
+  {
+    "id": "bh-jvm-e1",
+    "text": "Find the bug in this code that causes StackOverflowError:",
+    "options": [
+      "Line 1: The method has a base case",
+      "Line 2: The recursive call reduces n",
+      "Line 3: The recursive call passes n+1 instead of n-1, causing infinite recursion"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The recursive call increments n instead of decrementing. Since n grows toward infinity, the recursion never terminates and the stack overflows.",
+    "type": "BUG_HUNT",
+    "code": "static int factorial(int n) {\n    if (n == 0) return 1;\n    return n * factorial(n + 1);\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e2",
+    "text": "Find the bug in this code that causes OutOfMemoryError:",
+    "options": [
+      "Line 1: The ArrayList is created correctly",
+      "Line 2: The loop adds elements correctly",
+      "Line 3: The list grows unbounded, consuming all heap memory"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The loop adds elements indefinitely without any bound. The ArrayList grows continuously, eventually throwing OutOfMemoryError: Java heap space.",
+    "type": "BUG_HUNT",
+    "code": "List<byte[]> data = new ArrayList<>();\nwhile (true) {\n    data.add(new byte[1024 * 1024]);\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e3",
+    "text": "Find the bug in this code that leaks a file handle:",
+    "options": [
+      "Line 1: The FileInputStream is opened correctly",
+      "Line 2: The data is read correctly",
+      "Line 3: The stream is never closed, leaking a file handle"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "FileInputStream holds a native file descriptor. Without closing it, the file handle leaks. Use try-with-resources to guarantee closure.",
+    "type": "BUG_HUNT",
+    "code": "FileInputStream fis = new FileInputStream(\"data.txt\");\nbyte[] data = fis.readAllBytes();\nString content = new String(data);",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e4",
+    "text": "Find the bug in this code that causes class initialization failure:",
+    "options": [
+      "Line 1: The static block checks a condition",
+      "Line 2: The exception is thrown if the condition fails",
+      "Line 3: After the first failure, all subsequent uses throw NoClassDefFoundError"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "When a static initializer throws, the JVM wraps it in ExceptionInInitializerError. The class is marked as failed, and subsequent uses throw NoClassDefFoundError.",
+    "type": "BUG_HUNT",
+    "code": "class Config {\n    static {\n        if (System.getenv(\"DB_URL\") == null) {\n            throw new RuntimeException(\"Missing DB_URL\");\n        }\n    }\n    static String url = System.getenv(\"DB_URL\");\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e5",
+    "text": "Find the bug in this code that confuses stack and heap:",
+    "options": [
+      "Line 1: The int primitive is declared correctly",
+      "Line 2: The String reference is declared correctly",
+      "Line 3: The comment claims the String object lives in the stack, but objects always live in the heap"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "In Java, references live in the stack, but the objects they point to always live in the heap. The String object 'hello' is in the String pool (heap).",
+    "type": "BUG_HUNT",
+    "code": "public void ejemplo() {\n    int x = 5;\n    String s = \"hello\";\n    // s (reference) is in the stack,\n    // but the String object is in the heap\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e6",
+    "text": "Find the bug in this code that relies on System.gc():",
+    "options": [
+      "Line 1: Large objects are allocated",
+      "Line 2: System.gc() is called to free memory",
+      "Line 3: System.gc() is only a hint — the JVM may ignore it"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "System.gc() is a suggestion, not a command. The JVM may ignore it. Never rely on it for memory management in production.",
+    "type": "BUG_HUNT",
+    "code": "public void liberarMemoria() {\n    List<byte[]> data = new ArrayList<>();\n    for (int i = 0; i < 1000; i++) {\n        data.add(new byte[1024 * 1024]);\n    }\n    data.clear();\n    System.gc();\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e7",
+    "text": "Find the bug in this code that causes a memory leak via static collection:",
+    "options": [
+      "Line 1: The static list is initialized once",
+      "Line 2: Events are added to the list",
+      "Line 3: The static list grows without bound and is never garbage collected"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Static collections live for the lifetime of the class. If elements are never removed, the list grows indefinitely, eventually causing OutOfMemoryError.",
+    "type": "BUG_HUNT",
+    "code": "public class EventLog {\n    private static final List<String> log = new ArrayList<>();\n\n    public static void log(String event) {\n        log.add(event);\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e8",
+    "text": "Find the bug in this code that uses finalize() for cleanup:",
+    "options": [
+      "Line 1: The resource is opened in the constructor",
+      "Line 2: finalize() attempts to close the resource",
+      "Line 3: finalize() has no guarantee of when or if it runs"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "finalize() is called by the GC at an unpredictable time (or never). Relying on it for resource cleanup means the resource may leak. Use try-with-resources instead.",
+    "type": "BUG_HUNT",
+    "code": "public class Connection implements AutoCloseable {\n    private Socket socket;\n\n    public Connection(String host) throws Exception {\n        this.socket = new Socket(host, 80);\n    }\n\n    @Override\n    protected void finalize() throws Exception {\n        socket.close();\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-e9",
+    "text": "Find the bug in this code that references PermGen (outdated concept):",
+    "options": [
+      "Line 1: Classes are loaded dynamically",
+      "Line 2: Each class is loaded by a new classloader",
+      "Line 3: The comment claims classes are in PermGen, but since Java 8 they are in Metaspace"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Since Java 8, PermGen was replaced by Metaspace in native memory. The comment is outdated. Metaspace is configured with -XX:MaxMetaspaceSize.",
+    "type": "BUG_HUNT",
+    "code": "// Comment: classes are stored in PermGen (outdated since Java 8)\nURLClassLoader loader = new URLClassLoader(urls);\nClass<?> clazz = loader.loadClass(\"com.example.DynamicClass\");",
+    "difficulty": "easy",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m1",
+    "text": "Find the bug in this code that causes a memory leak with HashMap cache:",
+    "options": [
+      "Line 1: The HashMap is used as a cache",
+      "Line 2: Objects are put into the map",
+      "Line 3: Objects are never removed and the map has no size limit"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The cache map grows without bound. Even if cached objects are unused elsewhere, the map holds strong references, preventing GC. Use a bounded cache.",
+    "type": "BUG_HUNT",
+    "code": "public class Cache {\n    private final Map<String, Object> cache = new HashMap<>();\n\n    public Object get(String key) {\n        return cache.computeIfAbsent(key, this::expensiveLoad);\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m2",
+    "text": "Find the bug in this code that uses SoftReference without null check:",
+    "options": [
+      "Line 1: SoftReference is used for caching",
+      "Line 2: The soft reference is retrieved with get()",
+      "Line 3: get() may return null, causing NullPointerException"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "SoftReference.get() returns null if the referent has been garbage collected. Dereferencing without a null check causes NullPointerException.",
+    "type": "BUG_HUNT",
+    "code": "SoftReference<byte[]> cache = new SoftReference<>(loadLargeData());\n\npublic byte[] getData() {\n    byte[] data = cache.get();\n    return data.clone();\n}",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m3",
+    "text": "Find the bug in this code that uses String.intern() on user input:",
+    "options": [
+      "Line 1: User input is read correctly",
+      "Line 2: intern() is called on the input",
+      "Line 3: Interning unbounded user strings fills the String Pool, causing OutOfMemoryError"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "String.intern() stores strings in the String Pool (Metaspace). Interning unbounded user input fills the pool indefinitely, causing OutOfMemoryError.",
+    "type": "BUG_HUNT",
+    "code": "public void procesarInputs(List<String> userInputs) {\n    for (String input : userInputs) {\n        String interned = input.intern();\n        procesar(interned);\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m4",
+    "text": "Find the bug in this code that leaks a classloader:",
+    "options": [
+      "Line 1: A custom classloader loads a class",
+      "Line 2: The class is instantiated and used",
+      "Line 3: The classloader is never closed, so loaded classes remain in memory"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Without closing the classloader, all loaded classes and their static state remain in memory. In app servers, this causes permgen/metaspace leaks on redeployment.",
+    "type": "BUG_HUNT",
+    "code": "URLClassLoader loader = new URLClassLoader(urls, parent);\nClass<?> clazz = loader.loadClass(\"com.example.Plugin\");\nObject instance = clazz.getDeclaredConstructor().newInstance();",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m5",
+    "text": "Find the bug in this code that leaks via inner class listener:",
+    "options": [
+      "Line 1: The inner class holds a reference to the outer class",
+      "Line 2: The inner class is registered as a listener",
+      "Line 3: The listener is never unregistered, retaining the outer instance"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Non-static inner classes hold an implicit reference to the outer class. If registered as a listener and never unregistered, the outer instance cannot be garbage collected.",
+    "type": "BUG_HUNT",
+    "code": "public class Activity {\n    private byte[] data = new byte[1024 * 1024];\n\n    public void register() {\n        eventBus.register(new EventHandler() {\n            @Override public void onEvent(Event e) { procesar(e); }\n        });\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m6",
+    "text": "Find the bug in this code that uses PhantomReference.get():",
+    "options": [
+      "Line 1: PhantomReference is created with a ReferenceQueue",
+      "Line 2: The reference is polled from the queue",
+      "Line 3: get() on a PhantomReference always returns null"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "PhantomReference.get() always returns null by design. It is for post-GC cleanup, not for accessing the referent. Use WeakReference if you need to access the referent.",
+    "type": "BUG_HUNT",
+    "code": "Object obj = new Object();\nReferenceQueue<Object> queue = new ReferenceQueue<>();\nPhantomReference<Object> ref = new PhantomReference<>(obj, queue);\n\nobj = null;\nSystem.gc();\n\nReference<?> polled = queue.poll();\nObject referent = polled.get(); // always null!",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m7",
+    "text": "Find the bug in this code that uses WeakHashMap with a strong key reference:",
+    "options": [
+      "Line 1: WeakHashMap is used as a cache",
+      "Line 2: Entries are added to the map",
+      "Line 3: A strong reference to the key is held elsewhere, preventing garbage collection"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "WeakHashMap weakly references its keys. But if you hold a strong reference to the same key elsewhere, the entry is never collected.",
+    "type": "BUG_HUNT",
+    "code": "Map<String, byte[]> cache = new WeakHashMap<>();\nString key = \"persistent-key\";\n\ncache.put(key, new byte[1024]);\n// strong reference to 'key' prevents entry collection",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-m8",
+    "text": "Find the bug in this code that allocates Direct ByteBuffer in a loop:",
+    "options": [
+      "Line 1: Direct ByteBuffer is allocated",
+      "Line 2: The buffer is used for processing",
+      "Line 3: Direct memory is outside the GC heap and may cause OutOfMemoryError: Direct buffer memory"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Direct ByteBuffers are in native memory, outside the Java heap. Heavy allocation can outpace GC cleanup, causing OutOfMemoryError: Direct buffer memory.",
+    "type": "BUG_HUNT",
+    "code": "public void procesarDatos() {\n    while (true) {\n        ByteBuffer buffer = ByteBuffer.allocateDirect(1024 * 1024);\n        procesar(buffer);\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h1",
+    "text": "Find the bug in this code that breaks parent-first classloader delegation:",
+    "options": [
+      "Line 1: The custom classloader overrides loadClass",
+      "Line 2: It tries to load the class before asking the parent",
+      "Line 3: Breaking parent-first delegation can load duplicate classes, breaking type identity"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Parent-first delegation ensures each class is loaded exactly once. If a child loads before asking the parent, the same class may be loaded by different classloaders, breaking instanceof and equality.",
+    "type": "BUG_HUNT",
+    "code": "public class CustomClassLoader extends ClassLoader {\n    @Override\n    public Class<?> loadClass(String name) throws ClassNotFoundException {\n        byte[] bytes = findClassBytes(name);\n        if (bytes != null) {\n            return defineClass(name, bytes, 0, bytes.length);\n        }\n        return super.loadClass(name);\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h2",
+    "text": "Find the bug in this code that causes a class initialization deadlock:",
+    "options": [
+      "Line 1: Class A references Class B in its static initializer",
+      "Line 2: Class B references Class A in its static initializer",
+      "Line 3: Both classes wait for each other to initialize, causing a JVM deadlock"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "The JVM holds a lock on each class during initialization. If A triggers B and B triggers A, both wait for each other's lock — a JVM-level deadlock.",
+    "type": "BUG_HUNT",
+    "code": "class A {\n    static { try { Class.forName(\"B\"); } catch (Exception e) {} }\n    static int x = 1;\n}\n\nclass B {\n    static { try { Class.forName(\"A\"); } catch (Exception e) {} }\n    static int y = 2;\n}",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h3",
+    "text": "Find the bug in this code that has silent integer overflow:",
+    "options": [
+      "Line 1: Integer.MAX_VALUE is assigned",
+      "Line 2: The addition overflows silently",
+      "Line 3: No overflow check — result wraps to Integer.MIN_VALUE"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Java integer arithmetic silently wraps on overflow. Integer.MAX_VALUE + 1 becomes Integer.MIN_VALUE. Use Math.addExact() to detect overflow.",
+    "type": "BUG_HUNT",
+    "code": "int capacity = Integer.MAX_VALUE;\nint newCapacity = capacity + capacity / 10;\nSystem.out.println(newCapacity); // negative!",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h4",
+    "text": "Find the bug in this code that has a JIT optimization issue with non-volatile field modified by JNI:",
+    "options": [
+      "Line 1: The field is a non-volatile int",
+      "Line 2: A native method modifies the field",
+      "Line 3: The JIT may cache the field value, missing JNI modifications"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "JIT compilation can optimize away reads of non-volatile fields. If native code modifies a field, JIT-compiled Java code may not see the updates. Mark the field as volatile.",
+    "type": "BUG_HUNT",
+    "code": "public class NativeCounter {\n    private int count;\n\n    public native void nativeIncrement();\n\n    public int getCount() {\n        return count;\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h5",
+    "text": "Find the bug in this code that causes class identity issues across classloaders:",
+    "options": [
+      "Line 1: Two classloaders load the same class name",
+      "Line 2: Both versions have the same bytecode",
+      "Line 3: Instances from different classloaders are never equal, because class identity requires the same classloader"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Class identity requires the same name AND the same classloader. Two Class objects from different classloaders are distinct types, even with identical bytecode.",
+    "type": "BUG_HUNT",
+    "code": "ClassLoader loader1 = new URLClassLoader(urls1);\nClassLoader loader2 = new URLClassLoader(urls2);\n\nClass<?> c1 = loader1.loadClass(\"com.example.Config\");\nClass<?> c2 = loader2.loadClass(\"com.example.Config\");\n\nSystem.out.println(c1 == c2); // false!",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h6",
+    "text": "Find the bug in this code that causes ThreadLocal leak in a thread pool:",
+    "options": [
+      "Line 1: ThreadLocal stores per-request data",
+      "Line 2: The data is set at the start of the request",
+      "Line 3: The ThreadLocal is never removed, so pool threads retain stale request data"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Thread pool threads are reused. Without removing ThreadLocal values after each request, stale data from previous requests persists and objects cannot be garbage collected.",
+    "type": "BUG_HUNT",
+    "code": "public class RequestContext {\n    private static final ThreadLocal<Map<String, Object>> data = new ThreadLocal<>();\n\n    public static void set(Map<String, Object> reqData) {\n        data.set(reqData);\n    }\n\n    public static Map<String, Object> get() {\n        return data.get();\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h7",
+    "text": "Find the bug in this code that causes GC overhead limit exceeded:",
+    "options": [
+      "Line 1: A large cache is created",
+      "Line 2: Entries are added continuously",
+      "Line 3: The cache fills the heap and GC spends 98%+ time without freeing enough memory"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "When the heap is nearly full of reachable objects, the GC runs frequently but frees little. After 98%+ GC time with <2% recovery, the JVM throws OutOfMemoryError: GC overhead limit exceeded.",
+    "type": "BUG_HUNT",
+    "code": "public class DataProcessor {\n    private final List<ProcessedRecord> records = new ArrayList<>();\n\n    public void process(DataInputStream input) {\n        while (input.hasNext()) {\n            records.add(input.readRecord());\n        }\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-jvm-h8",
+    "text": "Find the bug in this code that leaks WeakReference objects:",
+    "options": [
+      "Line 1: WeakReferences are stored in a list",
+      "Line 2: The queue is polled when references are enqueued",
+      "Line 3: WeakReference objects are never removed from the list, accumulating in memory"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "After a WeakReference is enqueued, the reference object itself remains. If never removed from the tracking list, WeakReference objects accumulate and leak.",
+    "type": "BUG_HUNT",
+    "code": "List<WeakReference<Object>> refs = new ArrayList<>();\nReferenceQueue<Object> queue = new ReferenceQueue<>();\n\npublic void track(Object obj) {\n    refs.add(new WeakReference<>(obj, queue));\n}\n\npublic void cleanup() {\n    Reference<?> ref;\n    while ((ref = queue.poll()) != null) {\n        // processed but never removed from refs list\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "jvm"
+  },
+  {
+    "id": "bh-sql-e1",
+    "text": "Find the bug in this SQL query that counts employees per department:",
+    "options": [
+      "Line 1: SELECT selects dept_id and COUNT(*)",
+      "Line 2: GROUP BY groups by dept_id",
+      "Line 3: WHERE filters rows before grouping, excluding low-salary employees from the count"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "WHERE filters rows BEFORE grouping. Employees with salary <= 3000 are excluded from the count. Use HAVING after GROUP BY if you need to filter groups.",
+    "type": "BUG_HUNT",
+    "code": "SELECT dept_id, COUNT(*) AS total\nFROM empleados\nWHERE salario > 3000\nGROUP BY dept_id;",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e2",
+    "text": "Find the bug in this SQL that joins tables without a proper condition:",
+    "options": [
+      "Line 1: The JOIN keyword is used",
+      "Line 2: The tables are listed",
+      "Line 3: Missing ON condition causes a Cartesian product"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Without a proper ON condition, JOIN produces a Cartesian product (M x N rows). For 1000 employees and 10 departments, this generates 10,000 rows.",
+    "type": "BUG_HUNT",
+    "code": "SELECT e.nombre, d.nombre\nFROM empleados e\nJOIN departamentos d;",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e3",
+    "text": "Find the bug in this JDBC code that concatenates SQL with user input:",
+    "options": [
+      "Line 1: The connection is obtained correctly",
+      "Line 2: The statement is created",
+      "Line 3: String concatenation with user input enables SQL injection"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Concatenating user input into SQL enables SQL injection. An attacker could input ' OR '1'='1 to bypass authentication. Use PreparedStatement with parameterized queries.",
+    "type": "BUG_HUNT",
+    "code": "String nombre = request.getParameter(\"nombre\");\nString sql = \"SELECT * FROM usuarios WHERE nombre = '\" + nombre + \"'\";\nStatement stmt = connection.createStatement();\nResultSet rs = stmt.executeQuery(sql);",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e4",
+    "text": "Find the bug in this JDBC code that doesn't close resources:",
+    "options": [
+      "Line 1: The connection is obtained correctly",
+      "Line 2: The PreparedStatement is created",
+      "Line 3: Connection, Statement, and ResultSet are never closed, leaking resources"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "JDBC resources (Connection, Statement, ResultSet) must be closed. Without closing, database connections and cursors leak, eventually exhausting the pool. Use try-with-resources.",
+    "type": "BUG_HUNT",
+    "code": "Connection c = DriverManager.getConnection(url, user, pass);\nPreparedStatement ps = c.prepareStatement(\"SELECT * FROM users\");\nResultSet rs = ps.executeQuery();\nwhile (rs.next()) { System.out.println(rs.getString(1)); }",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e5",
+    "text": "Find the bug in this code that uses autoCommit incorrectly:",
+    "options": [
+      "Line 1: The connection is obtained",
+      "Line 2: Two update statements are executed",
+      "Line 3: autoCommit is true by default, so each statement commits immediately — no transactional behavior"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "JDBC autoCommit is true by default. Each statement executes in its own transaction. To group statements in a transaction, call setAutoCommit(false) first.",
+    "type": "BUG_HUNT",
+    "code": "Connection c = ds.getConnection();\nPreparedStatement ps1 = c.prepareStatement(\"UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1\");\nPreparedStatement ps2 = c.prepareStatement(\"UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2\");\nps1.executeUpdate();\nps2.executeUpdate();\n// each committed separately, no transaction!",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e6",
+    "text": "Find the bug in this SQL query that selects from multiple tables:",
+    "options": [
+      "Line 1: SELECT names columns from both tables",
+      "Line 2: FROM lists both tables",
+      "Line 3: No WHERE or JOIN condition, producing a Cartesian product"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Listing multiple tables in FROM without a JOIN condition creates a Cartesian product. Every row of one table is paired with every row of the other.",
+    "type": "BUG_HUNT",
+    "code": "SELECT e.nombre, d.nombre\nFROM empleados e, departamentos d;",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e7",
+    "text": "Find the bug in this SQL that uses COUNT(column) vs COUNT(*):",
+    "options": [
+      "Line 1: The query counts employees per department",
+      "Line 2: GROUP BY is correct",
+      "Line 3: COUNT(nombre) excludes NULLs, while COUNT(*) counts all rows — may give unexpected results"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "COUNT(column) excludes NULL values, while COUNT(*) counts all rows including NULLs. If nombre can be NULL, COUNT(nombre) gives a lower count than expected.",
+    "type": "BUG_HUNT",
+    "code": "SELECT dept_id, COUNT(nombre) AS total\nFROM empleados\nGROUP BY dept_id;",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e8",
+    "text": "Find the bug in this SQL that uses HAVING without GROUP BY:",
+    "options": [
+      "Line 1: SELECT uses an aggregate function",
+      "Line 2: HAVING filters on the aggregate",
+      "Line 3: Missing GROUP BY — HAVING without GROUP BY treats the entire result as one group"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "HAVING without GROUP BY treats the entire result set as a single group. The aggregate function operates on all rows, not per-department as likely intended.",
+    "type": "BUG_HUNT",
+    "code": "SELECT dept_id, COUNT(*) AS total\nFROM empleados\nHAVING COUNT(*) > 5;",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-e9",
+    "text": "Find the bug in this JDBC code that ignores executeUpdate return value:",
+    "options": [
+      "Line 1: PreparedStatement is created for UPDATE",
+      "Line 2: executeUpdate is called",
+      "Line 3: The return value (affected rows) is ignored, so failures are silent"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "executeUpdate returns the number of affected rows. If it returns 0, no rows were updated (wrong ID, data unchanged). Ignoring this means silent failures.",
+    "type": "BUG_HUNT",
+    "code": "PreparedStatement ps = c.prepareStatement(\"UPDATE users SET active = false WHERE id = ?\");\nps.setInt(1, userId);\nps.executeUpdate(); // return value ignored",
+    "difficulty": "easy",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m1",
+    "text": "Find the bug in this SQL that uses subquery instead of JOIN:",
+    "options": [
+      "Line 1: The outer query selects employees",
+      "Line 2: The subquery finds the max salary per department",
+      "Line 3: The correlated subquery executes once per row, causing N+1 performance issue"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "A correlated subquery executes once per row of the outer query. For 1000 employees, this runs 1000 subqueries. A JOIN or window function is more efficient.",
+    "type": "BUG_HUNT",
+    "code": "SELECT e.nombre, e.salario\nFROM empleados e\nWHERE e.salario = (\n    SELECT MAX(salario) FROM empleados WHERE dept_id = e.dept_id\n);",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m2",
+    "text": "Find the bug in this JDBC transaction that doesn't rollback on error:",
+    "options": [
+      "Line 1: autoCommit is set to false",
+      "Line 2: Two updates are executed",
+      "Line 3: The catch block doesn't call rollback(), so partial changes persist"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "If an exception occurs after the first update but before commit, the transaction is in an inconsistent state. Without rollback(), the first update persists while the second doesn't.",
+    "type": "BUG_HUNT",
+    "code": "c.setAutoCommit(false);\ntry {\n    ps1.executeUpdate();\n    ps2.executeUpdate();\n    c.commit();\n} catch (Exception e) {\n    // missing: c.rollback();\n    throw e;\n}",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m3",
+    "text": "Find the bug in this SQL that uses LIMIT without ORDER BY:",
+    "options": [
+      "Line 1: SELECT selects columns correctly",
+      "Line 2: LIMIT restricts results",
+      "Line 3: Without ORDER BY, LIMIT returns arbitrary rows — the result is non-deterministic"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "LIMIT without ORDER BY returns rows in an undefined order (typically insertion order, but not guaranteed). The result is non-deterministic and may vary between executions.",
+    "type": "BUG_HUNT",
+    "code": "SELECT nombre, salario\nFROM empleados\nLIMIT 10;",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m4",
+    "text": "Find the bug in this SQL that has a WHERE vs HAVING confusion:",
+    "options": [
+      "Line 1: GROUP BY groups by department",
+      "Line 2: An aggregate function counts employees",
+      "Line 3: WHERE is used to filter on the aggregate result — only HAVING can filter after grouping"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "WHERE filters rows before GROUP BY. To filter on aggregate results (COUNT, SUM, etc.), use HAVING after GROUP BY.",
+    "type": "BUG_HUNT",
+    "code": "SELECT dept_id, COUNT(*) AS total\nFROM empleados\nWHERE COUNT(*) > 5\nGROUP BY dept_id;",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m5",
+    "text": "Find the bug in this JPA entity that has fetch type issues:",
+    "options": [
+      "Line 1: The entity is annotated with @Entity",
+      "Line 2: The relationship is @ManyToOne",
+      "Line 3: The default fetch type for @ManyToOne is EAGER, loading all related entities immediately, causing N+1 queries"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@ManyToOne defaults to EAGER fetching. If you list many employees, each triggers an additional query to load the department. Use fetch = FetchType.LAZY to load on demand.",
+    "type": "BUG_HUNT",
+    "code": "@Entity\npublic class Empleado {\n    @ManyToOne\n    @JoinColumn(name = \"dept_id\")\n    private Departamento departamento;\n}",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m6",
+    "text": "Find the bug in this SQL that creates a Cartesian product accidentally:",
+    "options": [
+      "Line 1: Three tables are listed in FROM",
+      "Line 2: JOIN conditions are specified",
+      "Line 3: One JOIN is missing its ON clause, creating a partial Cartesian product"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "If one of multiple JOINs is missing its ON condition, that join produces a Cartesian product with the other tables, multiplying rows unexpectedly.",
+    "type": "BUG_HUNT",
+    "code": "SELECT e.nombre, d.nombre, p.nombre\nFROM empleados e\nJOIN departamentos d ON e.dept_id = d.id\nJOIN proyectos p;",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m7",
+    "text": "Find the bug in this HikariCP configuration:",
+    "options": [
+      "Line 1: HikariConfig is created",
+      "Line 2: JDBC URL and credentials are set",
+      "Line 3: maximumPoolSize is set to 0, which means no connections can ever be obtained"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "maximumPoolSize of 0 means the pool can never serve connections. All getConnection() calls will block until timeout. Set it to a reasonable value like 10.",
+    "type": "BUG_HUNT",
+    "code": "HikariConfig config = new HikariConfig();\nconfig.setJdbcUrl(\"jdbc:postgresql://localhost/mydb\");\nconfig.setUsername(\"user\");\nconfig.setPassword(\"pass\");\nconfig.setMaximumPoolSize(0);",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-m8",
+    "text": "Find the bug in this Spring Data repository method:",
+    "options": [
+      "Line 1: The interface extends JpaRepository",
+      "Line 2: The @Query annotation defines JPQL",
+      "Line 3: @Modifying is missing for the DELETE query, so Spring expects a SELECT"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Spring Data expects @Query to return entities (SELECT). For UPDATE/DELETE operations, @Modifying is required. Without it, Spring throws an exception.",
+    "type": "BUG_HUNT",
+    "code": "@Repository\npublic interface EmpleadoRepository extends JpaRepository<Empleado, Long> {\n    @Query(\"DELETE FROM Empleado e WHERE e.activo = false\")\n    int deleteInactive();\n}",
+    "difficulty": "medium",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h1",
+    "text": "Find the bug in this SQL that uses NOT IN with NULLs:",
+    "options": [
+      "Line 1: The subquery returns a list of IDs",
+      "Line 2: NOT IN filters rows not in that list",
+      "Line 3: If the subquery returns any NULL, NOT IN returns no rows at all"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "NOT IN with a set containing NULL always returns an empty result because NULL comparisons yield UNKNOWN. Use NOT EXISTS or filter NULLs from the subquery.",
+    "type": "BUG_HUNT",
+    "code": "SELECT nombre FROM empleados\nWHERE dept_id NOT IN (\n    SELECT dept_id FROM departamentos WHERE activo = true\n);",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h2",
+    "text": "Find the bug in this JDBC batch that doesn't handle partial failures:",
+    "options": [
+      "Line 1: Statements are added to the batch",
+      "Line 2: executeBatch is called",
+      "Line 3: The return values (update counts) are ignored, so partial failures are invisible"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "executeBatch returns an int[] of update counts. A value of Statement.EXECUTE_FAILED (-3) indicates failure. Ignoring these means silent data loss.",
+    "type": "BUG_HUNT",
+    "code": "PreparedStatement ps = c.prepareStatement(\"INSERT INTO users (name) VALUES (?)\");\nfor (String name : names) {\n    ps.setString(1, name);\n    ps.addBatch();\n}\nps.executeBatch(); // return values ignored",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h3",
+    "text": "Find the bug in this SQL window function query:",
+    "options": [
+      "Line 1: ROW_NUMBER() is used with OVER clause",
+      "Line 2: PARTITION BY groups the ranking",
+      "Line 3: ORDER BY is missing in the OVER clause, causing non-deterministic row numbering"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "ROW_NUMBER() requires ORDER BY in the OVER clause to produce deterministic results. Without it, the numbering is arbitrary and may differ between executions.",
+    "type": "BUG_HUNT",
+    "code": "SELECT nombre, dept_id,\n    ROW_NUMBER() OVER (PARTITION BY dept_id) AS rn\nFROM empleados;",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h4",
+    "text": "Find the bug in this JPA @OneToMany that causes N+1 queries:",
+    "options": [
+      "Line 1: The parent entity has a @OneToMany relationship",
+      "Line 2: The list is accessed in a loop",
+      "Line 3: LAZY fetching is used but the persistence context is closed before accessing the lazy collection"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "With LAZY fetching, the collection is loaded on first access. If the EntityManager is closed (e.g., after the transaction ends), accessing the lazy collection throws LazyInitializationException.",
+    "type": "BUG_HUNT",
+    "code": "@Entity\npublic class Departamento {\n    @OneToMany(mappedBy = \"departamento\", fetch = FetchType.LAZY)\n    private List<Empleado> empleados;\n}\n\n// In service:\nDepartamento d = repo.findById(1L).orElseThrow();\n// transaction ends, EntityManager closes\nSystem.out.println(d.getEmpleados().size()); // LazyInitializationException",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h5",
+    "text": "Find the bug in this SQL that uses SELECT * in a production query:",
+    "options": [
+      "Line 1: The query selects from a large table",
+      "Line 2: The WHERE clause filters correctly",
+      "Line 3: SELECT * retrieves all columns including large BLOBs, wasting memory and network bandwidth"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "SELECT * retrieves all columns, including potentially large ones (BLOBs, CLOBs, long text). This wastes memory, network bandwidth, and prevents index-only scans. Always select specific columns.",
+    "type": "BUG_HUNT",
+    "code": "SELECT *\nFROM empleados e\nJOIN departamentos d ON e.dept_id = d.id\nWHERE e.activo = true;",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h6",
+    "text": "Find the bug in this SQL isolation level issue:",
+    "options": [
+      "Line 1: Transaction A reads a row",
+      "Line 2: Transaction B updates and commits the same row",
+      "Line 3: Transaction A reads again and sees B's changes — non-repeatable read under READ COMMITTED"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Under READ COMMITTED, each statement sees only committed data at the time it starts. A second read in the same transaction can see different data if another transaction committed in between.",
+    "type": "BUG_HUNT",
+    "code": "SET TRANSACTION ISOLATION LEVEL READ COMMITTED;\nBEGIN;\nSELECT saldo FROM cuentas WHERE id = 1; -- reads 100\n-- meanwhile, another transaction updates and commits saldo = 50\nSELECT saldo FROM cuentas WHERE id = 1; -- reads 50!",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h7",
+    "text": "Find the bug in this Spring @Transactional propagation issue:",
+    "options": [
+      "Line 1: Method A has @Transactional",
+      "Line 2: Method A calls method B on the same class",
+      "Line 3: Method B's @Transactional is ignored due to self-invocation — the proxy is bypassed"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Spring AOP proxies only intercept external calls. When A calls B on the same object (this), the proxy is bypassed and B's @Transactional annotation has no effect.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class OrderService {\n    public void createOrder() {\n        this.processPayment(); // self-invocation!\n    }\n\n    @Transactional(propagation = Propagation.REQUIRES_NEW)\n    public void processPayment() {\n        // @Transactional is ignored!\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-sql-h8",
+    "text": "Find the bug in this SQL that causes a deadlock with index lock ordering:",
+    "options": [
+      "Line 1: Transaction 1 updates rows by primary key",
+      "Line 2: Transaction 2 updates the same rows by index",
+      "Line 3: Different access paths acquire locks in different order, causing a deadlock"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "When transactions access the same rows via different access paths (primary key vs secondary index), they may acquire locks in different order, causing a deadlock even without explicit locking.",
+    "type": "BUG_HUNT",
+    "code": "-- Transaction 1:\nUPDATE empleados SET salario = 5000 WHERE id = 1;\n-- Transaction 2:\nUPDATE empleados SET salario = 6000 WHERE nombre = 'Ana';\n-- Both lock the same row but via different indexes, potential deadlock",
+    "difficulty": "hard",
+    "moduleId": "sql-jdbc"
+  },
+  {
+    "id": "bh-spr-e1",
+    "text": "Find the bug in this code that uses @Autowired on a field:",
+    "options": [
+      "Line 1: The field is declared",
+      "Line 2: @Autowired is applied",
+      "Line 3: Field injection hides dependencies, making the class hard to test — constructor injection is recommended"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Field injection makes dependencies invisible and prevents unit testing without Spring context. Constructor injection is recommended: it makes dependencies explicit and the class testable.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class OrderService {\n    @Autowired\n    private EmailService emailService;\n\n    public void placeOrder(Order order) {\n        emailService.send(order);\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e2",
+    "text": "Find the bug in this Spring Boot main class:",
+    "options": [
+      "Line 1: @SpringBootApplication is on the class",
+      "Line 2: SpringApplication.run is called",
+      "Line 3: The class is in the wrong package — component scan won't find classes in sibling packages"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@SpringBootApplication scans the current package and sub-packages. If the main class is in a sub-package, components in sibling packages won't be found. Place it in the root package.",
+    "type": "BUG_HUNT",
+    "code": "package com.example.app.config;\n\n@SpringBootApplication\npublic class Application {\n    public static void main(String[] args) {\n        SpringApplication.run(Application.class, args);\n    }\n}\n// com.example.app.service.MyService won't be scanned!",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e3",
+    "text": "Find the bug in this Spring bean configuration:",
+    "options": [
+      "Line 1: @Configuration is on the class",
+      "Line 2: @Bean method creates a DataSource",
+      "Line 3: The @Bean method calls new directly — it should use the Spring-managed config properties"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Hardcoding connection details in @Bean methods defeats the purpose of externalized configuration. Use @ConfigurationProperties or @Value to inject properties.",
+    "type": "BUG_HUNT",
+    "code": "@Configuration\npublic class AppConfig {\n    @Bean\n    public DataSource dataSource() {\n        HikariConfig config = new HikariConfig();\n        config.setJdbcUrl(\"jdbc:postgresql://localhost/mydb\");\n        config.setUsername(\"admin\");\n        config.setPassword(\"secret\");\n        return new HikariDataSource(config);\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e4",
+    "text": "Find the bug in this @RestController that doesn't handle errors:",
+    "options": [
+      "Line 1: @RestController defines the controller",
+      "Line 2: @GetMapping maps the endpoint",
+      "Line 3: No error handling — exceptions propagate as 500 Internal Server Error with stack trace"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Without @ExceptionHandler or @ControllerAdvice, exceptions propagate as raw 500 errors with stack traces exposed to the client. This is both a UX and security issue.",
+    "type": "BUG_HUNT",
+    "code": "@RestController\n@RequestMapping(\"/api/users\")\npublic class UserController {\n    @GetMapping(\"/{id}\")\n    public User findById(@PathVariable Long id) {\n        return userRepo.findById(id)\n            .orElseThrow(() -> new RuntimeException(\"Not found\"));\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e5",
+    "text": "Find the bug in this @Bean method that creates a prototype bean:",
+    "options": [
+      "Line 1: @Bean is on the method",
+      "Line 2: A new instance is created",
+      "Line 3: @Bean methods in @Configuration classes are proxied — calling the method returns the same singleton, not a new instance"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@Configuration classes are CGLIB-proxied. Calling a @Bean method within the same class returns the cached singleton instance. For unproxied access, use @Configuration(proxyBeanMethods = false) or @Component.",
+    "type": "BUG_HUNT",
+    "code": "@Configuration\npublic class AppConfig {\n    @Bean\n    public MyPrototype prototypeBean() {\n        return new MyPrototype();\n    }\n\n    @Bean\n    public MyService myService() {\n        // CGLIB proxy intercepts this call, returns same instance!\n        return new MyService(prototypeBean());\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e6",
+    "text": "Find the bug in this @Profile configuration:",
+    "options": [
+      "Line 1: @Profile(\"dev\") is on the class",
+      "Line 2: The class provides a dev-specific bean",
+      "Line 3: @Profile is case-sensitive — 'Dev' won't match 'dev'"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Spring profiles are case-sensitive. @Profile(\"Dev\") won't match a profile named \"dev\". Always use consistent casing or activate profiles with matching case.",
+    "type": "BUG_HUNT",
+    "code": "@Profile(\"Dev\")\n@Component\npublic class DevDataSource {\n    @Bean\n    public DataSource dataSource() {\n        return new EmbeddedDatabaseBuilder().build();\n    }\n}\n// spring.profiles.active=dev won't activate this!",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e7",
+    "text": "Find the bug in this @Transactional method:",
+    "options": [
+      "Line 1: @Transactional is on the method",
+      "Line 2: The method is public",
+      "Line 3: The method is private — @Transactional only works on public methods"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Spring AOP cannot intercept private methods. @Transactional on a private method is silently ignored — no transaction is created. The method runs without transactional context.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class AccountService {\n    @Transactional\n    private void transfer(Long from, Long to, BigDecimal amount) {\n        debit(from, amount);\n        credit(to, amount);\n    }\n}",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e8",
+    "text": "Find the bug in this @Component scanning setup:",
+    "options": [
+      "Line 1: @ComponentScan specifies a base package",
+      "Line 2: The package is scanned correctly",
+      "Line 3: The base package is too specific, missing components in parent packages"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@ComponentScan only scans the specified package and its sub-packages. If you specify a sub-package, components in parent or sibling packages won't be found.",
+    "type": "BUG_HUNT",
+    "code": "@ComponentScan(\"com.example.app.service\")\n@SpringBootApplication\npublic class Application {\n    public static void main(String[] args) {\n        SpringApplication.run(Application.class, args);\n    }\n}\n// com.example.app.controller won't be scanned!",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-e9",
+    "text": "Find the bug in this Spring constructor injection:",
+    "options": [
+      "Line 1: The constructor has one parameter",
+      "Line 2: Spring auto-injects the single constructor",
+      "Line 3: The field is not final, so it could be modified after construction"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "For true immutability and thread safety, injected dependencies should be final. Without final, the field could be reassigned after construction, breaking the invariant.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class OrderService {\n    private final EmailService emailService;\n\n    public OrderService(EmailService emailService) {\n        this.emailService = emailService;\n    }\n}\n// This one is correct! Bug version would have 'private EmailService' without final",
+    "difficulty": "easy",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m1",
+    "text": "Find the bug in this @Bean that creates a non-singleton scope:",
+    "options": [
+      "Line 1: @Bean is on the method",
+      "Line 2: @Scope(\"prototype\") is specified",
+      "Line 3: Another @Bean depends on the prototype but receives only one instance at startup"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "When a singleton bean depends on a prototype bean via @Bean, the prototype instance is injected once at startup and never refreshed. Use ObjectFactory<T> or @Lookup to get a new instance each time.",
+    "type": "BUG_HUNT",
+    "code": "@Configuration\npublic class AppConfig {\n    @Bean @Scope(\"prototype\")\n    public Processor processor() { return new Processor(); }\n\n    @Bean\n    public Service service() {\n        return new Service(processor()); // gets one instance, reused forever!\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m2",
+    "text": "Find the bug in this @Transactional that doesn't rollback on checked exceptions:",
+    "options": [
+      "Line 1: @Transactional is on the method",
+      "Line 2: The method throws IOException",
+      "Line 3: By default, Spring only rolls back on RuntimeException — checked exceptions don't trigger rollback"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Spring's default rollback policy only covers RuntimeException and Error. Checked exceptions like IOException commit the transaction. Use @Transactional(rollbackFor = Exception.class).",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class FileService {\n    @Transactional\n    public void procesarArchivo(File file) throws IOException {\n        repo.save(record);\n        Files.delete(file); // IOException -> transaction commits!\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m3",
+    "text": "Find the bug in this @Qualifier usage:",
+    "options": [
+      "Line 1: Two beans implement EmailSender",
+      "Line 2: @Qualifier(\"smtp\") selects one",
+      "Line 3: The @Qualifier value doesn't match any bean name — Spring throws NoUniqueBeanDefinitionException"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@Qualifier must match the bean name or @Primary annotation. If the value doesn't match any bean, Spring can't resolve the dependency and throws NoUniqueBeanDefinitionException.",
+    "type": "BUG_HUNT",
+    "code": "@Service(\"smtpSender\")\npublic class SmtpEmailSender implements EmailSender { }\n\n@Service(\"sesSender\")\npublic class SesEmailSender implements EmailSender { }\n\n@Service\npublic class NotificationService {\n    @Qualifier(\"email\") // wrong! should be \"smtpSender\" or \"sesSender\"\n    private final EmailSender sender;\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m4",
+    "text": "Find the bug in this @Async configuration:",
+    "options": [
+      "Line 1: @EnableAsync is on the configuration",
+      "Line 2: @Async is on the method",
+      "Line 3: @Async on a self-invocation call doesn't go through the proxy, so it runs synchronously"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Like @Transactional, @Async uses AOP proxies. Self-invocation (this.method()) bypasses the proxy, so the method runs synchronously in the calling thread.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class ReportService {\n    public void generateReports() {\n        this.generateReportAsync(); // self-invocation!\n    }\n\n    @Async\n    public void generateReportAsync() {\n        // runs synchronously, not in a separate thread\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m5",
+    "text": "Find the bug in this @Cacheable configuration:",
+    "options": [
+      "Line 1: @EnableCaching is on the configuration",
+      "Line 2: @Cacheable is on the method",
+      "Line 3: The method parameter is mutable and modified after caching — the cache returns the mutated object"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Caching stores a reference to the returned object. If the caller mutates the returned object, the cached version is also mutated. Return immutable objects or defensive copies.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class UserService {\n    @Cacheable(\"users\")\n    public User findById(Long id) {\n        return userRepo.findById(id).orElseThrow();\n    }\n}\n\n// Caller:\nUser user = userService.findById(1L);\nuser.setName(\"hacked\"); // mutates the cached object!",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m6",
+    "text": "Find the bug in this @EventListener that throws an exception:",
+    "options": [
+      "Line 1: @EventListener listens for OrderCreatedEvent",
+      "Line 2: The event handler sends an email",
+      "Line 3: The exception propagates and rolls back the transaction that published the event"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "By default, @EventListener runs in the same transaction. If it throws, the entire transaction rolls back. Use @TransactionalEventListener(phase = AFTER_COMMIT) to run after the transaction commits.",
+    "type": "BUG_HUNT",
+    "code": "@Component\npublic class OrderEventHandler {\n    @EventListener\n    public void onOrderCreated(OrderCreatedEvent event) {\n        emailService.sendConfirmation(event.getOrderId());\n        // if this throws, the order creation is rolled back!\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m7",
+    "text": "Find the bug in this @Validated with groups:",
+    "options": [
+      "Line 1: @Validated is on the controller method",
+      "Line 2: The validation group is specified",
+      "Line 3: @Validated is used but @Valid should be used for standard Bean Validation without groups"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@Validated (Spring) enables group validation. @Valid (javax/jakarta) enables standard Bean Validation. Using @Validated without groups works but is not the standard approach.",
+    "type": "BUG_HUNT",
+    "code": "@RestController\npublic class UserController {\n    @PostMapping\n    public ResponseEntity<User> create(@Validated UserRequest req) {\n        // @Validated without groups works but @Valid is the standard for no-group validation\n    }\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-m8",
+    "text": "Find the bug in this @DependsOn ordering:",
+    "options": [
+      "Line 1: @DependsOn(\"cacheInitializer\") is on the bean",
+      "Line 2: The bean depends on the cache being initialized",
+      "Line 3: @DependsOn only affects initialization order, not destruction — the cache may be destroyed first"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@DependsOn controls initialization order but not destruction order. The cache may be destroyed before the bean that depends on it, causing errors during shutdown.",
+    "type": "BUG_HUNT",
+    "code": "@Component\n@DependsOn(\"cacheInitializer\")\npublic class DataLoader {\n    @PostConstruct\n    public void init() {\n        cache.get(\"key\"); // works at startup\n    }\n    // at shutdown, cache may be destroyed before DataLoader\n}",
+    "difficulty": "medium",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h1",
+    "text": "Find the bug in this @Transactional propagation with REQUIRES_NEW:",
+    "options": [
+      "Line 1: Method A has @Transactional",
+      "Line 2: Method B has @Transactional(propagation = REQUIRES_NEW)",
+      "Line 3: If B throws, it rolls back its transaction but A's transaction continues with stale data"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "REQUIRES_NEW creates a separate transaction. If B fails and rolls back, A's transaction is unaffected. But A may have read data that B modified, leading to stale reads.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class AuditService {\n    @Transactional(propagation = Propagation.REQUIRES_NEW)\n    public void logAction(String action) {\n        auditRepo.save(new AuditLog(action));\n    }\n}\n\n@Service\npublic class OrderService {\n    @Transactional\n    public void placeOrder() {\n        orderRepo.save(order);\n        auditService.logAction(\"order created\");\n        // if logAction fails, order is still saved!\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h2",
+    "text": "Find the bug in this @Primary and @Qualifier conflict:",
+    "options": [
+      "Line 1: Two beans implement CacheService",
+      "Line 2: One is marked @Primary",
+      "Line 3: @Qualifier on the injection point overrides @Primary, but if the qualifier value is wrong, Spring throws NoSuchBeanDefinitionException"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@Qualifier overrides @Primary. If the qualifier value doesn't match any bean name, Spring throws NoSuchBeanDefinitionException, even though @Primary exists.",
+    "type": "BUG_HUNT",
+    "code": "@Primary\n@Service(\"redis\")\npublic class RedisCacheService implements CacheService { }\n\n@Service(\"caffeine\")\npublic class CaffeineCacheService implements CacheService { }\n\n@Service\npublic class MyService {\n    @Qualifier(\"memcached\") // wrong! neither bean has this name\n    private final CacheService cache;\n}",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h3",
+    "text": "Find the bug in this @ConditionalOnMissingBean that creates duplicate beans:",
+    "options": [
+      "Line 1: @ConditionalOnMissingBean checks for existing bean",
+      "Line 2: The condition checks by type",
+      "Line 3: The condition is on a @Bean method inside @Configuration, but auto-configuration runs after user configuration — the condition may see the user's bean"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Auto-configuration classes are loaded after user @Configuration classes. If a user defines a bean of the same type, @ConditionalOnMissingBean correctly skips the auto-configured one. The bug is the reverse: if the user's bean is defined in a class loaded AFTER auto-config, the condition misses it.",
+    "type": "BUG_HUNT",
+    "code": "@Configuration\n@ConditionalOnMissingBean(CacheManager.class)\npublic class LocalCacheAutoConfiguration {\n    @Bean\n    public CacheManager cacheManager() {\n        return new ConcurrentMapCacheManager();\n    }\n}\n// If another auto-config creates CacheManager first, this is skipped",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h4",
+    "text": "Find the bug in this @ConfigurationProperties that fails validation:",
+    "options": [
+      "Line 1: @ConfigurationProperties binds properties",
+      "Line 2: @Validated enables JSR 380 validation",
+      "Line 3: The @NotBlank constraint is on a field but the setter is missing — binding fails silently"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@ConfigurationProperties requires getters and setters for binding. If a setter is missing for a constrained field, the property is never set and validation may pass on null (depending on configuration).",
+    "type": "BUG_HUNT",
+    "code": "@ConfigurationProperties(prefix = \"app.mail\")\n@Validated\npublic class MailProperties {\n    @NotBlank\n    private String host;\n    private int port;\n    // missing: getter and setter for host\n}",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h5",
+    "text": "Find the bug in this @WebMvcTest that doesn't load the service:",
+    "options": [
+      "Line 1: @WebMvcTest loads only the web layer",
+      "Line 2: @MockBean mocks the service",
+      "Line 3: @WebMvcTest doesn't load @Service beans — if you forget @MockBean, the controller fails to inject"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@WebMvcTest only loads web-layer beans. If the controller depends on a @Service and you forget @MockBean, Spring throws UnsatisfiedDependencyException.",
+    "type": "BUG_HUNT",
+    "code": "@WebMvcTest(UserController.class)\nclass UserControllerTest {\n    @Autowired\n    private MockMvc mockMvc;\n    // missing: @MockBean UserService userService;\n    // test fails: UnsatisfiedDependencyException\n}",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h6",
+    "text": "Find the bug in this @Lazy injection that causes startup failure:",
+    "options": [
+      "Line 1: @Lazy is on the injection point",
+      "Line 2: The dependency is injected as a proxy",
+      "Line 3: @Lazy on a constructor parameter doesn't work if the bean is the only constructor — Spring injects eagerly"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "When a class has only one constructor, Spring auto-injects it without requiring @Autowired. @Lazy on the constructor parameter may be ignored in some configurations, causing eager initialization.",
+    "type": "BUG_HUNT",
+    "code": "@Service\npublic class ReportService {\n    private final ReportGenerator generator;\n\n    public ReportService(@Lazy ReportGenerator generator) {\n        this.generator = generator; // may initialize eagerly\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h7",
+    "text": "Find the bug in this @CrossOrigin that blocks preflight requests:",
+    "options": [
+      "Line 1: @CrossOrigin is on the controller",
+      "Line 2: allowedOrigins is configured",
+      "Line 3: allowedMethods doesn't include OPTIONS — preflight requests are rejected"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "Browsers send OPTIONS preflight requests for cross-origin calls with non-simple methods. If OPTIONS isn't allowed, the preflight fails and the actual request is never sent.",
+    "type": "BUG_HUNT",
+    "code": "@RestController\n@CrossOrigin(origins = \"http://localhost:3000\", methods = RequestMethod.POST)\npublic class ApiController {\n    @PostMapping(\"/data\")\n    public ResponseEntity<?> save(@RequestBody Data data) {\n        return ResponseEntity.ok().build();\n    }\n}",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  },
+  {
+    "id": "bh-spr-h8",
+    "text": "Find the bug in this @TestConfiguration that overrides production beans:",
+    "options": [
+      "Line 1: @TestConfiguration defines test-specific beans",
+      "Line 2: @MockBean replaces a production bean",
+      "Line 3: @TestConfiguration beans leak into production if the test class is in the main source tree"
+    ],
+    "correctIndexes": [
+      2
+    ],
+    "explanation": "@TestConfiguration should only be active during tests. If test classes are accidentally in src/main, the @TestConfiguration beans are loaded in production, replacing real implementations.",
+    "type": "BUG_HUNT",
+    "code": "@TestConfiguration\npublic class TestConfig {\n    @Bean\n    public DataSource testDataSource() {\n        return new EmbeddedDatabaseBuilder().build();\n    }\n}\n// If this test config class is in src/main, production uses H2!",
+    "difficulty": "hard",
+    "moduleId": "spring"
+  }
+]

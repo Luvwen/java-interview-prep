@@ -18,22 +18,22 @@ const darkColors = {
 };
 
 const lightColors = {
-  bg: "#f5f6fa",
+  bg: "#f8f9fc",
   surface: "#ffffff",
-  surfaceHover: "#f0f1f5",
-  border: "#d1d5db",
+  surfaceHover: "#f1f3f9",
+  border: "#dfe3ec",
   borderSelected: "#4a6cf7",
   accent: "#4a6cf7",
-  textPrimary: "#1a202c",
-  textMuted: "#6b7280",
-  error: "#dc2626",
-  success: "#16a34a",
-  codeBg: "#f8f9fa",
-  codeBorder: "#e5e7eb",
-  codeText: "#374151",
-  shadow: "0 2px 8px rgba(0,0,0,0.08)",
-  shadowLg: "0 8px 24px rgba(0,0,0,0.12)",
-  gradient: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+  textPrimary: "#1b2559",
+  textMuted: "#68769f",
+  error: "#e31a1a",
+  success: "#05c168",
+  codeBg: "#f4f5f8",
+  codeBorder: "#e3e6ee",
+  codeText: "#364163",
+  shadow: "0 2px 8px rgba(103,119,163,0.08)",
+  shadowLg: "0 8px 24px rgba(103,119,163,0.12)",
+  gradient: "linear-gradient(135deg, #ffffff 0%, #f8f9fc 100%)",
 };
 
 export type ThemeColors = typeof darkColors;

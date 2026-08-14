@@ -1,0 +1,1402 @@
+[
+  {
+    "id": "cf-test-e1",
+    "text": "Completa la anotacion que indica que un metodo es un test en JUnit 5.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Test es la anotacion basica de JUnit 5 para marcar un metodo como prueba.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.Test;\n\nclass CalculadoraTest {\n  ___\n  void sumaDosMasDos() {\n    assertEquals(4, 2 + 2);\n  }\n}",
+    "blanks": [
+      "@Test"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e2",
+    "text": "Completa la anotacion que ejecuta un metodo antes de cada test.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@BeforeEach ejecuta el metodo antes de cada prueba individual.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.BeforeEach;\n\nclass CuentaTest {\n  ___\n  void setUp() {\n    cuenta = new Cuenta();\n  }\n}",
+    "blanks": [
+      "@BeforeEach"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e3",
+    "text": "Completa la anotacion que ejecuta un metodo una sola vez antes de todos los tests de la clase.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@BeforeAll ejecuta el metodo una sola vez al inicio de la clase. El metodo debe ser static.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.BeforeAll;\n\nclass BaseTest {\n  ___\n  static void initAll() {\n    db = Database.connect();\n  }\n}",
+    "blanks": [
+      "@BeforeAll"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e4",
+    "text": "Completa la sentencia para verificar que dos valores son iguales en JUnit 5.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "assertEquals(expected, actual) verifica que ambos valores sean iguales usando equals().",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.Assertions;\n\nvoid testSuma() {\n  ___(10, calculadora.sumar(4, 6));\n}",
+    "blanks": [
+      "assertEquals"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e5",
+    "text": "Completa el codigo para verificar que un metodo lanza una excepcion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "assertThrows recibe el tipo de excepcion y un Executable que debe lanzarla.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.Assertions;\n\nvoid testDivisionPorCero() {\n  ___(ArithmeticException.class, () -> calculadora.dividir(1, 0));\n}",
+    "blanks": [
+      "assertThrows"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e6",
+    "text": "Completa la anotacion para desactivar un test en JUnit 5.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Disabled desactiva un test, se ejecuta pero se marca como pendiente.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.Disabled;\n\n___(\"Implementacion pendiente\")\n@Test\nvoid testFuncionFutura() {\n  // TODO\n}",
+    "blanks": [
+      "@Disabled"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e7",
+    "text": "Completa la anotacion para crear un test parametrizado en JUnit 5.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@ParameterizedTest permite ejecutar el mismo test con multiples conjuntos de datos.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.params.ParameterizedTest;\nimport org.junit.jupiter.params.provider.ValueSource;\n\n___\n@ValueSource(ints = {1, 2, 3})\nvoid numerosPositivos(int n) {\n  assertTrue(n > 0);\n}",
+    "blanks": [
+      "@ParameterizedTest"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e8",
+    "text": "Completa la anotacion para agrupar tests por contexto en JUnit 5.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Nested permite agrupar tests relacionados dentro de una clase interna.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.Nested;\n\nclass CuentaTest {\n  ___\n  class CuandoSaldoEsCero {\n    @Test void noPermiteDebitar() { }\n  }\n}",
+    "blanks": [
+      "@Nested"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-e9",
+    "text": "Completa la anotacion para personalizar el nombre visible de un test en el reporte.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@DisplayName define un nombre legible en el reporte de tests.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.DisplayName;\n\n___(\"Calcula IVA correctamente\")\n@Test\nvoid testIva() {\n  assertEquals(121, precio.conIva(100));\n}",
+    "blanks": [
+      "@DisplayName"
+    ],
+    "difficulty": "easy",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m1",
+    "text": "Completa la extension para usar Mockito en JUnit 5.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@ExtendWith(MockitoExtension.class) habilita la inyeccion de mocks en la clase de test.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.junit.jupiter.api.extension.ExtendWith;\nimport org.mockito.junit.jupiter.MockitoExtension;\n\n___(MockitoExtension.class)\nclass ServicioTest {\n  @Mock Repositorio repo;\n}",
+    "blanks": [
+      "@ExtendWith"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m2",
+    "text": "Completa el codigo para declarar un mock con la anotacion de Mockito.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Mock declara un mock que se inyecta automaticamente cuando se usa MockitoExtension.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.mockito.Mock;\n\nclass ServicioTest {\n  ___\n  Repositorio repo;\n\n  @InjectMocks Servicio servicio;\n}",
+    "blanks": [
+      "@Mock"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m3",
+    "text": "Completa el codigo para configurar el comportamiento de un mock.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "when(mock.metodo(args)).thenReturn(valor) define que retorno tiene un metodo del mock.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.mockito.Mockito;\n\nwhen(repo.findById(1L)).___(Optional.of(cuenta));",
+    "blanks": [
+      "thenReturn"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m4",
+    "text": "Completa el codigo para verificar que un metodo fue llamado en un mock.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "verify(mock).metodo() verifica que la interaccion occurred exactamente una vez.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.mockito.Mockito;\n\n___(repo).save(any(Cuenta.class));",
+    "blanks": [
+      "verify"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m5",
+    "text": "Completa el codigo para declarar un inyectable de Mockito.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@InjectMocks inyecta los mocks declarados en la clase al objeto que se esta testeando.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.mockito.InjectMocks;\n\nclass ServicioTest {\n  @Mock Repositorio repo;\n  ___\n  Servicio servicio;\n}",
+    "blanks": [
+      "@InjectMocks"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m6",
+    "text": "Completa el codigo para configurar un mock que lance una excepcion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "when().thenThrow() configura un mock para que lance una excepcion en vez de retornar un valor.",
+    "type": "CODE_FILL",
+    "codeTemplate": "when(cliente.get(any())).___(new RuntimeException(\"timeout\"));",
+    "blanks": [
+      "thenThrow"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m7",
+    "text": "Completa el codigo para configurar un mock void que haga algo al ser llamado.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "doAnswer permite ejecutar logica personalizada cuando se invoca un metodo del mock.",
+    "type": "CODE_FILL",
+    "codeTemplate": "___(invocation -> {\n  String arg = invocation.getArgument(0);\n  return arg.toUpperCase();\n}).when(transformador).convertir(anyString());",
+    "blanks": [
+      "doAnswer"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-m8",
+    "text": "Completa el codigo para capturar el argumento pasado a un mock.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "ArgumentCaptor captura los argumentos reales para hacer asserts detallados.",
+    "type": "CODE_FILL",
+    "codeTemplate": "___<Cuenta> captor = ArgumentCaptor.forClass(Cuenta.class);\nverify(repo).save(captor.capture());\nassertEquals(\"Ana\", captor.getValue().getNombre());",
+    "blanks": [
+      "ArgumentCaptor"
+    ],
+    "difficulty": "medium",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h1",
+    "text": "Completa la anotacion de Spring Boot que levanta el contexto completo de la aplicacion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@SpringBootTest levanta el contexto completo incluyendo todos los beans de la aplicacion.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.boot.test.context.SpringBootTest;\n\n___\nclass ApiIntegrationTest {\n  @Autowired TestRestTemplate restTemplate;\n}",
+    "blanks": [
+      "@SpringBootTest"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h2",
+    "text": "Completa la anotacion para testear solo la capa web en Spring Boot.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@WebMvcTest carga solo controllers, filtros y converters usando mocks para el resto.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;\n\n___(CuentaController.class)\nclass CuentaControllerTest {\n  @Autowired MockMvc mockMvc;\n}",
+    "blanks": [
+      "@WebMvcTest"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h3",
+    "text": "Completa la anotacion para testear solo la capa de persistencia en Spring Boot.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@DataJpaTest carga repositories, entidades y una base de datos en memoria (H2).",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;\n\n___\n@AutoConfigureTestDatabase(replace = Replace.NONE)\nclass CuentaRepositoryTest {\n  @Autowired CuentaRepository repo;\n}",
+    "blanks": [
+      "@DataJpaTest"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h4",
+    "text": "Completa el codigo para reemplazar un bean de Spring con un mock de Mockito.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@MockBean inyecta un mock en el contexto de Spring, reemplazando el bean real.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.boot.test.mock.bean.MockBean;\n\n@ExtendWith(MockitoExtension.class)\nclass CuentaControllerTest {\n  ___\n  CuentaServicio servicio;\n}",
+    "blanks": [
+      "@MockBean"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h5",
+    "text": "Completa el codigo para hacer una peticion GET con MockMvc y verificar el status.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "mockMvc.perform(get(url)) simula una peticion HTTP y permite encadenar assertions.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;\n\nmockMvc.___(\"/api/cuentas/1\")\n  .andExpect(status().isOk());",
+    "blanks": [
+      "perform"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h6",
+    "text": "Completa el codigo para ejecutar un script SQL antes de un test en Spring Boot.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Sql ejecuta scripts SQL definidos en el atributo scripts antes o despues del test.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.test.context.jdbc.Sql;\n\n___(scripts = \"/test-data.sql\", executionPhase = BEFORE_TEST_METHOD)\n@Test\nvoid testConDatos() {\n  // datos cargados antes del test\n}",
+    "blanks": [
+      "@Sql"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h7",
+    "text": "Completa el codigo para forzar la reinicializacion del contexto de Spring despues de un test.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@DirtiesContext fuerza la reinicializacion del contexto, util cuando un test modifica beans singleton.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.test.annotation.DirtiesContext;\n\n@Test\n___(methodMode = AFTER_TEST_METHOD)\nvoid testQueModificaContexto() {\n  // el contexto se reinicia despues de este test\n}",
+    "blanks": [
+      "@DirtiesContext"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-test-h8",
+    "text": "Completa el codigo para activar un perfil de configuracion especifico para tests.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@ActiveProfiles(\"test\") activa un perfil de configuracion especifico durante la ejecucion del test.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.test.context.ActiveProfiles;\n\n___(\"test\")\n@SpringBootTest\nclass ServicioTest {\n  // usa application-test.yml\n}",
+    "blanks": [
+      "@ActiveProfiles"
+    ],
+    "difficulty": "hard",
+    "moduleId": "testing"
+  },
+  {
+    "id": "cf-dp-e1",
+    "text": "Completa el patron que garantiza una unica instancia de una clase usando un enum.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Un enum con un unico valor en Java es la forma mas simple y segura de implementar Singleton.",
+    "type": "CODE_FILL",
+    "codeTemplate": "public ___ {\n  INSTANCE;\n  public String get(String key) { return config.get(key); }\n}",
+    "blanks": [
+      "enum Config"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e2",
+    "text": "Completa el patron Builder: el metodo build() retorna el objeto construido.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "El metodo build() del Builder retorna la instancia final del objeto construido.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class Formulario {\n  private final String nombre;\n  private Formulario(Builder b) { this.nombre = b.nombre; }\n  public static class Builder {\n    private String nombre;\n    public Builder nombre(String n) { this.nombre = n; return this; }\n    public Formulario ___() { return new Formulario(this); }\n  }\n}",
+    "blanks": [
+      "build"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e3",
+    "text": "Completa el patron Factory Method: la interfaz define el metodo que crea objetos.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Factory Method define una interfaz para crear objetos y deja que las subclases decidan que clase instanciar.",
+    "type": "CODE_FILL",
+    "codeTemplate": "interface VehiculoFactory {\n  Vehiculo ___();\n}\n\nclass AutoFactory implements VehiculoFactory {\n  public Vehiculo crear() { return new Auto(); }\n}",
+    "blanks": [
+      "crear"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e4",
+    "text": "Completa la herencia en el patron Decorator: la decoradora implementa la misma interfaz.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Decorator implementa la misma interfaz que el objeto que envuelve, delegando y agregando comportamiento.",
+    "type": "CODE_FILL",
+    "codeTemplate": "interface Servicio {\n  void ejecutar();\n}\n\nclass ServicioDecorado ___ Servicio {\n  private final Servicio base;\n  ServicioDecorado(Servicio base) { this.base = base; }\n  public void ejecutar() { log(); base.ejecutar(); }\n}",
+    "blanks": [
+      "implements"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e5",
+    "text": "Completa el patron Observer: el metodo para notificar a todos los observadores.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "El sujeto notifica a todos sus observadores cuando ocurre un cambio.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class Notificador {\n  private List<Observer> observadores = new ArrayList<>();\n  public void agregar(Observer o) { observadores.add(o); }\n  public void ___(String evento) {\n    observadores.forEach(o -> o.recibir(evento));\n  }\n}",
+    "blanks": [
+      "notificar"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e6",
+    "text": "Completa el patron Strategy: se inyecta la estrategia por composicion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Strategy inyecta una implementacion de la interfaz de estrategia por composicion.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class ServicioPago {\n  private final ___<Integer> estrategia;\n  ServicioPago(EstrategiaPago estrategia) {\n    this.estrategia = estrategia;\n  }\n}",
+    "blanks": [
+      "EstrategiaPago"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e7",
+    "text": "Completa el patron Singleton con double-checked locking: se usa volatile.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "volatile garantiza visibilidad entre hilos y evita reordenamiento de instrucciones.",
+    "type": "CODE_FILL",
+    "codeTemplate": "public class Singleton {\n  private static ___ Singleton instance;\n  private Singleton() {}\n  public static Singleton getInstance() {\n    if (instance == null) {\n      synchronized (Singleton.class) {\n        if (instance == null) instance = new Singleton();\n      }\n    }\n    return instance;\n  }\n}",
+    "blanks": [
+      "volatile"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e8",
+    "text": "Completa el patron Template Method: el metodo final define el flujo.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Template Method usa un metodo final que define el esqueleto del algoritmo y deja pasos abstractos a las subclases.",
+    "type": "CODE_FILL",
+    "codeTemplate": "abstract class Pedido {\n  ___\n  void procesar() {\n    validar();\n    cobrar();\n    enviar();\n  }\n  abstract void cobrar();\n}",
+    "blanks": [
+      "final"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-e9",
+    "text": "Completa el patron Proxy: el proxy delega al objeto real.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Proxy controla el acceso al objeto real y delega la llamada despues de agregar comportamiento.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class ProxyCache implements Repositorio {\n  private final Repositorio real;\n  public Object buscar(String id) {\n    return cache.computeIfAbsent(id, real::___);\n  }\n}",
+    "blanks": [
+      "buscar"
+    ],
+    "difficulty": "easy",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m1",
+    "text": "Completa el patron Abstract Factory: la interfaz crea familia de objetos.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Abstract Factory define metodos para crear una familia de objetos relacionados.",
+    "type": "CODE_FILL",
+    "codeTemplate": "interface RepositorioFactory {\n  Repositorio ___Usuario();\n  Repositorio crearProducto();\n}\n\nclass MongoFactory implements RepositorioFactory {\n  public Repositorio crearUsuario() { return new MongoUsuarioRepo(); }\n  public Repositorio crearProducto() { return new MongoProductoRepo(); }\n}",
+    "blanks": [
+      "crear"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m2",
+    "text": "Completa el patron Chain of Responsibility: el handler tiene una referencia al siguiente.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Chain of Responsibility encadena handlers donde cada uno decide si procesa o delega al siguiente.",
+    "type": "CODE_FILL",
+    "codeTemplate": "abstract class Handler {\n  protected Handler ___;\n  public void setSiguiente(Handler h) { this.siguiente = h; }\n  public void manejar(Peticion p) {\n    if (siguiente != null) siguiente.manejar(p);\n  }\n}",
+    "blanks": [
+      "siguiente"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m3",
+    "text": "Completa el patron Command: el metodo que ejecuta la accion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Command encapsula una peticion como objeto con execute() y undo().",
+    "type": "CODE_FILL",
+    "codeTemplate": "interface Command {\n  void ___();\n  void undo();\n}",
+    "blanks": [
+      "execute"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m4",
+    "text": "Completa el patron State: el objeto delega su comportamiento al estado actual.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "State permite que un objeto cambie su comportamiento cuando cambia su estado interno.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class Documento {\n  private Estado ___;\n  public void publicar() {\n    estado.publicar(this);\n  }\n}",
+    "blanks": [
+      "actual"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m5",
+    "text": "Completa el principio SOLID de Dependency Inversion: depender de abstracciones.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Dependency Inversion dice: los modulos de alto nivel no deben depender de los de bajo nivel, ambos deben depender de abstracciones.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class Servicio {\n  private final ___ repo;\n  Servicio(Repositorio repo) { this.repo = repo; }\n}",
+    "blanks": [
+      "Repositorio"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m6",
+    "text": "Completa el patron Mediator: el mediador coordina la comunicacion entre objetos.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Mediator centraliza la comunicacion entre objetos sin que estos se conozcan directamente.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class ChatRoom {\n  private final Map<String, Usuario> usuarios = new HashMap<>();\n  public void ___(String de, String a, String msg) {\n    usuarios.get(a).recibir(de, msg);\n  }\n}",
+    "blanks": [
+      "enviar"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m7",
+    "text": "Completa el patron Flyweight: separar estado intrinseco del extrinseco.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Flyweight optimiza memoria compartiendo objetos inmutables (intrinseco) y pasando el estado variable (extrinseco) como argumento.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class CharacterFlyweight {\n  private final char character;\n  public void render(int row, int col, String ___) {\n    System.out.println(\"Draw '\" + character + \"' at \" + row + \",\" + col + \" in \" + font);\n  }\n}",
+    "blanks": [
+      "font"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-m8",
+    "text": "Completa el patron Visitor: el metodo accept que permite el double dispatch.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Visitor usa accept + visit para resolver la doble despacha en tiempo de ejecucion.",
+    "type": "CODE_FILL",
+    "codeTemplate": "interface ElementoCarrito {\n  void ___(Visitor visitor);\n}\n\nclass Producto implements ElementoCarrito {\n  public void accept(Visitor v) { v.visit(this); }\n}",
+    "blanks": [
+      "accept"
+    ],
+    "difficulty": "medium",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h1",
+    "text": "Completa el patron Adapter de objetos: el adaptador implementa la interfaz objetivo.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Adapter de objetos implementa la interfaz que el cliente espera y delega al objeto adaptado.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class LectorXmlAdapter ___ Repositorio {\n  private LectorXml externo;\n  public List<Dato> leer(String path) {\n    return externo.parse(path);\n  }\n}",
+    "blanks": [
+      "implements"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h2",
+    "text": "Completa el patron Bridge: la abstraccion tiene una referencia a la implementacion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Bridge separa abstraccion e implementacion por composicion, permitiendo que ambas varien independientemente.",
+    "type": "CODE_FILL",
+    "codeTemplate": "abstract class Forma {\n  protected Renderizador ___;\n  Forma(Renderizador r) { this.renderizador = r; }\n  abstract void dibujar();\n}",
+    "blanks": [
+      "renderizador"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h3",
+    "text": "Completa el patron Composite: el grupo contiene una lista de hijos.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Composite permite tratar objetos individuales y composiciones de forma uniforme.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class Grupo implements ComponenteGrafico {\n  private ___<ComponenteGrafico> hijos = new ArrayList<>();\n  public void agregar(ComponenteGrafico c) { hijos.add(c); }\n  public void dibujar() { hijos.forEach(ComponenteGrafico::dibujar); }\n}",
+    "blanks": [
+      "List"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h4",
+    "text": "Completa el patron Facade: simplifica una interfaz compleja detras de una simple.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Facade simplifica un subsistema complejo detras de una interfaz simple.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class SistemaComplejo {\n  private CPU cpu;\n  private Memoria memoria;\n  private Disco disco;\n  public ___() {\n    cpu.start();\n    memoria.load();\n    disco.read();\n  }\n}",
+    "blanks": [
+      "void encender"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h5",
+    "text": "Completa el patron Flyweight Factory: retorna instancias existentes o crea nuevas.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "La factoria de flyweights mantiene un cache de objetos compartidos.",
+    "type": "CODE_FILL",
+    "codeTemplate": "class CharacterFactory {\n  private final Map<Character, CharacterFlyweight> pool = new HashMap<>();\n  public CharacterFlyweight ___(char c) {\n    return pool.computeIfAbsent(c, CharacterFlyweight::new);\n  }\n}",
+    "blanks": [
+      "get"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h6",
+    "text": "Completa el patron Singleton con synchronized: el metodo es thread-safe.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "synchronized garantiza que solo un hilo pueda crear la instancia a la vez.",
+    "type": "CODE_FILL",
+    "codeTemplate": "public class Singleton {\n  private static Singleton instance;\n  private Singleton() {}\n  public ___ Singleton getInstance() {\n    if (instance == null) {\n      instance = new Singleton();\n    }\n    return instance;\n  }\n}",
+    "blanks": [
+      "static synchronized"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h7",
+    "text": "Completa el patron Command con undo: el comando guarda el estado previo.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Command con undo guarda el estado previo para poder deshacer la accion.",
+    "type": "CODE_FILL",
+    "codeTemplate": "public class TextCommand {\n  private final Editor editor;\n  private final String previousText;\n  public void ___() { editor.setText(previousText); }\n}",
+    "blanks": [
+      "undo"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-dp-h8",
+    "text": "Completa el patron Visitor: el metodo visit sobrecargado por tipo de nodo.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Visitor define un metodo visit() por cada tipo de nodo en la jerarquia.",
+    "type": "CODE_FILL",
+    "codeTemplate": "interface Visitor {\n  void ___(Producto p);\n  void visit(Servicio s);\n}\n\nclass CostoVisitor implements Visitor {\n  double total = 0;\n  public void visit(Producto p) { total += p.getPrecio(); }\n  public void visit(Servicio s) { total += s.getTarifa(); }\n}",
+    "blanks": [
+      "visit"
+    ],
+    "difficulty": "hard",
+    "moduleId": "design-patterns"
+  },
+  {
+    "id": "cf-rest-e1",
+    "text": "Completa el metodo HTTP que se usa para crear un recurso.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "POST es el metodo HTTP estandar para crear recursos.",
+    "type": "CODE_FILL",
+    "codeTemplate": "POST /api/cuentas HTTP/1.1\nContent-Type: application/json\n\n{\"nombre\": \"___\"}",
+    "blanks": [
+      "Ana"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e2",
+    "text": "Completa el codigo de estado HTTP que indica creacion exitosa.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "201 Created es el codigo estandar para una creacion exitosa de un recurso.",
+    "type": "CODE_FILL",
+    "codeTemplate": "HTTP/1.1 ___ Created\nLocation: /api/cuentas/1",
+    "blanks": [
+      "201"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e3",
+    "text": "Completa el metodo HTTP que es idempotente y se usa para reemplazar un recurso completo.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "PUT reemplaza un recurso completo y es idempotente.",
+    "type": "CODE_FILL",
+    "codeTemplate": "___ /api/cuentas/1 HTTP/1.1\nContent-Type: application/json\n\n{\"nombre\": \"Ana\", \"saldo\": 1000}",
+    "blanks": [
+      "PUT"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e4",
+    "text": "Completa el codigo de estado que indica que el recurso no fue encontrado.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "404 Not Found indica que el recurso solicitado no existe.",
+    "type": "CODE_FILL",
+    "codeTemplate": "HTTP/1.1 ___ Not Found\nContent-Type: application/json\n\n{\"message\": \"Cuenta no encontrada\"}",
+    "blanks": [
+      "404"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e5",
+    "text": "Completa la cabecera que indica el formato del cuerpo de la peticion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Content-Type indica el formato del cuerpo (ej: application/json).",
+    "type": "CODE_FILL",
+    "codeTemplate": "POST /api/cuentas HTTP/1.1\n___: application/json",
+    "blanks": [
+      "Content-Type"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e6",
+    "text": "Completa el metodo HTTP que se usa para eliminar un recurso.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "DELETE es el metodo HTTP para eliminar recursos.",
+    "type": "CODE_FILL",
+    "codeTemplate": "___ /api/cuentas/1 HTTP/1.1",
+    "blanks": [
+      "DELETE"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e7",
+    "text": "Completa el codigo de estado que indica autorizacion insuficiente.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "403 Forbidden indica que el cliente esta autenticado pero no tiene permisos.",
+    "type": "CODE_FILL",
+    "codeTemplate": "HTTP/1.1 ___ Forbidden\nContent-Type: application/json\n\n{\"message\": \"Acceso denegado\"}",
+    "blanks": [
+      "403"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e8",
+    "text": "Completa el metodo HTTP para actualizaciones parciales de un recurso.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "PATCH se usa para modificaciones parciales de un recurso.",
+    "type": "CODE_FILL",
+    "codeTemplate": "___ /api/cuentas/1 HTTP/1.1\nContent-Type: application/json\n\n{\"saldo\": 2000}",
+    "blanks": [
+      "PATCH"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-e9",
+    "text": "Completa el codigo de estado que indica exito sin cuerpo de respuesta.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "204 No Content indica exito operacional pero no hay contenido que retornar.",
+    "type": "CODE_FILL",
+    "codeTemplate": "HTTP/1.1 ___ No Content",
+    "blanks": [
+      "204"
+    ],
+    "difficulty": "easy",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m1",
+    "text": "Completa la anotacion de Spring Boot para capturar un parametro de la URL.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@PathVariable captura partes de la ruta como /cuentas/{id}.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.web.bind.annotation.PathVariable;\n\n@GetMapping(\"/api/cuentas/{id}\")\npublic Cuenta obtener(@___ Long id) {\n  return servicio.obtener(id);\n}",
+    "blanks": [
+      "PathVariable"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m2",
+    "text": "Completa la anotacion de Spring Boot para capturar un query param.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@RequestParam captura parametros de consulta como ?page=1.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.web.bind.annotation.RequestParam;\n\n@GetMapping(\"/api/cuentas\")\npublic List<Cuenta> listar(@___(defaultValue = \"0\") int page) {\n  return servicio.listar(page);\n}",
+    "blanks": [
+      "RequestParam"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m3",
+    "text": "Completa la anotacion de Spring Boot para inyectar el servicio en el controller.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Autowired inyecta automaticamente la dependencia del contexto de Spring.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.beans.factory.annotation.Autowired;\n\n@RestController\npublic class CuentaController {\n  ___\n  private CuentaServicio servicio;\n}",
+    "blanks": [
+      "@Autowired"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m4",
+    "text": "Completa la anotacion para mapear un metodo del controller a un endpoint POST.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@PostMapping(\"/path\") mapea peticiones HTTP POST al metodo del controller.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.web.bind.annotation.PostMapping;\n\n___(\"/api/cuentas\")\npublic Cuenta crear(@RequestBody CuentaDto dto) {\n  return servicio.crear(dto);\n}",
+    "blanks": [
+      "@PostMapping"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m5",
+    "text": "Completa la anotacion para recibir el body de una peticion HTTP.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@RequestBody deserializa el JSON del cuerpo de la peticion hacia un objeto Java.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.web.bind.annotation.RequestBody;\n\n@PostMapping(\"/api/cuentas\")\npublic Cuenta crear(@___ CuentaDto dto) {\n  return servicio.crear(dto);\n}",
+    "blanks": [
+      "RequestBody"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m6",
+    "text": "Completa el record que representa un DTO para transferir datos de cuenta.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "Los records de Java son ideales para DTOs: son inmutables y generan equals/hashCode/toString automaticamente.",
+    "type": "CODE_FILL",
+    "codeTemplate": "public ___ CuentaDto(Long id, String nombre, double saldo) {\n}",
+    "blanks": [
+      "record"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m7",
+    "text": "Completa el codigo de estado que indica que el cliente envio demasiadas peticiones.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "429 Too Many Requests es el estandar para rate limiting.",
+    "type": "CODE_FILL",
+    "codeTemplate": "HTTP/1.1 ___ Too Many Requests\nRetry-After: 60\nContent-Type: application/json\n\n{\"message\": \"Rate limit exceeded\"}",
+    "blanks": [
+      "429"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-m8",
+    "text": "Completa la anotacion de Jackson para omitir campos null en la serializacion.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@JsonInclude(NON_NULL) omite campos con valor null en la serializacion JSON.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import com.fasterxml.jackson.annotation.JsonInclude;\n\n___(JsonInclude.Include.NON_NULL)\npublic record UsuarioDto(String nombre, String email) {}",
+    "blanks": [
+      "@JsonInclude"
+    ],
+    "difficulty": "medium",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h1",
+    "text": "Completa el codigo para verificar el status de una respuesta con MockMvc.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "andExpect(status().isOk()) verifica que el codigo de status sea 200.",
+    "type": "CODE_FILL",
+    "codeTemplate": "mockMvc.perform(get(\"/api/cuentas/1\"))\n  .___(status().isOk())\n  .andExpect(jsonPath(\"$.nombre\").value(\"Juan\"));",
+    "blanks": [
+      "andExpect"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h2",
+    "text": "Completa el codigo para verificar un campo del JSON en la respuesta.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "jsonPath(\"$.campo\").value(valor) verifica el valor de un campo en la respuesta JSON.",
+    "type": "CODE_FILL",
+    "codeTemplate": "mockMvc.perform(get(\"/api/cuentas/1\"))\n  .andExpect(status().isOk())\n  .___(\"$.saldo\").value(100));",
+    "blanks": [
+      "andExpect(jsonPath"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h3",
+    "text": "Completa el codigo para hacer una peticion POST con MockMvc.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "post(url).contentType().content() permite enviar un body JSON en MockMvc.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;\n\nmockMvc.___(\"/api/cuentas\")\n  .contentType(MediaType.APPLICATION_JSON)\n  .content(\"{\\\"nombre\\\": \\\"Ana\\\"}\"));",
+    "blanks": [
+      "perform(post"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h4",
+    "text": "Completa el codigo para manejar excepciones de validacion en un controller.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@Valid activa la validacion con anotaciones de Jakarta (NotBlank, Min, etc.).",
+    "type": "CODE_FILL",
+    "codeTemplate": "import jakarta.validation.Valid;\n\n@PostMapping(\"/api/cuentas\")\npublic Cuenta crear(@___ @RequestBody CuentaDto dto) {\n  return servicio.crear(dto);\n}",
+    "blanks": [
+      "Valid"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h5",
+    "text": "Completa el codigo para definir un endpoint que retorna una respuesta con status custom.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "ResponseEntity permite controlar el status, headers y body de la respuesta.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.http.ResponseEntity;\n\n___\n<ResponseEntity<Cuenta>> obtener(@PathVariable Long id) {\n  return servicio.obtener(id)\n    .map(ResponseEntity::ok)\n    .orElse(ResponseEntity.notFound().build());\n}",
+    "blanks": [
+      "public ResponseEntity"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h6",
+    "text": "Completa el codigo para configurar CORS en un controller.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@CrossOrigin permite configurar politicas de CORS por controller o metodo.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.web.bind.annotation.CrossOrigin;\n\n___(origins = \"http://localhost:5173\")\n@RestController\npublic class CuentaController { }",
+    "blanks": [
+      "@CrossOrigin"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h7",
+    "text": "Completa el exception handler global para una API REST.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@ExceptionHandler captura excepciones especificas y retorna una respuesta controlada.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import org.springframework.web.bind.annotation.ExceptionHandler;\n\n___(ResourceNotFoundException.class)\npublic ResponseEntity<ErrorDto> handleNotFound(ResourceNotFoundException ex) {\n  return ResponseEntity.status(404).body(new ErrorDto(ex.getMessage()));\n}",
+    "blanks": [
+      "@ExceptionHandler"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-rest-h8",
+    "text": "Completa el codigo para usar un DTO con validacion de campos obligatorios.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "@NotBlank valida que el string no sea null, vacio ni solo espacios en blanco.",
+    "type": "CODE_FILL",
+    "codeTemplate": "import jakarta.validation.constraints.NotBlank;\n\npublic record CuentaDto(\n  @___ String nombre,\n  double saldo\n) {}",
+    "blanks": [
+      "NotBlank"
+    ],
+    "difficulty": "hard",
+    "moduleId": "rest-http"
+  },
+  {
+    "id": "cf-git-e1",
+    "text": "Completa el comando para verificar el estado del repositorio.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git status muestra el estado de los archivos en working directory y staging area.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git ___",
+    "blanks": [
+      "status"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e2",
+    "text": "Completa el comando para agregar cambios al staging area.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git add mueve cambios de working directory a staging area para prepararlos para commit.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git ___ src/Main.java",
+    "blanks": [
+      "add"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e3",
+    "text": "Completa el comando para crear un commit con un mensaje.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git commit -m 'mensaje' guarda un punto en la historia con un mensaje descriptivo.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git commit ___ \"Fix null pointer on login\"",
+    "blanks": [
+      "-m"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e4",
+    "text": "Completa el comando para subir commits al repositorio remoto.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git push sube los commits locales al repositorio remoto.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git push origin ___",
+    "blanks": [
+      "main"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e5",
+    "text": "Completa el comando para crear una nueva rama.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git branch nombre-rama crea una nueva rama apuntando al commit actual.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git branch ___/login",
+    "blanks": [
+      "feature"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e6",
+    "text": "Completa el comando para cambiar a otra rama.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git checkout (o git switch) cambia la rama actual.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git checkout ___",
+    "blanks": [
+      "feature/login"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e7",
+    "text": "Completa el comando para fusionar una rama en la actual.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git merge integra los cambios de la rama especificada en la rama actual.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git merge ___",
+    "blanks": [
+      "feature/login"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e8",
+    "text": "Completa el comando para ver el historial de commits.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git log muestra el historial de commits de la rama actual.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git log --___",
+    "blanks": [
+      "oneline"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-e9",
+    "text": "Completa el archivo .gitignore para ignorar el directorio target/.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": ".gitignore excluye archivos del tracking de Git usando patrones glob.",
+    "type": "CODE_FILL",
+    "codeTemplate": "# .gitignore\ntarget/\nnode___/",
+    "blanks": [
+      "modules"
+    ],
+    "difficulty": "easy",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m1",
+    "text": "Completa el comando para descargar cambios del remoto sin aplicarlos.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git fetch descarga cambios del remoto sin modificar el working tree.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git ___ origin main",
+    "blanks": [
+      "fetch"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m2",
+    "text": "Completa el comando para descargar y aplicar cambios del remoto.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git pull es equivalente a git fetch + git merge.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git pull --___ origin main",
+    "blanks": [
+      "rebase"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m3",
+    "text": "Completa el comando para reescribir la historia aplicando commits sobre otra punta.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git rebase reaplica los commits de la rama actual sobre la punta de otra rama.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git rebase ___",
+    "blanks": [
+      "main"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m4",
+    "text": "Completa el comando para deshacer un commit sin perder los cambios.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git reset --soft mueve HEAD sin modificar staging ni working directory.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git reset --___ HEAD~1",
+    "blanks": [
+      "soft"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m5",
+    "text": "Completa el comando para guardar cambios temporalmente.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git stash guarda los cambios sin commit para cambiar de contexto.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git stash -m \"WIP: refactor del ___\"",
+    "blanks": [
+      "servicio"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m6",
+    "text": "Completa el comando para aplicar un stash sin eliminarlo.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git stash apply aplica el stash sin eliminarlo de la lista.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git stash ___",
+    "blanks": [
+      "apply"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m7",
+    "text": "Completa el comando para aplicar un commit especifico sobre la rama actual.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git cherry-pick copia un commit especifico sobre la rama actual.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git cherry___ abc1234",
+    "blanks": [
+      "-pick"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-m8",
+    "text": "Completa el comando para encontrar que commit introdujo un bug usando busqueda binaria.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git bisect usa busqueda binaria para encontrar el commit que introdujo un bug.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git bisect start && git bisect ___ HEAD && git bisect good v1.2.0",
+    "blanks": [
+      "bad"
+    ],
+    "difficulty": "medium",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h1",
+    "text": "Completa el comando para amendar el ultimo commit sin cambiar el mensaje.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git commit --amend --no-edit agrega cambios al commit actual sin modificar el mensaje.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git add forgotten-file.java && git commit --___ --no-edit",
+    "blanks": [
+      "amend"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h2",
+    "text": "Completa el comando para ver el historial de movimientos del HEAD.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git reflog registra todos los movimientos del HEAD, incluyendo resets y amends.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git ___",
+    "blanks": [
+      "reflog"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h3",
+    "text": "Completa el comando para deshacer un cambio en la historia compartida de forma segura.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git revert crea un commit que deshace el cambio sin reescribir historia.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git revert ___",
+    "blanks": [
+      "abc1234"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h4",
+    "text": "Completa el comando para eliminar archivos rastreados sin borrarlos del working tree.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git rm --cached deja de rastrear un archivo sin eliminarlo del disco.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git rm ___ config/secrets.properties",
+    "blanks": [
+      "--cached"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h5",
+    "text": "Completa el comando para ver solo los hunks de un archivo y elegir que agregar al staging.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git add -p permite elegir porciones de archivo para un commit atomico.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git add -___ src/Service.java",
+    "blanks": [
+      "p"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h6",
+    "text": "Completa el comando para eliminar referencias a ramas remotas que ya no existen.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git remote prune origin elimina referencias a ramas remotas eliminadas.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git remote prune ___",
+    "blanks": [
+      "origin"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h7",
+    "text": "Completa el comando para hacer push forzado en ramas personales.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git push -f forzar el push, peligroso en ramas compartidas pero util en ramas personales.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git push -___ origin feature/my-branch",
+    "blanks": [
+      "f"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  },
+  {
+    "id": "cf-git-h8",
+    "text": "Completa el comando para interactuar con los ultimos 3 commits durante un rebase.",
+    "options": [],
+    "correctIndexes": [],
+    "explanation": "git rebase -i HEAD~3 abre el editor para reordenar, squashear o editar commits.",
+    "type": "CODE_FILL",
+    "codeTemplate": "git rebase -___ HEAD~3",
+    "blanks": [
+      "i"
+    ],
+    "difficulty": "hard",
+    "moduleId": "git"
+  }
+]
