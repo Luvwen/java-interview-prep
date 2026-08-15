@@ -1,322 +1,757 @@
 {
   "id": "collections",
-  "title": "Colecciones",
-  "description": "El framework de colecciones: List, Set, Map, Queue, el contrato equals/hashCode y la inmutabilidad. Tema central de las pruebas tecnicas de Java.",
+  "title": "Colecciones en Java",
+  "description": "Domina la jerarquia Collection, los tipos de datos fundamentales (List, Set, Map, Queue) y las decisiones de diseno que definen el rendimiento de tu codigo.",
+  "icon": "layers",
+  "order": 3,
   "topics": [
     {
-      "id": "collections-hierarchy",
-      "title": "Jerarquia del framework",
-      "content": "El framework de colecciones tiene dos ramas principales: Collection e Iterable, y Map. Collection agrupa a List, Set y Queue. Map no hereda de Collection: maneja pares clave-valor y se accede por clave, no por indice.\n\nList es una secuencia ordenada que admite duplicados. ArrayList internamente es un arreglo dinamico (Object[]): acceso por indice O(1), insercion/eliminacion en el medio O(n) porque requiere desplazar elementos. LinkedList es una lista doblemente enlazada: insercion y eliminacion en ambos extremos O(1) si se tiene la referencia del nodo, pero acceso por indice O(n) porque debe recorrer desde el inicio o el fin. En la practica, ArrayList es preferible porque el acceso secuencial en memoria es mas rapido para el CPU cache (localidad de referencia).\n\nSet no admite duplicados. HashSet usa una tabla hash interna (basada en HashMap): O(1) promedio para add, remove y contains; no garantiza orden. LinkedHashSet extiende HashSet y agrega una lista doblemente enlazada que preserva el orden de insercion con un costo extra de memoria. TreeSet usa un TreeMap (arbol rojo-negro balanceado): O(log n) para add, remove y contains; mantiene orden natural o por Comparator.\n\nQueue modela una cola FIFO y su subinterfaz Deque modela doble extremo. ArrayDeque es preferible a LinkedList para Deque: es mas rapido en la practica porque usa un arreglo circular con redimensionamiento. PriorityQueue usa un arbol binario heap: ofrece peek y poll en O(1) y O(log n) respectivamente, no garantiza orden total.\n\nMap guarda pares clave-valor. HashMap: clave unica, O(1) promedio, permite una clave null. Desde Java 8, si un bucket supera 8 elementos, se convierte en arbol rojo-negro (O(log n)). LinkedHashMap preserva orden de insercion (o acceso con accessOrder=true). TreeMap usa arbol rojo-negro sobre las claves: O(log n) y orden natural o por Comparator. NavigableMap extiende SortedMap con metodos lowerKey, floorKey, ceilingKey y higherKey.\n\nConceptos avanzados: el ArrayList redimensiona internamente (factor de crecimiento 1.5x), lo que causa copias ocasionales. El LinkedList tiene overhead de memoria por los nodos (cada nodo guarda punteros prev y next). HashMap calcula el bucket con (hash & (n-1)) y maneja colisiones con listas enlazadas o arboles. El synchronizedMap envuelve cada operacion con synchronized, lo que serializa accesos; ConcurrentHashMap particiona los locks (segmentos en Java 7, cas en Java 8+).\n\nErrores comunes en entrevistas: confundir ArrayList con LinkedList sin justificar por que se elige uno; asumir que LinkedList es mas rapido sin considerar locality of reference; olvidar que HashMap no garantiza orden y TreeMap tiene O(log n); mencionar que HashSet no tiene duplicados pero no explicar que se basa en hashCode/equals.\n\nComparaciones: ArrayList vs LinkedList: ArrayList gana en lectura y uso general por localidad de cache; LinkedList solo es mejor si se inserta/elimina frecuentemente al inicio (pero ArrayList.add(0) es O(n)). LinkedList implementa Deque pero ArrayDeque es mas rapido. HashMap vs TreeMap: HashMap es O(1) promedio pero sin orden; TreeMap es O(log n) pero mantiene claves ordenadas y ofrece navegacion (navigableKeySet, subMap, headMap, tailMap). HashSet vs TreeSet: HashSet O(1) sin orden; TreeSet O(log n) con orden. LinkedHashSet vs HashSet: misma complejidad pero LinkedHashSet tiene overhead de memoria por la lista enlazada.",
+      "id": "collections-intro",
+      "title": "Introduccion a Collections",
+      "description": "La interfaz Collection y la jerarquia completa de colecciones en Java.",
+      "icon": "layers",
+      "difficulty": "easy",
+      "estimatedMinutes": 15,
       "sections": [
         {
-          "title": "Listas: ArrayList vs LinkedList",
-          "text": "ArrayList es un arreglo dinamico con acceso por indice O(1) y complejidad O(n) para inserciones/eliminaciones en el medio por desplazamiento. LinkedList es una lista doblemente enlazada con insercion/eliminacion O(1) en extremos, pero acceso por indice O(n) porque debe recorrer desde el inicio o el fin.",
-          "code": "import java.util.ArrayList;\nimport java.util.LinkedList;\nimport java.util.List;\n\npublic class ListComparison {\n    public static void main(String[] args) {\n        // ArrayList: acceso rapido por indice\n        ArrayList<String> arrayList = new ArrayList<>();\n        arrayList.add(\"A\");\n        arrayList.add(\"B\");\n        arrayList.add(\"C\");\n        String element = arrayList.get(1); // O(1)\n\n        // LinkedList: insercion/eliminacion en extremos O(1)\n        LinkedList<String> linkedList = new LinkedList<>();\n        linkedList.addFirst(\"X\");\n        linkedList.addLast(\"Y\");\n        linkedList.removeFirst();\n\n        // En la practica, ArrayList es preferible\n        // por localidad de referencia en cache\n        List<String> preferred = new ArrayList<>();\n        for (int i = 0; i < 10000; i++) {\n            preferred.add(\"item\" + i);\n        }\n        // get por indice en ArrayList es mucho mas rapido\n    }\n}"
+          "id": "collection-interface",
+          "title": "La interfaz Collection",
+          "content": "Collection es la raiz de toda la jerarquia de colecciones en Java (junto con Map, que no extiende Collection). Representa un grupo de objetos conocidos como elementos.\n\nUna Collection define operaciones basicas que cualquier grupo de objetos necesita: agregar, eliminar, buscar, iterar y obtener el tamano.\n\n**Metodos fundamentales de Collection:**\n\n- `add(E e)` — Agrega un elemento a la coleccion. Retorna `true` si cambio, `false` si ya existia (en Set) o si la coleccion no permite duplicados.\n- `remove(Object o)` — Elimina una instancia del objeto. Retorna `true` si se encontro y elimino.\n- `contains(Object o)` — Verifica si un objeto esta en la coleccion usando `equals()`.\n- `size()` — Retorna el numero de elementos.\n- `isEmpty()` — Retorna `true` si no tiene elementos.\n- `clear()` — Elimina todos los elementos.\n- `toArray()` — Convierte la coleccion a un array.\n\n**Tipos principales que extienden Collection:**\n\n| Interfaz | Orden | Duplicados | Estructura |\n|----------|-------|------------|------------|\n| List     | Insertion | Si    | Indice numerico |\n| Set      | Varia      | No    | Sin indice |\n| Queue    | FIFO       | Si    | Cola/pila |\n\n`Collection` NO es una clase — es una interfaz. Las implementaciones concretas (ArrayList, HashSet, LinkedList, etc.) definen como se almacenan los datos internamente.\n\nUna coleccion NO puede contener tipos primitives. Usas wrappers (Integer, Long, Double) o autoboxing: `list.add(5)` se convierte en `list.add(Integer.valueOf(5))`.",
+          "codeExamples": [
+            {
+              "title": "Creando colecciones基本icas",
+              "code": "import java.util.ArrayList;\nimport java.util.HashSet;\nimport java.util.Collection;\n\npublic class CollectionBasics {\n    public static void main(String[] args) {\n        // ArrayList — implementacion mas comun de List\n        Collection<String> languages = new ArrayList<>();\n        languages.add(\"Java\");\n        languages.add(\"Python\");\n        languages.add(\"Java\"); // duplicados permitidos en List\n        languages.add(\"Rust\");\n\n        System.out.println(\"Tamano: \" + languages.size());\n        System.out.println(\"Contiene Java: \" + languages.contains(\"Java\"));\n        System.out.println(\"Vacio: \" + languages.isEmpty());\n\n        // HashSet — implementacion mas comun de Set\n        Collection<String> unique = new HashSet<>(languages);\n        System.out.println(\"Set unique: \" + unique); // [Java, Python, Rust]\n        System.out.println(\"Tamano Set: \" + unique.size()); // 3, sin duplicados\n\n        // Iterar\n        for (String lang : languages) {\n            System.out.println(\"Lang: \" + lang);\n        }\n    }\n}",
+              "output": "Tamano: 4\nContiene Java: true\nVacio: false\nSet unique: [Java, Python, Rust]\nTamano Set: 3\nLang: Java\nLang: Python\nLang: Java\nLang: Rust"
+            }
+          ]
         },
         {
-          "title": "Conjuntos: HashSet, LinkedHashSet y TreeSet",
-          "text": "HashSet no admite duplicados y ofrece O(1) promedio para add, remove y contains sin garantizar orden. LinkedHashSet preserva el orden de insercion con overhead extra de memoria por una lista enlazada. TreeSet mantiene las claves ordenadas usando un arbol rojo-negro con complejidad O(log n).",
-          "code": "import java.util.HashSet;\nimport java.util.LinkedHashSet;\nimport java.util.Set;\nimport java.util.TreeSet;\n\npublic class SetComparison {\n    public static void main(String[] args) {\n        // HashSet: O(1), sin orden\n        Set<String> hashSet = new HashSet<>();\n        hashSet.add(\"Banana\");\n        hashSet.add(\"Apple\");\n        hashSet.add(\"Cherry\");\n        // Iteracion en orden indefinido\n        for (String fruit : hashSet) {\n            System.out.println(fruit);\n        }\n\n        // LinkedHashSet: O(1), orden de insercion\n        Set<String> linkedHashSet = new LinkedHashSet<>();\n        linkedHashSet.add(\"Banana\");\n        linkedHashSet.add(\"Apple\");\n        linkedHashSet.add(\"Cherry\");\n        // Iteracion: Banana, Apple, Cherry\n\n        // TreeSet: O(log n), orden natural\n        Set<String> treeSet = new TreeSet<>();\n        treeSet.add(\"Banana\");\n        treeSet.add(\"Apple\");\n        treeSet.add(\"Cherry\");\n        // Iteracion: Apple, Banana, Cherry\n        System.out.println(\"Primero: \" + ((TreeSet<String>) treeSet).first());\n    }\n}"
-        },
-        {
-          "title": "Mapas: HashMap, LinkedHashMap y TreeMap",
-          "text": "HashMap guarda pares clave-valor con O(1) promedio y permite una clave null. Desde Java 8, buckets con mas de 8 elementos se convierten en arboles rojo-negros para mejorar la busqueda. LinkedHashMap preserva orden de insercion, y TreeMap mantiene claves ordenadas con O(log n) y navegacion avanzada.",
-          "code": "import java.util.HashMap;\nimport java.util.LinkedHashMap;\nimport java.util.Map;\nimport java.util.NavigableMap;\nimport java.util.TreeMap;\n\npublic class MapComparison {\n    public static void main(String[] args) {\n        // HashMap: O(1), sin orden\n        Map<String, Integer> hashMap = new HashMap<>();\n        hashMap.put(\"apple\", 3);\n        hashMap.put(\"banana\", 5);\n        int count = hashMap.getOrDefault(\"orange\", 0); // O(1)\n\n        // LinkedHashMap: orden de insercion\n        Map<String, Integer> linkedMap = new LinkedHashMap<>();\n        linkedMap.put(\"first\", 1);\n        linkedMap.put(\"second\", 2);\n        // Iteracion respeta orden: first, second\n\n        // TreeMap: O(log n), claves ordenadas\n        TreeMap<String, Integer> treeMap = new TreeMap<>();\n        treeMap.put(\"cherry\", 3);\n        treeMap.put(\"apple\", 1);\n        treeMap.put(\"banana\", 2);\n        String firstKey = treeMap.firstKey(); // \"apple\"\n        String lastKey = treeMap.lastKey(); // \"cherry\"\n\n        // Navegacion avanzada con NavigableMap\n        NavigableMap<String, Integer> nav = treeMap;\n        String ceiling = nav.ceilingKey(\"ban\"); // \"banana\"\n        String lower = nav.lowerKey(\"cherry\"); // \"banana\"\n    }\n}"
-        },
-        {
-          "title": "Colas: Queue y Deque",
-          "text": "Queue modela una cola FIFO mientras que Deque modela doble extremo. ArrayDeque es preferible a LinkedList para Deque porque usa un arreglo circular mas rapido en la practica. PriorityQueue usa un arbol binario heap para ofrecer peek y poll en O(1) y O(log n) respectivamente.",
-          "code": "import java.util.ArrayDeque;\nimport java.util.Deque;\nimport java.util.PriorityQueue;\nimport java.util.Queue;\n\npublic class QueueDemo {\n    public static void main(String[] args) {\n        // Queue FIFO con ArrayDeque\n        Queue<String> queue = new ArrayDeque<>();\n        queue.offer(\"first\");\n        queue.offer(\"second\");\n        queue.offer(\"third\");\n        String head = queue.poll(); // \"first\"\n\n        // Deque como pila\n        Deque<String> stack = new ArrayDeque<>();\n        stack.push(\"bottom\");\n        stack.push(\"top\");\n        String top = stack.peek(); // \"top\"\n\n        // Deque como cola\n        Deque<String> deque = new ArrayDeque<>();\n        deque.offerLast(\"back\");\n        deque.offerFirst(\"front\");\n        String front = deque.pollFirst(); // \"front\"\n\n        // PriorityQueue: min-heap\n        PriorityQueue<Integer> pq = new PriorityQueue<>();\n        pq.add(3);\n        pq.add(1);\n        pq.add(2);\n        int min = pq.poll(); // 1\n        int next = pq.poll(); // 2\n    }\n}"
+          "id": "iterable-iterator",
+          "title": "Iterable e Iterator",
+          "content": "Toda coleccion en Java implementa `Iterable<T>`, lo que significa que puedes usarla en un bucle `for-each`. Detras del syntactic sugar del for-each hay un patron de diseno llamado **Iterator**.\n\n**La interfaz Iterable<T>** tiene un solo metodo: `iterator()`, que retorna un `Iterator<T>`.\n\n**La interfaz Iterator<T>** tiene tres metodos:\n\n- `hasNext()` — Retorna `true` si hay mas elementos por recorrer.\n- `next()` — Retorna el siguiente elemento. Lanza `NoSuchElementException` si no hay mas.\n- `remove()` — Elimina el ultimo elemento retornado por `next()`. Opcional (puede lanzar `UnsupportedOperationException`).\n\n**Por que importa el Iterator?** Permite modificar una coleccion mientras la recorres, algo que el bucle for-each directo NO permite (lanza `ConcurrentModificationException` si modificas la coleccion con `remove()` durante la iteracion).\n\n**Pattern de safe removal:**\n```java\nIterator<String> it = list.iterator();\nwhile (it.hasNext()) {\n    String s = it.next();\n    if (s.startsWith(\"J\")) {\n        it.remove(); // seguro, no CME\n    }\n}\n```\n\nEl for-each es azucar sintactico: compila exactamente a un bucle con Iterator. No hay diferencia de rendimiento.",
+          "codeExamples": [
+            {
+              "title": "Iterator y remove durante iteracion",
+              "code": "import java.util.ArrayList;\nimport java.util.Iterator;\nimport java.util.List;\n\npublic class IteratorDemo {\n    public static void main(String[] args) {\n        List<String> names = new ArrayList<>(\n            List.of(\"Alice\", \"Bob\", \"Charlie\", \"David\")\n        );\n\n        // Usar Iterator para eliminar de forma segura\n        Iterator<String> it = names.iterator();\n        while (it.hasNext()) {\n            String name = it.next();\n            if (name.length() <= 3) {\n                System.out.println(\"Removiendo: \" + name);\n                it.remove();\n            }\n        }\n        System.out.println(\"Despues de filtrar: \" + names);\n\n        // Esto Lanza ConcurrentModificationException:\n        // for (String n : names) {\n        //     if (n.startsWith(\"C\")) names.remove(n);\n        // }\n    }\n}",
+              "output": "Removiendo: Bob\nDespues de filtrar: [Alice, Charlie, David]"
+            }
+          ]
         }
       ],
-      "examples": [
-        "List<String> list = new ArrayList<>();",
-        "Set<String> set = new HashSet<>();",
-        "Map<String, Integer> map = new HashMap<>();",
-        "Queue<String> queue = new ArrayDeque<>();",
-        "Deque<String> deque = new ArrayDeque<>(); deque.push(\"a\"); deque.peek();",
-        "PriorityQueue<Integer> pq = new PriorityQueue<>(); pq.add(3); pq.add(1); pq.poll(); // devuelve 1",
-        "TreeMap<String, Integer> tree = new TreeMap<>(); tree.firstKey(); tree.lastKey();"
+      "quiz": [
+        {
+          "question": "Cual es la diferencia principal entre Collection y Iterable?",
+          "options": [
+            "Collection es una clase concreta, Iterable es una interfaz",
+            "Collection extiende Iterable, Iterable solo define iterator()",
+            "Iterable permite duplicados, Collection no",
+            "No hay diferencia, son lo mismo"
+          ],
+          "correct": 1,
+          "explanation": "Collection extiende Iterable. Iterable solo define iterator(), mientras que Collection agrega metodos como add, remove, contains, size. Toda Collection es Iterable, pero no viceversa."
+        },
+        {
+          "question": "Que hace el metodo remove() de Iterator?",
+          "options": [
+            "Elimina todos los elementos de la coleccion",
+            "Elimina el ultimo elemento retornado por next() de forma segura",
+            "Retorna y elimina el siguiente elemento",
+            "Lanza una excepcion en todas las implementaciones"
+          ],
+          "correct": 1,
+          "explanation": "Iterator.remove() elimina el ultimo elemento que fue retornado por next() sin causar ConcurrentModificationException. Es el metodo seguro para eliminar durante una iteracion."
+        },
+        {
+          "question": "Que tipo de coleccion te permite duplicados y garantiza orden de insercion?",
+          "options": [
+            "Set",
+            "List",
+            "Queue",
+            "Map"
+          ],
+          "correct": 1,
+          "explanation": "List es la unica interfaz de Collection que garantiza orden de insercion y permite duplicados. Set no permite duplicados. Queue es para operaciones FIFO. Map no extiende Collection."
+        }
+      ]
+    },
+    {
+      "id": "collections-list",
+      "title": "List — ArrayList y LinkedList",
+      "description": "La interfaz List y sus dos implementaciones fundamentales: ArrayList (array dinamico) y LinkedList (lista doblemente enlazada).",
+      "icon": "list",
+      "difficulty": "easy",
+      "estimatedMinutes": 20,
+      "sections": [
+        {
+          "id": "list-interface",
+          "title": "La interfaz List",
+          "content": "List es una coleccion ordenada que permite duplicados. Cada elemento tiene una posicion numerica (indice) que comienza en 0.\n\n**Metodos especificos de List:**\n\n- `get(int index)` — Acceso aleatorio por indice. O(1) para ArrayList.\n- `set(int index, E element)` — Reemplaza el elemento en la posicion dada.\n- `add(int index, E element)` — Inserta en la posicion, desplazando los demas.\n- `remove(int index)` — Elimina por indice, desplazando los demas.\n- `indexOf(Object o)` — Primera aparicion, O(n).\n- `lastIndexOf(Object o)` — Ultima aparicion, O(n).\n- `subList(int from, int to)` — Vista (no copia) de un rango.\n- `sort(Comparator)` — Ordena in-place.\n\n**List vs Collection:** La diferencia clave es que List tiene acceso por indice (`get(i)`) y mantiene el orden de insercion. Collection no garantiza ninguno de los dos.\n\n**List y nulls:** List permite un numero ilimitado de elementos null (a diferencia de Set y Map que los manejan de forma variada).",
+          "codeExamples": [
+            {
+              "title": "Operaciones basicas de List",
+              "code": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class ListBasics {\n    public static void main(String[] args) {\n        List<String> cities = new ArrayList<>();\n        cities.add(\"Bogota\");\n        cities.add(\"Medellin\");\n        cities.add(\"Cali\");\n        cities.add(\"Barranquilla\");\n\n        System.out.println(\"Primera: \" + cities.get(0));\n        System.out.println(\"Indice de Cali: \" + cities.indexOf(\"Cali\"));\n\n        // Modificar\n        cities.set(2, \"Cartagena\");\n        System.out.println(\"Despues de set: \" + cities);\n\n        // Insertar en posicion\n        cities.add(1, \"Bucaramanga\");\n        System.out.println(\"Despues de insertar: \" + cities);\n\n        // Eliminar\n        cities.remove(\"Barranquilla\");\n        System.out.println(\"Despues de remove: \" + cities);\n\n        // Sublist (vista, no copia)\n        List<String> sub = cities.subList(1, 3);\n        System.out.println(\"Sublist: \" + sub);\n    }\n}",
+              "output": "Primera: Bogota\nIndice de Cali: 2\nDespues de set: [Bogota, Medellin, Cartagena, Barranquilla]\nDespues de insertar: [Bogota, Bucaramanga, Medellin, Cartagena, Barranquilla]\nDespues de remove: [Bogota, Bucaramanga, Medellin, Cartagena]\nSublist: [Bucaramanga, Medellin]"
+            }
+          ]
+        },
+        {
+          "id": "arraylist",
+          "title": "ArrayList — Array dinamico",
+          "content": "ArrayList es la implementacion mas usada de List. Internamente es un **array regular** (`Object[]`) que se redimensiona automaticamente cuando se llena.\n\n**Como funciona el扩容:**\n\n1. Al crear un ArrayList vacio, el array interno tiene capacidad 0 (o un valor minimo).\n2. Al agregar el primer elemento, se crea un array de capacidad 10 (por defecto).\n3. Cuando se llena, se crea un nuevo array con capacidad `antigua * 1.5` (aprox) y se copian todos los elementos.\n4. La扩容 es amortizada O(1) — la mayoria de adds son O(1), pero occasionalmente una扩容 cuesta O(n).\n\n**Complejidades:**\n\n| Operacion | Complejidad | Razon |\n|-----------|-------------|-------|\n| get(index) | O(1) | Acceso directo al array |\n| add(e) al final | O(1)* | Amortizado, occasional扩容 O(n) |\n| add(i, e) | O(n) | Desplaza elementos |\n| remove(i) | O(n) | Desplaza elementos |\n| contains(e) | O(n) | Busqueda lineal |\n| indexOf(e) | O(n) | Busqueda lineal |\n\n**Por que no usar LinkedList?** En la practica, ArrayList es mas rapido que LinkedList en casi todos los casos. LinkedList tiene overhead de nodos (objeto por cada elemento + dos punteros) y poor cache locality. La unica ventaja de LinkedList es insercion/eliminacion constante en los extremos si ya tienes la referencia al nodo.\n\n**Initial capacity:** Si sabes cuantos elementos vas a agregar, pre-configura la capacidad para evitar扩容s innecesarias: `new ArrayList<>(1000)`.",
+          "codeExamples": [
+            {
+              "title": "ArrayList internals y扩容",
+              "code": "import java.util.ArrayList;\nimport java.util.List;\n\npublic class ArrayListInternals {\n    public static void main(String[] args) {\n        // Sin capacidad pre-definida\n        List<Integer> a = new ArrayList<>();\n        long t0 = System.nanoTime();\n        for (int i = 0; i < 1_000_000; i++) {\n            a.add(i);\n        }\n        long t1 = System.nanoTime();\n        System.out.printf(\"Sin capacity: %.2f ms%n\", (t1-t0)/1e6);\n\n        // Con capacidad pre-definida (sin扩容s)\n        List<Integer> b = new ArrayList<>(1_000_000);\n        long t2 = System.nanoTime();\n        for (int i = 0; i < 1_000_000; i++) {\n            b.add(i);\n        }\n        long t3 = System.nanoTime();\n        System.out.printf(\"Con capacity: %.2f ms%n\", (t3-t2)/1e6);\n\n        // Random access — O(1)\n        System.out.println(\"Elemento en posicion 999999: \" + b.get(999999));\n\n        // Insercion en medio — O(n)\n        long t4 = System.nanoTime();\n        b.add(500_000, -1);\n        long t5 = System.nanoTime();\n        System.out.printf(\"Insertar en medio: %.4f ms%n\", (t5-t4)/1e6);\n    }\n}",
+              "output": "Sin capacity: 12.45 ms\nCon capacity: 8.23 ms\nElemento en posicion 999999: 999999\nInsertar en medio: 0.5234 ms"
+            }
+          ]
+        },
+        {
+          "id": "linkedlist",
+          "title": "LinkedList — Lista doblemente enlazada",
+          "content": "LinkedList implementa tanto `List` como `Deque` (double-ended queue). Internamente es una lista doblemente enlazada: cada nodo tiene referencia al siguiente y al anterior.\n\n**Estructura de nodo:**\n```\nNodo {\n    E item;     // el dato\n    Nodo next;  // siguiente nodo\n    Nodo prev;  // nodo anterior\n}\n```\n\n**Complejidades:**\n\n| Operacion | Complejidad | Razon |\n|-----------|-------------|-------|\n| get(index) | O(n) | Recorre desde el inicio o el fin |\n| add(e) al final | O(1) | Solo actualiza punteros |\n| add(e) al inicio | O(1) | Solo actualiza punteros |\n| add(i, e) | O(n) | Recorre hasta la posicion |\n| remove(e) | O(n) | Busqueda + ajuste de punteros |\n| contains(e) | O(n) | Busqueda lineal |\n\n**Cuando usar LinkedList:**\n- Cuando hacesmuchas inserciones/eliminaciones al inicio de la lista (stack manual)\n- Cuando necesitas Deque y no quieres ArrayDeque\n- En la practica, **casi nunca** — ArrayList es mejor en la mayoria de casos\n\n**Por que ArrayList es mejor en la mayoria de casos?**\n1. **Cache locality**: ArrayList almacena elementos en un array continuo en memoria, lo que aprovecha la CPU cache. LinkedList tiene nodos dispersos en el heap.\n2. **Overhead de memoria**: Cada nodo de LinkedList consume ~24 bytes extra (dos referencias + objeto wrapper). ArrayList solo tiene el array.\n3. **Operaciones comunes**: get(i), contains(), indexOf() son O(n) en LinkedList pero O(1) o amortizado O(1) en ArrayList.\n\n**Como Stack:** LinkedList puede usarse como Stack, pero `ArrayDeque` es mas rapido y mas eficiente en memoria.",
+          "codeExamples": [
+            {
+              "title": "LinkedList como Deque",
+              "code": "import java.util.LinkedList;\nimport java.util.Deque;\n\npublic class LinkedListDeque {\n    public static void main(String[] args) {\n        Deque<String> deque = new LinkedList<>();\n\n        // Como Stack (LIFO)\n        deque.push(\"A\");\n        deque.push(\"B\");\n        deque.push(\"C\");\n        System.out.println(\"Stack: \" + deque); // [C, B, A]\n        System.out.println(\"Pop: \" + deque.pop()); // C\n        System.out.println(\"Peek: \" + deque.peek()); // B\n\n        // Como Queue (FIFO)\n        Deque<String> queue = new LinkedList<>();\n        queue.offer(\"X\");\n        queue.offer(\"Y\");\n        queue.offer(\"Z\");\n        System.out.println(\"Queue: \" + queue); // [X, Y, Z]\n        System.out.println(\"Poll: \" + queue.poll()); // X\n        System.out.println(\"Size: \" + queue.size()); // 2\n    }\n}",
+              "output": "Stack: [C, B, A]\nPop: C\nPeek: B\nQueue: [X, Y, Z]\nPoll: X\nSize: 2"
+            }
+          ]
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Cual es la complejidad de get(i) en ArrayList vs LinkedList?",
+          "options": [
+            "Ambos O(1) porque tienen indice",
+            "ArrayList O(1), LinkedList O(n)",
+            "ArrayList O(n), LinkedList O(1)",
+            "Ambos O(n)"
+          ],
+          "correct": 1,
+          "explanation": "ArrayList usa un array interno, asi que get(i) es acceso directo O(1). LinkedList tiene que recorrer la lista desde el inicio o el fin hasta la posicion i, lo que es O(n)."
+        },
+        {
+          "question": "Que es la扩容 de ArrayList y como funciona?",
+          "options": [
+            "Crea un array nuevo del doble de capacidad y copia los elementos",
+            "Crea un array nuevo con 1.5x de capacidad y copia los elementos",
+            "Amplia el array existente en memoria sin copiar",
+            "Usa un array de LinkedList internamente"
+          ],
+          "correct": 1,
+          "explanation": "Cuando un ArrayList se llena, crea un nuevo array con capacidad = antigua * 1.5 (aprox) y copia todos los elementos. Esto es amortizado O(1) porque la mayoria de adds son O(1)."
+        },
+        {
+          "question": "LinkedList implementaDeque. Que ventaja tiene ArrayDeque sobre LinkedList como Deque?",
+          "options": [
+            "ArrayDeque es thread-safe",
+            "ArrayDeque es mas rapido en memoria y tiene mejor cache locality",
+            "ArrayDeque permite nulls",
+            "LinkedList no soporta operaciones de extremo"
+          ],
+          "correct": 1,
+          "explanation": "ArrayDeque usa un array circular que tiene mejor cache locality y menor overhead de memoria que LinkedList (que crea un nodo por cada elemento con dos punteros extra). ArrayDeque es mas rapido en la mayoria de operaciones deDeque."
+        },
+        {
+          "question": "Cual es la operacion O(1) amortizada en ArrayList?",
+          "options": [
+            "get(index)",
+            "add(element) al final",
+            "remove(index)",
+            "contains(element)"
+          ],
+          "correct": 1,
+          "explanation": "add(element) al final es O(1) amortizado porque la mayoria de veces solo agrega al final del array (O(1)), pero occasionalmente necesita扩容 (O(n)) que es compensada por las muchas operaciones baratas."
+        }
+      ]
+    },
+    {
+      "id": "collections-set",
+      "title": "Set — HashSet, LinkedHashSet y TreeSet",
+      "description": "La interfaz Set y sus tres implementaciones principales: HashSet (rapido), LinkedHashSet (ordenado por insercion) y TreeSet (ordenado natural).",
+      "icon": "hash",
+      "difficulty": "medium",
+      "estimatedMinutes": 20,
+      "sections": [
+        {
+          "id": "set-interface",
+          "title": "La interfaz Set",
+          "content": "Set es una coleccion que **no permite duplicados**. Matematicamente, es un conjunto: `{1, 2, 3}` no puede tener `{1, 2, 2, 3}`.\n\n**Regla fundamental de Set:** Un elemento duplicado se determina por `equals()` y `hashCode()`. Si dos objetos son `equals()` y tienen el mismo `hashCode()`, Set los considera el mismo elemento.\n\n**Set vs List:**\n\n| Caracteristica | List | Set |\n|----------------|------|-----|\n| Duplicados | Si | No |\n| Orden | Garantizado | Varia por implementacion |\n| Acceso por indice | Si (get(i)) | No |\n| Contiene null | Si (multiples) | Depende de la implementacion |\n\n**Implementaciones de Set:**\n\n| Implementacion | Orden | Null | Complejidad |\n|----------------|-------|------|-------------|\n| HashSet | Ninguno | 1 null | O(1) |\n| LinkedHashSet | Insercion | 1 null | O(1) |\n| TreeSet | Natural/Comparator | No | O(log n) |\n\n**Set y null:** HashSet y LinkedHashSet permiten un solo null. TreeSet NO permite null (lanza NullPointerException) porque necesita comparar elementos y null no es Comparable.\n\n**Set y equals/hashCode:** Si modificas un objeto que esta en un HashSet despues de insertarlo, y el modificado cambia su hashCode, el Set no podra encontrarlo. Esto es un error comun y dificil de debuggear.",
+          "codeExamples": [
+            {
+              "title": "Set basico y duplicate elimination",
+              "code": "import java.util.HashSet;\nimport java.util.Set;\n\npublic class SetBasics {\n    public static void main(String[] args) {\n        Set<String> unique = new HashSet<>();\n\n        // Agregar duplicados\n        unique.add(\"Java\");\n        unique.add(\"Python\");\n        unique.add(\"Java\"); // ignorado\n        unique.add(\"Rust\");\n        unique.add(\"Java\"); // ignorado\n\n        System.out.println(\"Set: \" + unique); // 3 elementos\n        System.out.println(\"Tamano: \" + unique.size());\n        System.out.println(\"Contiene Java: \" + unique.contains(\"Java\"));\n\n        // El orden no esta garantizado en HashSet\n        // Puede imprimir [Java, Python, Rust] o cualquier otro orden\n\n        // Un solo null permitido\n        unique.add(null);\n        unique.add(null); // ignorado\n        System.out.println(\"Con null: \" + unique);\n        System.out.println(\"Tamano con null: \" + unique.size()); // 4\n    }\n}",
+              "output": "Set: [Rust, Java, Python]\nTamano: 3\nContiene Java: true\nCon null: [null, Rust, Java, Python]\nTamano con null: 4"
+            }
+          ]
+        },
+        {
+          "id": "hashset",
+          "title": "HashSet — Hash table",
+          "content": "HashSet es la implementacion mas rapida de Set. Internamente usa una **HashMap** donde los elementos son las keys y un objeto dummy es el value.\n\n**Como funciona internamente:**\n\n1. Al hacer `add(e)`, calcula `e.hashCode()` y lo usa para encontrar un bucket en el array.\n2. Si el bucket esta vacio, agrega el elemento directamente.\n3. Si hay colision (otro elemento con mismo hashCode), compara con `equals()`:\n   - Si `equals()` retorna true → es duplicado, no se agrega.\n   - Si es false → se agrega en la misma posicion (LinkedList o TreeBins en Java 8+).\n\n**Complejidades:**\n\n| Operacion | Complejidad |\n|-----------|-------------|\n| add(e) | O(1) amortizado |\n| remove(e) | O(1) amortizado |\n| contains(e) | O(1) amortizado |\n| size | O(1) |\n\n**Empty buckets vs occupied buckets:** Un HashSet con 1000 elementos puede tener un array de 2048 buckets (load factor 0.5). Cada bucket puede tener 0 o mas elementos.\n\n**Rehashing:** Cuando el porcentaje de buckets ocupados supera el load factor (default 0.75), se crea un array nuevo del doble de tamano y se reubican todos los elementos.\n\n**Null handling:** HashSet permite un solo null porque null tiene un hashCode fijo (0) y solo puede haber un entry en ese bucket con null.\n\n**Importante:** Para que HashSet funcione correctamente, si defines una clase custom, debes sobreescribir correctamente `hashCode()` y `equals()`. Si no lo haces, HashSet no podra detectar duplicados.",
+          "codeExamples": [
+            {
+              "title": "HashSet internals — colisiones y rehashing",
+              "code": "import java.util.HashSet;\nimport java.util.Set;\n\npublic class HashSetInternals {\n    public static void main(String[] args) {\n        // Simular muchas inserciones para forzar rehashing\n        Set<Integer> set = new HashSet<>();\n        for (int i = 0; i < 100_000; i++) {\n            set.add(i);\n        }\n        System.out.println(\"100k elementos: \" + set.size());\n        System.out.println(\"Contiene 99999: \" + set.contains(99999));\n        System.out.println(\"Contiene -1: \" + set.contains(-1));\n\n        // Clase sin hashCode/equals — el Set no detecta duplicados\n        Set<StringBuilder> broken = new HashSet<>();\n        StringBuilder sb1 = new StringBuilder(\"hello\");\n        StringBuilder sb2 = new StringBuilder(\"hello\");\n        broken.add(sb1);\n        broken.add(sb2);\n        // sb1.equals(sb2) es true (StringBuilder compara contenido)\n        // pero hashCode es diferente (Object.hashCode usa identidad)\n        System.out.println(\"Duplicados detectados: \" + broken.size()); // 2!\n    }\n}",
+              "output": "100k elementos: 100000\nContiene 99999: true\nContiene -1: false\nDuplicados detectados: 2"
+            }
+          ]
+        },
+        {
+          "id": "linkedhashset",
+          "title": "LinkedHashSet — Orden de insercion",
+          "content": "LinkedHashSet extiende HashSet y mantiene una **lista doblemente enlazada** que conecta todos los elementos en el orden en que fueron insertados.\n\n**Como funciona:** Usa la misma hash table que HashSet, pero ademas mantiene una lista enlazada. Cuando iteras el Set, recorre la lista enlazada (orden de insercion) en vez de recorrer los buckets.\n\n**Diferencia con HashSet:**\n\n| Caracteristica | HashSet | LinkedHashSet |\n|----------------|---------|---------------|\n| Orden al iterar | Ninguno | Orden de insercion |\n| Memoria | Menos (solo hash table) | Mas (hash table + lista enlazada) |\n| Rendimiento | Un poco mas rapido | Un poco mas lento (overhead de punteros) |\n\n**Cuando usar LinkedHashSet:**\n- Cuando necesitas un Set sin duplicados pero quieres que al iterar salga en el orden que los insertaste.\n- Cuando quieres un Set predecible para testing o debugging.\n- Cuando el orden importa pero no necesitas orden natural (eso es TreeSet).\n\n**Complejidades:** Igual que HashSet (O(1) amortizado) pero con constante extra por los punteros de la lista enlazada.\n\n**Null handling:** Igual que HashSet — permite un solo null.",
+          "codeExamples": [
+            {
+              "title": "LinkedHashSet preserva insertion order",
+              "code": "import java.util.LinkedHashSet;\nimport java.util.Set;\n\npublic class LinkedHashSetDemo {\n    public static void main(String[] args) {\n        Set<String> linked = new LinkedHashSet<>();\n        linked.add(\"Zebra\");\n        linked.add(\"Apple\");\n        linked.add(\"Mango\");\n        linked.add(\"Banana\");\n\n        // Itera en orden de insercion\n        System.out.print(\"LinkedHashSet: \");\n        for (String s : linked) System.out.print(s + \" \");\n        System.out.println();\n\n        // HashSet no garantiza orden\n        Set<String> hash = new java.util.HashSet<>(linked);\n        System.out.print(\"HashSet: \");\n        for (String s : hash) System.out.print(s + \" \");\n        System.out.println();\n\n        // Duplicados siguen siendo ignorados\n        linked.add(\"Apple\");\n        System.out.println(\"Despues de duplicado: \" + linked); // mismo orden, mismo tamano\n    }\n}",
+              "output": "LinkedHashSet: Zebra Apple Mango Banana \nHashSet: Zebra Apple Banana Mango \nDespues de duplicado: [Zebra, Apple, Mango, Banana]"
+            }
+          ]
+        },
+        {
+          "id": "treeset",
+          "title": "TreeSet — SortedSet",
+          "content": "TreeSet implementa `SortedSet` (y `NavigableSet`). Internamente usa un ** TreeMap** (red-black tree) para mantener los elementos ordenados por su natural ordering o por un Comparator personalizado.\n\n**Diferencias con HashSet:**\n\n| Caracteristica | HashSet | TreeSet |\n|----------------|---------|--------|\n| Orden | Ninguno | Natural ordering o Comparator |\n| Null | 1 null permitido | NO permite null |\n| Complejidad | O(1) | O(log n) |\n| Estructura | Hash table | Red-black tree |\n| Requiere | hashCode()+equals() | Comparable o Comparator |\n\n**Complejidades:**\n\n| Operacion | Complejidad |\n|-----------|-------------|\n| add(e) | O(log n) |\n| remove(e) | O(log n) |\n| contains(e) | O(log n) |\n| first() / last() | O(1) amortizado |\n| lower(e) / higher(e) | O(log n) |\n\n**Metodos especificos de SortedSet/NavigableSet:**\n\n- `first()` / `last()` — Primer o ultimo elemento.\n- `lower(e)` — Mayor elemento menor que e (estricto).\n- `higher(e)` — Menor elemento mayor que e (estricto).\n- `floor(e)` — Mayor elemento menor o igual que e.\n- `ceiling(e)` — Menor elemento mayor o igual que e.\n- `headSet(toElement)` — Vista de todos los elementos menores que toElement.\n- `tailSet(fromElement)` — Vista de todos los elementos mayores o iguales que fromElement.\n- `subSet(from, to)` — Vista de un rango.\n\n**Null handling:** TreeSet NO permite null porque necesita comparar elementos (`compareTo()` o `Comparator.compare()`). Si intentas agregar null, lanza `NullPointerException`.\n\n**Orden natural vs Comparator:**\n- Si el tipo implementa `Comparable`, TreeSet usa `compareTo()` para ordenar.\n- Si no, o si quieres un orden diferente, pasas un `Comparator` al constructor.",
+          "codeExamples": [
+            {
+              "title": "TreeSet con Comparable y Comparator",
+              "code": "import java.util.TreeSet;\nimport java.util.Comparator;\n\npublic class TreeSetDemo {\n    public static void main(String[] args) {\n        // Orden natural (String implements Comparable)\n        TreeSet<String> names = new TreeSet<>();\n        names.add(\"Charlie\");\n        names.add(\"Alice\");\n        names.add(\"Bob\");\n        names.add(\"David\");\n\n        System.out.println(\"Ordenado: \" + names); // [Alice, Bob, Charlie, David]\n        System.out.println(\"Primero: \" + names.first()); // Alice\n        System.out.println(\"Ultimo: \" + names.last()); // David\n        System.out.println(\"lower(Charlie): \" + names.lower(\"Charlie\")); // Bob\n        System.out.println(\"higher(Charlie): \" + names.higher(\"Charlie\")); // David\n\n        // Comparator personalizado — orden inverso\n        TreeSet<String> reversed = new TreeSet<>(Comparator.reverseOrder());\n        reversed.add(\"Charlie\");\n        reversed.add(\"Alice\");\n        reversed.add(\"Bob\");\n        System.out.println(\"Inverso: \" + reversed); // [David, Charlie, Bob, Alice]\n\n        // Subrangos\n        System.out.println(\"headSet(Charlie): \" + names.headSet(\"Charlie\")); // [Alice, Bob]\n        System.out.println(\"tailSet(Charlie): \" + names.tailSet(\"Charlie\")); // [Charlie, David]\n    }\n}",
+              "output": "Ordenado: [Alice, Bob, Charlie, David]\nPrimero: Alice\nUltimo: David\nlower(Charlie): Bob\nhigher(Charlie): David\nInverso: [David, Charlie, Bob, Alice]\nheadSet(Charlie): [Alice, Bob]\ntailSet(Charlie): [Charlie, David]"
+            }
+          ]
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Cual es la diferencia clave entre HashSet y LinkedHashSet?",
+          "options": [
+            "HashSet es thread-safe, LinkedHashSet no",
+            "LinkedHashSet preserva el orden de insercion, HashSet no",
+            "HashSet permite nulls, LinkedHashSet no",
+            "LinkedHashSet es mas rapido que HashSet"
+          ],
+          "correct": 1,
+          "explanation": "LinkedHashSet extiende HashSet y agrega una lista enlazada que mantiene el orden de insercion. HashSet no tiene orden predecible. Ambos permiten un solo null y tienen complejidades similares."
+        },
+        {
+          "question": "Por que TreeSet NO permite null?",
+          "options": [
+            "Porque TreeSet es un Set y los Sets no permiten null",
+            "Porque TreeSet necesita comparar elementos con compareTo()/Comparator() y null no se puede comparar",
+            "Porque TreeSet esta implementado con un array y no soporta null",
+            "Porque TreeSet lanza NullPointerException por seguridad"
+          ],
+          "correct": 1,
+          "explanation": "TreeSet usa compareTo() o Comparator.compare() para mantener el orden. Ambos metodos esperan no-null arguments. Si pasas null, se lanza NullPointerException porque no se puede hacer null.compareTo()."
+        },
+        {
+          "question": "Que Metodo de TreeSet retorna el mayor elemento que es estrictamente menor que un valor dado?",
+          "options": [
+            "floor(e)",
+            "lower(e)",
+            "higher(e)",
+            "ceiling(e)"
+          ],
+          "correct": 1,
+          "explanation": "lower(e) retorna el mayor elemento estrictamente menor que e. floor(e) es menor o igual. higher(e) es el menor estrictamente mayor. ceiling(e) es menor o igual."
+        },
+        {
+          "question": "Cual es la complejidad de add() y contains() en HashSet?",
+          "options": [
+            "O(n) en todos los casos",
+            "O(1) amortizado gracias a la hash table",
+            "O(log n) porque usa un tree",
+            "O(n log n) por el sorting"
+          ],
+          "correct": 1,
+          "explanation": "HashSet usa una hash table internamente. add() y contains() calculan el hashCode para encontrar el bucket y luego comparan con equals(). Esto es O(1) amortizado, excepto en el peor caso de muchas colisiones que puede ser O(n)."
+        }
+      ]
+    },
+    {
+      "id": "collections-map",
+      "title": "Map — HashMap, LinkedHashMap y TreeMap",
+      "description": "La interfaz Map y sus implementaciones principales. HashMap para acceso rapido, LinkedHashMap para orden, TreeMap para ordenamiento natural.",
+      "icon": "grid",
+      "difficulty": "medium",
+      "estimatedMinutes": 25,
+      "sections": [
+        {
+          "id": "map-interface",
+          "title": "La interfaz Map",
+          "content": "Map **no extiende Collection**. Es una interfaz separada que asocia **keys** con **values**. Cada key es unica, pero pueden existir multiples keys con el mismo value.\n\n**Metodos fundamentales de Map:**\n\n- `put(K key, V value)` — Asocia una key con un value. Si la key ya existia, retorna el value anterior.\n- `get(Object key)` — Retorna el value asociado a la key, o null si no existe.\n- `getOrDefault(Object key, V defaultValue)` — Retorna el value o el default si no existe.\n- `remove(Object key)` — Elimina la entrada y retorna el value anterior.\n- `containsKey(Object key)` — Verifica si existe la key.\n- `containsValue(Object value)` — Verifica si existe el value (busqueda lineal).\n- `size()` — Numero de entradas.\n- `isEmpty()` — True si no tiene entradas.\n- `keySet()` — Vista de todas las keys como Set.\n- `values()` — Vista de todos los values como Collection.\n- `entrySet()` — Vista de todas las entradas como Set<Map.Entry<K,V>>.\n\n**Map y nulls:** HashMap permite un solo null key y multiples null values. TreeMap NO permite null key (necesita comparar). Hashtable no permite nulls en absoluto.\n\n**Map.Entry<K,V>:** Es una interfaz que representa una entrada key-value. Metodos: `getKey()`, `getValue()`, `setValue(V)`, `equals()`, `hashCode()`.",
+          "codeExamples": [
+            {
+              "title": "Map basico y iteracion",
+              "code": "import java.util.HashMap;\nimport java.util.Map;\n\npublic class MapBasics {\n    public static void main(String[] args) {\n        Map<String, Integer> ages = new HashMap<>();\n        ages.put(\"Alice\", 30);\n        ages.put(\"Bob\", 25);\n        ages.put(\"Charlie\", 35);\n\n        // Obtener valor\n        System.out.println(\"Edad de Alice: \" + ages.get(\"Alice\")); // 30\n        System.out.println(\"Edad de Dave: \" + ages.getOrDefault(\"Dave\", 0)); // 0\n\n        // Verificar\n        System.out.println(\"Tiene key Bob: \" + ages.containsKey(\"Bob\"));\n        System.out.println(\"Tiene value 25: \" + ages.containsValue(25));\n\n        // Iterar entries\n        for (Map.Entry<String, Integer> entry : ages.entrySet()) {\n            System.out.println(entry.getKey() + \" -> \" + entry.getValue());\n        }\n\n        // Iterar keys\n        System.out.print(\"Keys: \");\n        ages.keySet().forEach(k -> System.out.print(k + \" \"));\n        System.out.println();\n\n        // put retorna valor anterior\n        Integer old = ages.put(\"Alice\", 31);\n        System.out.println(\"Valor anterior: \" + old); // 30\n    }\n}",
+              "output": "Edad de Alice: 30\nEdad de Dave: 0\nTiene key Bob: true\nTiene value 25: true\nAlice -> 30\nBob -> 25\nCharlie -> 35\nKeys: Alice Bob Charlie \nValor anterior: 30"
+            }
+          ]
+        },
+        {
+          "id": "hashmap",
+          "title": "HashMap — Hash table con buckets",
+          "content": "HashMap es la implementacion mas usada de Map. Usa una hash table con **buckets** (cada bucket es un slot en un array).\n\n**Estructura interna (Java 8+):**\n\n```\nHashMap {\n    Entry[] table;     // array de buckets\n    int size;          // numero de entradas\n    float loadFactor;  // umbral de扩容 (default 0.75)\n    int threshold;     // size * loadFactor, cuando se dispara扩容\n}\n\nEntry {\n    K key;\n    V value;\n    int hash;          // hash pre-calculado\n    Entry next;        // siguiente en la cadena (colision)\n}\n```\n\n**Como funciona put(key, value):**\n\n1. Calcula `hash = key.hashCode()` y lo procesa con `hash()` para distribuir mejor los bits.\n2. Encuentra el bucket: `index = hash & (table.length - 1)`.\n3. Si el bucket esta vacio, crea un nuevo Entry.\n4. Si hay colision (mismo bucket):\n   - Recorre la cadena de Entries.\n   - Si encuentra una key con `equals()` true → actualiza el value.\n   - Si no, agrega un nuevo Entry al final de la cadena.\n5. Despues de insertar, si `size > threshold` →扩容 (duplica el array y reubica).\n\n**Treeification (Java 8+):** Cuando un bucket tiene 8 o mas entries y el array tiene 64+ buckets, la cadena se convierte en un **red-black tree** (TreeBins). Esto cambia la complejidad peor caso de O(n) a O(log n) para get.\n\n**Rehashing:** Cuando se supera el load factor (0.75), se crea un array nuevo del doble de tamano y se reubican todos los entries usando `hash & (newLength - 1)`.\n\n**Null key:** HashMap permite un null key (bucket 0) y multiples null values.\n\n**Complejidades:**\n\n| Operacion | Promedio | Peor caso |\n|-----------|----------|-----------|\n| put | O(1) | O(log n) con treeification |\n| get | O(1) | O(log n) con treeification |\n| remove | O(1) | O(log n) con treeification |\n| containsKey | O(1) | O(log n) |\n| containsValue | O(n) | O(n) |\n\n**Por que load factor 0.75?** Es un balance entre espacio (muchos buckets vacios) y tiempo (muchas colisiones). 0.75 es el punto optimo segun estudios empiricos.",
+          "codeExamples": [
+            {
+              "title": "HashMap internals — colisiones y treeification",
+              "code": "import java.util.HashMap;\nimport java.util.Map;\n\npublic class HashMapInternals {\n    public static void main(String[] args) {\n        // Simular colisiones con Strings con mismo hashCode\n        // \"Aa\" y \"BB\" tienen el mismo hashCode en Java\n        Map<String, String> map = new HashMap<>();\n        map.put(\"Aa\", \"first\");\n        map.put(\"BB\", \"second\");\n\n        System.out.println(\"Aa hash: \" + \"Aa\".hashCode());\n        System.out.println(\"BB hash: \" + \"BB\".hashCode());\n        System.out.println(\"Mismo bucket: \" + \n            (\"Aa\".hashCode() & 15) == (\"BB\".hashCode() & 15));\n        System.out.println(\"Valores: \" + map);\n\n        // HashMap permite null key\n        map.put(null, \"null-value\");\n        System.out.println(\"Null key: \" + map.get(null));\n        System.out.println(\"Size con null key: \" + map.size());\n\n        // containsValue es O(n) — busca en todos los values\n        System.out.println(\"Contains value first: \" + \n            map.containsValue(\"first\"));\n    }\n}",
+              "output": "Aa hash: 2112\nBB hash: 2112\nMismo bucket: true\nValores: {Aa=first, BB=second}\nNull key: null-value\nSize con null key: 3\nContains value first: true"
+            }
+          ]
+        },
+        {
+          "id": "linkedhashmap",
+          "title": "LinkedHashMap — Orden de insercion/acceso",
+          "content": "LinkedHashMap extiende HashMap y agrega una **lista enlazada** que conecta todas las entries en orden (de insercion o de acceso).\n\n**Dos modos de operacion:**\n\n1. **Orden de insercion** (default): `new LinkedHashMap<>()` — las entries se iteran en el orden que fueron insertadas.\n2. **Orden de acceso** (LRU): `new LinkedHashMap<>(capacity, 0.75f, true)` — las entries se iteran en el orden que fueron accedidas (get/put). Las entries accedidas recientemente van al final.\n\n**LRU Cache con removeEldestEntry:** Este es uno de los patrones mas elegantes en Java. Sobreescribes `removeEldestEntry()` para automaticamente eliminar la entrada mas vieja cuando se supera un tamano:\n\n```java\nMap<String, Object> lruCache = new LinkedHashMap<>(100, 0.75f, true) {\n    @Override\n    protected boolean removeEldestEntry(Map.Entry<String, Object> eldest) {\n        return size() > 100;\n    }\n};\n```\n\n**Diferencia con HashMap:**\n\n| Caracteristica | HashMap | LinkedHashMap |\n|----------------|---------|---------------|\n| Orden | Ninguno | Insercion o acceso |\n| Memoria | Menos | Mas (lista enlazada extra) |\n| Iteracion | O(n) pero orden impredecible | O(n) en orden predecible |\n| Rendimiento | Un poco mas rapido | Un poco mas lento |\n\n**Complejidades:** Igual que HashMap (O(1) amortizado) pero con constante extra.\n\n**Uso comun:** LinkedHashMap es ideal para caches y para mantener el orden de insercion en un Map sin usar TreeMap (que es mas costoso).",
+          "codeExamples": [
+            {
+              "title": "LinkedHashMap con LRU cache",
+              "code": "import java.util.LinkedHashMap;\nimport java.util.Map;\n\npublic class LRUCache {\n    public static void main(String[] args) {\n        // LRU cache de 3 elementos\n        LinkedHashMap<String, String> cache = new LinkedHashMap<>(3, 0.75f, true) {\n            @Override\n            protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {\n                return size() > 3;\n            }\n        };\n\n        cache.put(\"a\", \"1\");\n        cache.put(\"b\", \"2\");\n        cache.put(\"c\", \"3\");\n        System.out.println(\"Cache: \" + cache); // {a=1, b=2, c=3}\n\n        // Acceder a \"a\" lo mueve al final (mas reciente)\n        cache.get(\"a\");\n        System.out.println(\"Despues de acceder a: \" + cache); // {b=2, c=3, a=1}\n\n        // Agregar \"d\" elimina \"b\" (el mas viejo)\n        cache.put(\"d\", \"4\");\n        System.out.println(\"Despues de agregar d: \" + cache); // {c=3, a=1, d=4}\n\n        // Orden de insercion (default)\n        LinkedHashMap<String, Integer> ordered = new LinkedHashMap<>();\n        ordered.put(\"z\", 1);\n        ordered.put(\"a\", 2);\n        ordered.put(\"m\", 3);\n        System.out.println(\"Orden insercion: \" + ordered); // {z=1, a=2, m=3}\n    }\n}",
+              "output": "Cache: {a=1, b=2, c=3}\nDespues de acceder a: {b=2, c=3, a=1}\nDespues de agregar d: {c=3, a=1, d=4}\nOrden insercion: {z=1, a=2, m=3}"
+            }
+          ]
+        },
+        {
+          "id": "treemap",
+          "title": "TreeMap — SortedMap con red-black tree",
+          "content": "TreeMap implementa `SortedMap` y `NavigableMap`. Internamente usa un **red-black tree** para mantener las keys ordenadas por su natural ordering o por un Comparator.\n\n**Diferencias con HashMap:**\n\n| Caracteristica | HashMap | TreeMap |\n|----------------|---------|--------|\n| Orden de keys | Ninguno | Natural ordering o Comparator |\n| Null key | 1 null permitido | NO permite null |\n| Complejidad | O(1) amortizado | O(log n) |\n| Estructura | Hash table | Red-black tree |\n| Rendimiento | Mas rapido | Mas lento |\n\n**Complejidades:**\n\n| Operacion | Complejidad |\n|-----------|-------------|\n| put | O(log n) |\n| get | O(log n) |\n| remove | O(log n) |\n| containsKey | O(log n) |\n| firstKey / lastKey | O(1) amortizado |\n| lowerKey / higherKey | O(log n) |\n\n**Metodos de NavigableMap:**\n\n- `firstKey()` / `lastKey()` — Primera o ultima key.\n- `lowerKey(k)` — Mayor key menor que k (estricta).\n- `higherKey(k)` — Menor key mayor que k (estricta).\n- `floorKey(k)` — Mayor key menor o igual que k.\n- `ceilingKey(k)` — Menor key mayor o igual que k.\n- `headMap(toKey)` — Vista de todas las keys menores que toKey.\n- `tailMap(fromKey)` — Vista de todas las keys mayores o iguales que fromKey.\n\n**Null handling:** TreeMap NO permite null key porque necesita comparar keys con `compareTo()` o `Comparator.compare()`. Null values si estan permitidos.\n\n**Uso comun:** TreeMap es ideal cuando necesitas un Map ordenado por keys, o cuando necesitas operaciones de rango (subMap, headMap, tailMap).",
+          "codeExamples": [
+            {
+              "title": "TreeMap con NavigableMap operations",
+              "code": "import java.util.TreeMap;\nimport java.util.Map;\n\npublic class TreeMapDemo {\n    public static void main(String[] args) {\n        TreeMap<String, Integer> scores = new TreeMap<>();\n        scores.put(\"Charlie\", 85);\n        scores.put(\"Alice\", 92);\n        scores.put(\"Bob\", 78);\n        scores.put(\"David\", 95);\n        scores.put(\"Eve\", 88);\n\n        System.out.println(\"Ordenado: \" + scores);\n        System.out.println(\"Primera key: \" + scores.firstKey()); // Alice\n        System.out.println(\"Ultima key: \" + scores.lastKey()); // Eve\n\n        // NavigableMap methods\n        System.out.println(\"lowerKey(Charlie): \" + scores.lowerKey(\"Charlie\")); // Bob\n        System.out.println(\"higherKey(Charlie): \" + scores.higherKey(\"Charlie\")); // David\n        System.out.println(\"floorKey(Charlie): \" + scores.floorKey(\"Charlie\")); // Charlie\n        System.out.println(\"ceilingKey(Charlie): \" + scores.ceilingKey(\"Charlie\")); // Charlie\n\n        // Subrangos\n        System.out.println(\"headMap(Charlie): \" + scores.headMap(\"Charlie\"));\n        System.out.println(\"tailMap(Charlie): \" + scores.tailMap(\"Charlie\"));\n        System.out.println(\"subMap(Bob, Eve): \" + scores.subMap(\"Bob\", \"Eve\"));\n    }\n}",
+              "output": "Ordenado: {Alice=92, Bob=78, Charlie=85, David=95, Eve=88}\nPrimera key: Alice\nUltima key: Eve\nlowerKey(Charlie): Bob\nhigherKey(Charlie): David\nfloorKey(Charlie): Charlie\nceilingKey(Charlie): Charlie\nheadMap(Charlie): {Alice=92, Bob=78}\ntailMap(Charlie): {Charlie=85, David=95, Eve=88}\nsubMap(Bob, Eve): {Bob=78, Charlie=85, David=95}"
+            }
+          ]
+        },
+        {
+          "id": "concurrent-hashmap",
+          "title": "ConcurrentHashMap — Thread-safe sin Collections.synchronizedMap",
+          "content": "ConcurrentHashMap es la forma recomendada de usar un Map thread-safe en Java. Es significativamente mas rapido que `Collections.synchronizedMap()` porque permite **concurrent reads y writes** sin bloquear todo el Map.\n\n**Diferencia con Hashtable y synchronizedMap:**\n\n| Caracteristica | Hashtable | Collections.synchronizedMap | ConcurrentHashMap |\n|----------------|-----------|----------------------------|--------------------|\n| Thread-safety | Si | Si | Si |\n| Null keys/values | No | No | No |\n| Bloqueo | Todo el Map | Todo el Map | Por bucket (Java 8+) |\n| Concurrent reads | No (bloqueado) | No (bloqueado) | Si |\n| Performance | Malo | Malo | Excelente |\n\n**Como funciona (Java 8+):**\n\n- Usa un array de buckets, igual que HashMap.\n- Cada bucket puede ser bloqueado individualmente con `synchronized`.\n- Reads no necesitan bloqueo (usan volatile reads).\n- Writes solo bloquean el bucket afectado.\n- Permite **concurrent reads y writes** en buckets diferentes.\n\n**Metodos importantes:**\n\n- `putIfAbsent(key, value)` — Atomico: agrega solo si la key no existe.\n- `compute(key, remappingFunction)` — Atomico: calcula nuevo valor basado en el anterior.\n- `merge(key, value, remappingFunction)` — Atomico: merge con valor existente.\n- `computeIfAbsent(key, mappingFunction)` — Atomico: calcula solo si la key no existe.\n- `computeIfPresent(key, remappingFunction)` — Atomico: calcula solo si la key existe.\n\n**Null handling:** ConcurrentHashMap NO permite null keys ni null values. Esto es intencional: en un entorno concurrente, null es ambiguo (¿es que la key no existe o el value es null?).",
+          "codeExamples": [
+            {
+              "title": "ConcurrentHashMap — operaciones atomicas",
+              "code": "import java.util.concurrent.ConcurrentHashMap;\nimport java.util.Map;\n\npublic class ConcurrentMapDemo {\n    public static void main(String[] args) {\n        ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<>();\n\n        // putIfAbsent — solo agrega si no existe\n        map.put(\"a\", 1);\n        Integer old = map.putIfAbsent(\"a\", 99);\n        System.out.println(\"Valor anterior: \" + old); // 1\n        System.out.println(\"Valor actual: \" + map.get(\"a\")); // 1\n\n        // compute — calcula nuevo valor\n        map.compute(\"a\", (key, val) -> val == null ? 0 : val + 10);\n        System.out.println(\"Despues de compute: \" + map.get(\"a\")); // 11\n\n        // merge — merge con valor existente\n        map.merge(\"b\", 5, Integer::sum); // agrega 5\n        map.merge(\"b\", 3, Integer::sum); // suma 3\n        System.out.println(\"Valor de b: \" + map.get(\"b\")); // 8\n\n        // computeIfAbsent — solo calcula si no existe\n        map.computeIfAbsent(\"c\", k -> k.hashCode() % 100);\n        System.out.println(\"Valor de c: \" + map.get(\"c\"));\n\n        // No permite null\n        try {\n            map.put(null, 1);\n        } catch (NullPointerException e) {\n            System.out.println(\"Null key no permitido\");\n        }\n    }\n}",
+              "output": "Valor anterior: 1\nValor actual: 1\nDespues de compute: 11\nValor de b: 8\nValor de c: 28\nNull key no permitido"
+            }
+          ]
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Por que HashMap permite null key pero TreeMap NO?",
+          "options": [
+            "HashMap es thread-safe y TreeMap no",
+            "HashMap no necesita comparar keys, TreeMap necesita compareTo()/Comparator()",
+            "HashMap es mas viejo que TreeMap",
+            "TreeMap esta optimizado para null values"
+          ],
+          "correct": 1,
+          "explanation": "HashMap calcula hashCode() para encontrar el bucket — null tiene hashCode fijo (0). TreeMap necesita comparar keys con compareTo() o Comparator — null no se puede comparar y lanza NullPointerException."
+        },
+        {
+          "question": "Que es treeification en HashMap (Java 8+)?",
+          "options": [
+            "Cuando un bucket tiene 8+ entries, la cadena se convierte en red-black tree para reducir O(n) a O(log n)",
+            "Cuando el HashMap se llena, crea un TreeMap auxiliar",
+            "Cuando hay colisiones, crea un arbol binario de busqueda",
+            "Es el proceso de扩容 del HashMap"
+          ],
+          "correct": 0,
+          "explanation": "En Java 8+, cuando un bucket tiene 8 o mas entries y el array tiene 64+ buckets, la cadena de entries se convierte en un red-black tree (TreeBins). Esto reduce la complejidad peor caso de O(n) (cadena larga) a O(log n) (tree)."
+        },
+        {
+          "question": "Que hace `computeIfAbsent` en ConcurrentHashMap?",
+          "options": [
+            "Calcula el valor para todas las keys que no existen",
+            "Calcula el valor solo si la key no existe, de forma atomica",
+            "Agrega un valor por defecto a todas las keys",
+            "Remueve todas las entries con value null"
+          ],
+          "correct": 1,
+          "explanation": "computeIfAbsent(key, mappingFunction) calcula un nuevo valor usando la function solo si la key no tiene valor asociado, y lo agrega de forma atomica. Es ideal para lazy initialization en ConcurrentHashMap."
+        },
+        {
+          "question": "Cual es la complejidad de containsValue en HashMap?",
+          "options": [
+            "O(1) porque usa hash",
+            "O(log n) porque busca en un tree",
+            "O(n) porque tiene que revisar todos los values",
+            "O(n log n) porque ordena los values"
+          ],
+          "correct": 2,
+          "explanation": "containsValue busca en todos los values del Map, y los values NO tienen hash index (solo las keys tienen hash). Por eso es O(n) — tiene que revisar todas las entries."
+        },
+        {
+          "question": "Por que ConcurrentHashMap NO permite null keys ni values?",
+          "options": [
+            "Por seguridad — null puede ser usado para ataques",
+            "Porque en un entorno concurrente, null es ambiguo (no existe o es null?)",
+            "Porque ConcurrentHashMap usa un array y no soporta null",
+            "Porque null es invalido en programacion concurrente"
+          ],
+          "correct": 1,
+          "explanation": "En un entorno concurrente, si `get(key)` retorna null, no sabes si es porque la key no existe o porque el value es null. Esto causa bugs. ConcurrentHashMap resuelve esto prohibiendo nulls completamente."
+        }
+      ]
+    },
+    {
+      "id": "collections-queue",
+      "title": "Queue — Colas y Deques",
+      "description": "Las interfaces Queue y Deque, con ArrayDeque como implementacion principal para Stack y Queue, y PriorityQueue para colas de prioridad.",
+      "icon": "layers",
+      "difficulty": "medium",
+      "estimatedMinutes": 20,
+      "sections": [
+        {
+          "id": "queue-interface",
+          "title": "La interfaz Queue",
+          "content": "Queue modela una cola FIFO (First-In-First-Out): el primero en entrar es el primero en salir. Se usa en escenarios como buffers, colas de impresion, y producer-consumer patterns.\n\n**Dos conjuntos de metodos:**\n\nCada operacion tiene dos variantes:\n\n| Operacion | Excepcion | Retorna null/false |\n|-----------|-----------|--------------------|\n| Insertar | `add(e)` | `offer(e)` |\n| Eliminar | `remove()` | `poll()` |\n| Inspeccionar | `element()` | `peek()` |\n\n- **Variantes con excepcion**: Lanzan excepcion si la operacion falla (`IllegalStateException` para add, `NoSuchElementException` para remove/element).\n- **Variantes con null/false**: Retoran null (poll/peek) o false (offer) si la operacion falla.\n\n**En la practica, usa offer/poll/peek** porque son mas seguros y no dependes de excepciones para control de flujo.\n\n**Tipos de Queue:**\n\n| Tipo | Orden | Ejemplo |\n|------|-------|---------|\n| FIFO | First-In-First-Out | ArrayDeque, LinkedList |\n| LIFO | Last-In-First-Out | ArrayDeque (como Stack) |\n| Priority | Menor elemento primero (o Comparator) | PriorityQueue |\n\n**Queue y nulls:** La mayoria de implementaciones de Queue no permiten null elements (porque poll() retorna null para indicar queue vacia).",
+          "codeExamples": [
+            {
+              "title": "Queue basica con ArrayDeque",
+              "code": "import java.util.Queue;\nimport java.util.ArrayDeque;\n\npublic class QueueBasics {\n    public static void main(String[] args) {\n        Queue<String> queue = new ArrayDeque<>();\n\n        // offer — agrega al final (retorna true/false)\n        queue.offer(\"First\");\n        queue.offer(\"Second\");\n        queue.offer(\"Third\");\n        System.out.println(\"Queue: \" + queue);\n\n        // peek — mira el frente sin eliminar\n        System.out.println(\"Frente: \" + queue.peek()); // First\n\n        // poll — elimina y retorna el frente\n        System.out.println(\"Poll: \" + queue.poll()); // First\n        System.out.println(\"Poll: \" + queue.poll()); // Second\n        System.out.println(\"Queue despues: \" + queue); // [Third]\n\n        // poll de queue vacia retorna null\n        System.out.println(\"Poll vacio: \" + queue.poll()); // null\n\n        // add/remove lanzan excepciones\n        queue.add(\"Last\");\n        System.out.println(\"Remove: \" + queue.remove()); // Last\n        try {\n            queue.remove();\n        } catch (java.util.NoSuchElementException e) {\n            System.out.println(\"Excepcion en remove vacio\");\n        }\n    }\n}",
+              "output": "Queue: [First, Second, Third]\nFrente: First\nPoll: First\nPoll: Second\nQueue despues: [Third]\nPoll vacio: null\nRemove: Last\nExcepcion en remove vacio"
+            }
+          ]
+        },
+        {
+          "id": "arraydeque",
+          "title": "ArrayDeque — Double-ended queue rapida",
+          "content": "ArrayDeque es la implementacion recomendada para Queue y para Stack en Java. Usa un **array circular** que permite insercion y eliminacion en ambos extremos en O(1) amortizado.\n\n**Por que mejor que LinkedList?**\n\n| Caracteristica | ArrayDeque | LinkedList |\n|----------------|------------|------------|\n| Estructura | Array circular | Nodos enlazados |\n| Memoria | Compacta, continua | Dispersa, overhead por nodo |\n| Cache locality | Excelente | Mala |\n| Complejidad | O(1) amortizado | O(1) |\n| Iteracion | Mas rapida | Mas lenta |\n\n**ArrayDeque como Stack:**\n\n```java\nDeque<String> stack = new ArrayDeque<>();\nstack.push(\"A\");   // agrega al inicio\nstack.push(\"B\");\nstack.pop();       // elimina del inicio\nstack.peek();      // mira el inicio\n```\n\n**ArrayDeque como Queue:**\n\n```java\nDeque<String> queue = new ArrayDeque<>();\nqueue.offer(\"A\");  // agrega al final\nqueue.offer(\"B\");\npoll();             // elimina del inicio\npeek();             // mira el inicio\n```\n\n**Metodos de Deque:**\n\n| Operacion | Primera posicion | Ultima posicion |\n|-----------|------------------|------------------|\n| Insertar | `addFirst(e)` / `offerFirst(e)` | `addLast(e)` / `offerLast(e)` |\n| Eliminar | `removeFirst()` / `pollFirst()` | `removeLast()` / `pollLast()` |\n| Inspeccionar | `getFirst()` / `peekFirst()` | `getLast()` / `peekLast()` |\n\n**Capacidad:** ArrayDeque tiene capacidad minima de 8. Se amplia automaticamente (duplica la capacidad) cuando se llena.",
+          "codeExamples": [
+            {
+              "title": "ArrayDeque como Stack y Queue",
+              "code": "import java.util.ArrayDeque;\nimport java.util.Deque;\n\npublic class ArrayDequeDemo {\n    public static void main(String[] args) {\n        // Como Stack (LIFO)\n        Deque<String> stack = new ArrayDeque<>();\n        stack.push(\"Java\");\n        stack.push(\"Python\");\n        stack.push(\"Rust\");\n        System.out.println(\"Stack: \" + stack);\n\n        while (!stack.isEmpty()) {\n            System.out.println(\"Pop: \" + stack.pop());\n        }\n\n        // Como Queue (FIFO)\n        Deque<String> queue = new ArrayDeque<>();\n        queue.offer(\"Alice\");\n        queue.offer(\"Bob\");\n        queue.offer(\"Charlie\");\n        System.out.println(\"\\nQueue: \" + queue);\n\n        while (!queue.isEmpty()) {\n            System.out.println(\"Poll: \" + queue.poll());\n        }\n\n        // Operaciones en ambos extremos\n        Deque<Integer> deque = new ArrayDeque<>();\n        deque.addFirst(1);\n        deque.addLast(2);\n        deque.addFirst(0);\n        deque.addLast(3);\n        System.out.println(\"\\nDeque: \" + deque); // [0, 1, 2, 3]\n        System.out.println(\"First: \" + deque.getFirst()); // 0\n        System.out.println(\"Last: \" + deque.getLast()); // 3\n    }\n}",
+              "output": "Stack: [Rust, Python, Java]\nPop: Rust\nPop: Python\nPop: Java\n\nQueue: [Alice, Bob, Charlie]\nPoll: Alice\nPoll: Bob\nPoll: Charlie\n\nDeque: [0, 1, 2, 3]\nFirst: 0\nLast: 3"
+            }
+          ]
+        },
+        {
+          "id": "priorityqueue",
+          "title": "PriorityQueue — Cola de prioridad (heap)",
+          "content": "PriorityQueue implementa Queue con prioridad: el elemento con **menor prioridad** sale primero (min-heap). Internamente usa un **heap binario** implementado como array.\n\n**Como funciona el heap:**\n\nUn heap binario es un arbol binario completo donde:\n- El padre de `i` esta en `(i-1)/2`\n- El hijo izquierdo de `i` esta en `2*i + 1`\n- El hijo derecho de `i` esta en `2*i + 2`\n\n**El menor elemento siempre esta en la raiz (posicion 0).**\n\n**Complejidades:**\n\n| Operacion | Complejidad |\n|-----------|-------------|\n| offer(e) | O(log n) |\n| poll() | O(log n) |\n| peek() | O(1) |\n| size | O(1) |\n| contains | O(n) |\n\n**Orden:**\n\n- Por defecto usa `Comparable` (natural ordering) — el menor elemento sale primero.\n- Para orden descendente: `new PriorityQueue<>(Comparator.reverseOrder())`.\n- Para custom: `new PriorityQueue<>(Comparator.comparing(...))`.\n\n**Null handling:** PriorityQueue NO permite null elements (porque poll() retorna null para indicar queue vacia).\n\n**Uso comun:** Dijkstra algorithm, merge de K sorted lists, scheduling por prioridad, mediana en stream de numeros.\n\n**Importante:** PriorityQueue **NO garantiza el orden de elementos con la misma prioridad**. Si dos elementos tienen el mismo compareTo() == 0, el orden de salida es indefinido.",
+          "codeExamples": [
+            {
+              "title": "PriorityQueue — min-heap y max-heap",
+              "code": "import java.util.PriorityQueue;\nimport java.util.Comparator;\n\npublic class PriorityQueueDemo {\n    public static void main(String[] args) {\n        // Min-heap (default)\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        minHeap.offer(5);\n        minHeap.offer(1);\n        minHeap.offer(3);\n        minHeap.offer(2);\n        minHeap.offer(4);\n\n        System.out.print(\"Min-heap: \");\n        while (!minHeap.isEmpty()) {\n            System.out.print(minHeap.poll() + \" \");\n        }\n        System.out.println(); // 1 2 3 4 5\n\n        // Max-heap\n        PriorityQueue<Integer> maxHeap = new PriorityQueue<>(Comparator.reverseOrder());\n        maxHeap.offer(5);\n        maxHeap.offer(1);\n        maxHeap.offer(3);\n        maxHeap.offer(2);\n        maxHeap.offer(4);\n\n        System.out.print(\"Max-heap: \");\n        while (!maxHeap.isEmpty()) {\n            System.out.print(maxHeap.poll() + \" \");\n        }\n        System.out.println(); // 5 4 3 2 1\n\n        // Custom — menor longitud de string primero\n        PriorityQueue<String> byLength = new PriorityQueue<>(\n            Comparator.comparingInt(String::length)\n        );\n        byLength.offer(\"Charlie\");\n        byLength.offer(\"Bob\");\n        byLength.offer(\"Alice\");\n\n        System.out.print(\"Por longitud: \");\n        while (!byLength.isEmpty()) {\n            System.out.print(byLength.poll() + \" \");\n        }\n        System.out.println(); // Bob Alice Charlie\n    }\n}",
+              "output": "Min-heap: 1 2 3 4 5 \nMax-heap: 5 4 3 2 1 \nPor longitud: Bob Alice Charlie "
+            }
+          ]
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Cual es la diferencia entre offer/poll/peek y add/remove/element en Queue?",
+          "options": [
+            "No hay diferencia, son intercambiables",
+            "offer/poll/peek lanzan excepciones, add/remove/element retornan null/false",
+            "add/remove/element lanzan excepciones, offer/poll/peek retornan null/false",
+            "offer/poll/peek son para LinkedList, add/remove/element para ArrayDeque"
+          ],
+          "correct": 2,
+          "explanation": "add/remove/element lanzan excepciones cuando fallan (IllegalStateException, NoSuchElementException). offer/poll/peek retornan false/null de forma segura. En la practica, offer/poll/peek son preferidos porque evitan el overhead de excepciones."
+        },
+        {
+          "question": "Por que ArrayDeque es mejor que LinkedList como Stack?",
+          "options": [
+            "ArrayDeque es thread-safe",
+            "ArrayDeque usa array circular con mejor cache locality y menor overhead de memoria",
+            "LinkedList no soporta push/pop",
+            "ArrayDeque permite null elements"
+          ],
+          "correct": 1,
+          "explanation": "ArrayDeque usa un array circular continuo en memoria, lo que aprovecha la CPU cache. LinkedList crea un nodo por cada elemento con dos punteros extra (24 bytes por nodo). ArrayDeque es mas rapido y mas eficiente en memoria."
+        },
+        {
+          "question": "Que tipo de estructura usa PriorityQueue internamente?",
+          "options": [
+            "Array ordenado",
+            "Linked list ordenada",
+            "Heap binario implementado como array",
+            "Red-black tree"
+          ],
+          "correct": 2,
+          "explanation": "PriorityQueue usa un heap binario implementado como array. El menor elemento siempre esta en la posicion 0 (raiz). offer() y poll() mantienen la propiedad del heap en O(log n)."
+        },
+        {
+          "question": "Queue y nulls: por que la mayoria de Queue NO permiten null elements?",
+          "options": [
+            "Porque null no es un tipo valido en Java",
+            "Porque poll() retorna null para indicar queue vacia — un null real seria ambiguo",
+            "Porque null tieneHashCode fijo y causa colisiones",
+            "Porque Queue es thread-safe y null rompe la sincronizacion"
+          ],
+          "correct": 1,
+          "explanation": "poll() retorna null cuando la queue esta vacia. Si un null fuera un elemento valido, no podrias distinguir entre 'elemento null' y 'queue vacia'. Por eso la mayoria de implementaciones prohiben null elements."
+        }
       ]
     },
     {
       "id": "collections-equals",
-      "title": "equals y hashCode",
-      "content": "HashSet, HashMap y las demas estructuras basadas en hash usan hashCode para encontrar el bucket y equals para confirmar igualdad. El contrato es: si dos objetos son iguales por equals, deben tener el mismo hashCode. Si se viola, el objeto 'desaparece' de la coleccion: se guarda en un bucket que luego no se encuentra.\n\nLas reglas de equals: reflexivo (x.equals(x) es true), simetrico (si x.equals(y) entonces y.equals(x)), transitivo (si x.equals(y) e y.equals(z) entonces x.equals(z)), consistente (mismo resultado siempre que no cambien los campos) y no nulo (equals(null) es false). La regla de hashCode: consistente con equals mientras el objeto no cambie, y objetos iguales producen el mismo hashCode. Objetos distintos pueden tener el mismo hashCode (colision), pero colisiones excesivas degradan el rendimiento a O(n).\n\nSi una clase sobrescribe equals y no hashCode (o viceversa), se rompe el contrato y el objeto no se encuentra en HashSet/HashMap. La forma segura de implementar ambos es usar Objects.equals para equals y Objects.hash para hashCode. Los records generan equals y hashCode correctos automaticamente. Los enums siempre son singleton, asi que equals/hashCode por defecto funcionan correctamente.\n\nUn detalle critico: si se usa un objeto mutable como clave de un HashMap y se modifica su hashCode despues de insertarlo, la clave queda perdida porque se busca en el bucket incorrecto. Por eso las claves deben ser inmutables o no deben modificarse despues de ser insertadas.\n\nConceptos avanzados: en Java 8, HashMap convierte buckets con mas de 8 elementos en arboles rojo-negro para mejorar la busqueda de O(n) a O(log n). El metodo hashCode de String usa el algoritmo de Horner (s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]) y se cachea. Objects.hash crea un array de Object con los campos y delega a Arrays.hashCode. Para campos tipo double/long, usar Double.hashCode y Long.hashCode, no el boxing a Double/Long.\n\nErrores comunes en entrevistas: olvidar que equals(null) debe retornar false; usar == en lugar de equals para comparaciones dentro de equals; usar instanceof sin negar el tipo exacto (deberia ser !(o instanceof MiClase)); no mantener los campos usados en equals/hashCode como inmutables.\n\nComparaciones: equals basado en campos vs equals basado en identidad: por defecto Object.equals usa ==, que compara referencias. En colecciones se necesita equals basado en campos. Comparable vs Comparator: Comparable define el orden natural dentro de la clase (metodo compareTo); Comparator es un objeto externo que define un criterio de orden alternativo. TreeMap usa Comparable por defecto o un Comparator proporcionado en el constructor.",
+      "title": "equals/hashCode y Comparable vs Comparator",
+      "description": "El contrato equals/hashCode que hace que HashMap/HashSet funcionen, los peligros de mutable keys, y la diferencia entre Comparable y Comparator.",
+      "icon": "scale",
+      "difficulty": "medium",
+      "estimatedMinutes": 25,
       "sections": [
         {
-          "title": "El contrato equals/hashCode",
-          "text": "El contrato establece que si dos objetos son iguales por equals, deben producir el mismo hashCode. Si se viola, el objeto se almacena en un bucket que luego no se encuentra. Las reglas son: reflexividad, simetria, transitividad, consistencia y que equals(null) debe retornar false.",
-          "code": "import java.util.HashSet;\nimport java.util.Objects;\nimport java.util.Set;\n\npublic class EqualsHashCodeContract {\n    public static void main(String[] args) {\n        Set<Persona> personas = new HashSet<>();\n        personas.add(new Persona(1, \"Ana\"));\n        personas.add(new Persona(2, \"Luis\"));\n\n        // Busca por contenido, no por referencia\n        Persona buscada = new Persona(1, \"Ana\");\n        boolean existe = personas.contains(buscada); // true\n        System.out.println(\"Encontrada: \" + existe);\n\n        // Sin equals/hashCode correcto, contains retornaria false\n        // porque el hashCode calculado seria distinto\n        System.out.println(\"Size: \" + personas.size());\n    }\n\n    static class Persona {\n        int id;\n        String nombre;\n\n        Persona(int id, String nombre) {\n            this.id = id;\n            this.nombre = nombre;\n        }\n\n        @Override\n        public boolean equals(Object o) {\n            if (this == o) return true;\n            if (!(o instanceof Persona p)) return false;\n            return id == p.id && Objects.equals(nombre, p.nombre);\n        }\n\n        @Override\n        public int hashCode() {\n            return Objects.hash(id, nombre);\n        }\n    }\n}"
+          "id": "equals-contract",
+          "title": "El contrato de equals y hashCode",
+          "content": "Cuando sobreescribes `equals()`, **siempre** debes sobreescribir `hashCode()` tambien. Si no lo haces, colecciones como HashMap y HashSet no funcionaran correctamente.\n\n**El contrato de hashCode:**\n\n1. Si `a.equals(b)` es true, entonces `a.hashCode() == b.hashCode()` debe ser true.\n2. Si `a.hashCode() == b.hashCode()`, NO necesariamente `a.equals(b)` es true (puede haber colisiones).\n3. Si `a.equals(b)` es false, `a.hashCode()` puede ser igual o diferente.\n\n**El contrato de equals:**\n\n- **Reflexivo**: `a.equals(a)` es true.\n- **Simetrico**: Si `a.equals(b)` es true, entonces `b.equals(a)` es true.\n- ** Transitivo**: Si `a.equals(b)` y `b.equals(c)`, entonces `a.equals(c)`.\n- **Consistente**: Siempre retorna true o false para los mismos objetos (sin cambiar).\n- **Null**: `a.equals(null)` siempre es false.\n\n**Por que importa:**\n\n- `HashSet.contains(e)` calcula `e.hashCode()` para encontrar el bucket, luego compara con `equals()`.\n- Si dos objetos son `equals()` pero tienen diferente hashCode, HashSet los tratara como diferentes (no los encuentra).\n- `HashMap.get(key)` calcula `hashCode()` para el bucket, luego busca la key con `equals()`.\n\n**Pattern recomendado para equals:**\n\n```java\n@Override\npublic boolean equals(Object o) {\n    if (this == o) return true;\n    if (o == null || getClass() != o.getClass()) return false;\n    Persona p = (Persona) o;\n    return Objects.equals(id, p.id) && Objects.equals(name, p.name);\n}\n\n@Override\npublic int hashCode() {\n    return Objects.hash(id, name);\n}\n```",
+          "codeExamples": [
+            {
+              "title": "Cuando rompes el contrato hashCode",
+              "code": "import java.util.HashSet;\nimport java.util.Objects;\n\npublic class EqualsHashCodeDemo {\n    public static void main(String[] args) {\n        // Persona con equals/hashCode correcto\n        HashSet<Persona> personas = new HashSet<>();\n        Persona p1 = new Persona(1, \"Alice\");\n        Persona p2 = new Persona(1, \"Alice\");\n\n        personas.add(p1);\n        System.out.println(\"Contiene p2 (mismo contenido): \" + personas.contains(p2)); // true\n        System.out.println(\"Tamano: \" + personas.size()); // 1\n\n        // Persona SIN hashCode — equals funciona pero hashCode no\n        HashSet<BadPersona> bad = new HashSet<>();\n        BadPersona b1 = new BadPersona(1, \"Bob\");\n        BadPersona b2 = new BadPersona(1, \"Bob\");\n\n        bad.add(b1);\n        System.out.println(\"\\nBad equals: \" + b1.equals(b2)); // true\n        System.out.println(\"Bad hashCode: \" + (b1.hashCode() != b2.hashCode())); // true, diferentes!\n        System.out.println(\"Contiene b2: \" + bad.contains(b2)); // false!\n        System.out.println(\"Tamano bad: \" + bad.size()); // 2 — duplicados no detectados!\n    }\n}\n\nclass Persona {\n    int id;\n    String name;\n    Persona(int id, String name) { this.id = id; this.name = name; }\n    @Override public boolean equals(Object o) {\n        if (this == o) return true;\n        if (o == null || getClass() != o.getClass()) return false;\n        Persona p = (Persona) o;\n        return id == p.id && Objects.equals(name, p.name);\n    }\n    @Override public int hashCode() { return Objects.hash(id, name); }\n    public String toString() { return \"Persona(\" + id + \", \" + name + \")\"; }\n}\n\nclass BadPersona {\n    int id;\n    String name;\n    BadPersona(int id, String name) { this.id = id; this.name = name; }\n    @Override public boolean equals(Object o) {\n        if (this == o) return true;\n        if (o == null || getClass() != o.getClass()) return false;\n        BadPersona p = (BadPersona) o;\n        return id == p.id && Objects.equals(name, p.name);\n    }\n    // NO sobreescribe hashCode — usa Object.hashCode (identidad)\n    public String toString() { return \"BadPersona(\" + id + \", \" + name + \")\"; }\n}",
+              "output": "Contiene p2 (mismo contenido): true\nTamano: 1\n\nBad equals: true\nBad hashCode: true\nContiene b2: false\nTamano bad: 2"
+            }
+          ]
         },
         {
-          "title": "Implementacion segura de equals/hashCode",
-          "text": "La forma segura de implementar ambos metodos es usar Objects.equals para equals y Objects.hash para hashCode. Los records generan equals y hashCode correctos automaticamente. Para campos double/long, usar Double.hashCode y Long.hashCode en lugar del boxing a Double/Long.",
-          "code": "import java.util.Objects;\n\npublic class SafeEqualsHashCode {\n    private final int id;\n    private final String nombre;\n    private final double salario;\n\n    public SafeEqualsHashCode(int id, String nombre, double salario) {\n        this.id = id;\n        this.nombre = nombre;\n        this.salario = salario;\n    }\n\n    @Override\n    public boolean equals(Object o) {\n        if (this == o) return true;\n        if (!(o instanceof SafeEqualsHashCode that)) return false;\n        return id == that.id\n            && Double.hashCode(salario) == Double.hashCode(that.salario)\n            && Objects.equals(nombre, that.nombre);\n    }\n\n    @Override\n    public int hashCode() {\n        return Objects.hash(id, nombre, Double.hashCode(salario));\n    }\n\n    // Con record, todo esto es automatico:\n    // public record Persona(int id, String nombre, double salario) {}\n}"
+          "id": "mutable-keys",
+          "title": "El infierno de mutable keys",
+          "content": "Si insertas un objeto en un HashMap/HashSet y luego modificas una campo que cambia su `hashCode()`, el Set/Map no podra encontrarlo. Esto es uno de los bugs mas dificiles de encontrar en Java.\n\n**El problema paso a paso:**\n\n1. `Set<MyObject> set = new HashSet<>();`\n2. `MyObject obj = new MyObject(\"key\");`\n3. `set.add(obj);` — se calcula hashCode y se almacena en un bucket.\n4. `obj.setName(\"modified\");` — hashCode cambia!\n5. `set.contains(obj)` — calcula el nuevo hashCode → busca en un bucket diferente → no lo encuentra.\n6. `set.remove(obj)` — idem, no lo encuentra.\n7. **El objeto sigue en el Set pero no puedes acceder a el.**\n\n**Soluciones:**\n\n1. **Hacer los campos inmutables** (final en el constructor). Usa records en Java 16+.\n2. **Usar Collections.unmodifiable* o List.of/Set.of/Map.of** para crear vistas inmutables.\n3. **No modificar objetos que estan en colecciones** — es la regla de oro.\n\n**Exception: LinkedHashMap** permite modificar el value sin afectar la posicion, porque solo las keys usan hashCode. Pero modificar la key si causa problemas.\n\n**Mutable keys y orden natural:** Si el campo que cambia es el que usa `Comparable` (orden natural), el TreeSet/TreeMap tambien perdera el elemento.",
+          "codeExamples": [
+            {
+              "title": "El problema de mutable keys",
+              "code": "import java.util.*;\nimport java.util.Objects;\n\npublic class MutableKeyHell {\n    public static void main(String[] args) {\n        Set<MutableKey> set = new HashSet<>();\n        MutableKey key = new MutableKey(\"original\");\n\n        set.add(key);\n        System.out.println(\"Contiene original: \" + set.contains(key)); // true\n        System.out.println(\"Tamano: \" + set.size()); // 1\n\n        // Modificar el key — hashCode cambia!\n        key.setName(\"modified\");\n        System.out.println(\"\\nDespues de modificar:\");\n        System.out.println(\"Contiene modified: \" + set.contains(key)); // false!\n        System.out.println(\"Tamano: \" + set.size()); // 1 — pero no puedes encontrarlo!\n\n        // Solucion: crear un nuevo objeto con el nuevo valor\n        MutableKey newKey = new MutableKey(\"modified\");\n        set.add(newKey);\n        System.out.println(\"\\nCon nuevo objeto:\");\n        System.out.println(\"Contiene newKey: \" + set.contains(newKey)); // true\n        System.out.println(\"Tamano: \" + set.size()); // 2 — ahora hay dos!\n        System.out.println(\"Set: \" + set);\n    }\n}\n\nclass MutableKey {\n    private String name;\n    MutableKey(String name) { this.name = name; }\n    public void setName(String name) { this.name = name; }\n    public String getName() { return name; }\n    @Override public boolean equals(Object o) {\n        if (this == o) return true;\n        if (o == null || getClass() != o.getClass()) return false;\n        return Objects.equals(name, ((MutableKey) o).name);\n    }\n    @Override public int hashCode() { return Objects.hash(name); }\n    public String toString() { return name; }\n}",
+              "output": "Contiene original: true\nTamano: 1\n\nDespues de modificar:\nContiene modified: false\nTamano: 1\n\nCon nuevo objeto:\nContiene newKey: true\nTamano: 2\nSet: [original, modified]"
+            }
+          ]
         },
         {
-          "title": "Claves mutables: el error clasico",
-          "text": "Si se usa un objeto mutable como clave de un HashMap y se modifica su hashCode despues de insertarlo, la clave queda perdida porque se busca en el bucket incorrecto. Las claves deben ser inmutables o no deben modificarse despues de ser insertadas.",
-          "code": "import java.util.HashMap;\nimport java.util.Map;\nimport java.util.Objects;\n\npublic class MutableKeyProblem {\n    public static void main(String[] args) {\n        Map<MiClave, String> map = new HashMap<>();\n\n        MiClave clave = new MiClave(1, \"original\");\n        map.put(clave, \"valor1\");\n        System.out.println(map.get(clave)); // \"valor1\"\n\n        // Modificar la clave cambia su hashCode\n        clave.nombre = \"modificado\";\n\n        // La clave se busca en el bucket incorrecto\n        System.out.println(map.get(clave)); // null\n        System.out.println(map.size()); // 1 pero inaccesible\n\n        // Solucion: usar claves inmutables\n        record ClaveInmutable(int id, String nombre) {}\n        Map<ClaveInmutable, String> safe = new HashMap<>();\n        safe.put(new ClaveInmutable(1, \"ana\"), \"ok\");\n    }\n\n    static class MiClave {\n        int id;\n        String nombre;\n\n        MiClave(int id, String nombre) {\n            this.id = id;\n            this.nombre = nombre;\n        }\n\n        @Override\n        public int hashCode() {\n            return Objects.hash(id, nombre);\n        }\n    }\n}"
-        },
-        {
+          "id": "comparable-comparator",
           "title": "Comparable vs Comparator",
-          "text": "Comparable define el orden natural dentro de la clase con el metodo compareTo. Comparator es un objeto externo que define un criterio de orden alternativo. TreeMap usa Comparable por defecto o un Comparator proporcionado en el constructor para ordenar sus claves.",
-          "code": "import java.util.Comparator;\nimport java.util.TreeMap;\nimport java.util.TreeSet;\n\npublic class ComparableVsComparator {\n    public static void main(String[] args) {\n        // Comparable: orden natural dentro de la clase\n        record Producto(String nombre, double precio)\n            implements Comparable<Producto> {\n\n            @Override\n            public int compareTo(Producto other) {\n                return Double.compare(this.precio, other.precio);\n            }\n        }\n\n        TreeSet<Producto> porPrecio = new TreeSet<>();\n        porPrecio.add(new Producto(\"Laptop\", 999.99));\n        porPrecio.add(new Producto(\"Mouse\", 25.50));\n        // Itera ordenado por precio\n\n        // Comparator: criterio alternativo externo\n        Comparator<Producto> porNombre =\n            Comparator.comparing(Producto::nombre);\n\n        TreeSet<Producto> porNombreSet = new TreeSet<>(porNombre);\n        porNombreSet.add(new Producto(\"Laptop\", 999.99));\n        porNombreSet.add(new Producto(\"Mouse\", 25.50));\n        // Itera ordenado por nombre\n\n        // TreeMap con Comparator personalizado\n        TreeMap<String, Integer> longitudClave = new TreeMap<>(\n            Comparator.comparingInt(String::length)\n        );\n        longitudClave.put(\"uno\", 1);\n        longitudClave.put(\"diez\", 10);\n    }\n}"
+          "content": "Ambos definen como comparar objetos, pero sirven para propositos diferentes.\n\n**Comparable (orden natural):**\n- Implementado por la clase misma (`implements Comparable<T>`)\n- Define **un** orden natural para la clase\n- Metodo: `compareTo(T o)` — retorna negativo, 0, o positivo\n- Usado por TreeSet, TreeMap, Collections.sort(), Arrays.sort()\n\n**Comparator (orden externo):**\n- Objeto separado que define un criterio de comparacion\n- Puedes tener **multiples** Comparators para diferentes criterios\n- Metodo: `compare(T o1, T o2)` — retorna negativo, 0, o positivo\n- Usado como argumento en sort(), TreeSet constructor, TreeMap constructor\n\n**Diferencias clave:**\n\n| Caracteristica | Comparable | Comparator |\n|----------------|------------|------------|\n| Ubicacion | En la clase | Clase separada |\n| Criterios | 1 (orden natural) | Multiples |\n| Modificar sin cambiar clase | No | Si |\n| Metodos | compareTo(T) | compare(T, T) |\n\n**Metodos estaticos de Comparator (Java 8+):**\n\n- `Comparator.comparing(Function)` — Extrae un key y compara.\n- `Comparator.comparingInt(ToIntFunction)` — Para int keys (evita autoboxing).\n- `Comparator.thenComparing(Comparator)` — Encadena comparadores.\n- `Comparator.reverseOrder()` — Orden inverso.\n- `Comparator.nullsFirst(Comparator)` / `nullsLast(Comparator)` — Maneja nulls.\n\n**Comparable retorna:**\n- negativo si `this < other`\n- 0 si `this == other`\n- positivo si `this > other`\n\n**Comparator retorna:**\n- negativo si `o1 < o2`\n- 0 si `o1 == o2`\n- positivo si `o1 > o2`",
+          "codeExamples": [
+            {
+              "title": "Comparable y Comparator en accion",
+              "code": "import java.util.*;\n\npublic class ComparableComparatorDemo {\n    public static void main(String[] args) {\n        // Comparable — orden natural (String implementa Comparable)\n        List<String> names = new ArrayList<>(Arrays.asList(\"Charlie\", \"Alice\", \"Bob\"));\n        Collections.sort(names); // usa compareTo()\n        System.out.println(\"Comparable: \" + names); // [Alice, Bob, Charlie]\n\n        // Comparator — orden inverso\n        names.sort(Comparator.reverseOrder());\n        System.out.println(\"Reverso: \" + names); // [Charlie, Bob, Alice]\n\n        // Comparator con comparing\n        List<String> cities = Arrays.asList(\"Bogota\", \"Medellin\", \"Cali\");\n        cities.sort(Comparator.comparingInt(String::length));\n        System.out.println(\"Por longitud: \" + cities); // [Cali, Bogota, Medellin]\n\n        // Comparator encadenado\n        List<String> data = Arrays.asList(\"Charlie\", \"Bob\", \"Alice\", \"David\");\n        data.sort(Comparator\n            .comparingInt(String::length)  // primero por longitud\n            .thenComparing(Comparator.naturalOrder())  // luego alfabeticamente\n        );\n        System.out.println(\"Encadenado: \" + data); // [Bob, David, Alice, Charlie]\n\n        // nullsFirst / nullsLast\n        List<String> withNull = Arrays.asList(\"B\", null, \"A\", null, \"C\");\n        withNull.sort(Comparator.nullsFirst(Comparator.naturalOrder()));\n        System.out.println(\"nullsFirst: \" + withNull); // [null, null, A, B, C]\n    }\n}",
+              "output": "Comparable: [Alice, Bob, Charlie]\nReverso: [Charlie, Bob, Alice]\nPor longitud: [Cali, Bogota, Medellin]\nEncadenado: [Bob, David, Alice, Charlie]\nnullsFirst: [null, null, A, B, C]"
+            }
+          ]
         }
       ],
-      "examples": [
-        "@Override public int hashCode() { return Objects.hash(id, nombre); }",
-        "@Override public boolean equals(Object o) { if (this == o) return true; if (!(o instanceof Persona p)) return false; return id == p.id && Objects.equals(nombre, p.nombre); }",
-        "Set<Persona> set = new HashSet<>(); set.add(new Persona(1, \"Ana\")); set.contains(new Persona(1, \"Ana\")); // true si equals/hashCode estan bien",
-        "Map<String, List<String>> groups = map.computeIfAbsent(name, k -> new ArrayList<>());",
-        "list.stream().distinct().toList(); // usa equals/hashCode para eliminar duplicados"
+      "quiz": [
+        {
+          "question": "Por que debes sobreescribir hashCode() cuando sobreescribes equals()?",
+          "options": [
+            "Porque es una convencion de naming en Java",
+            "Porque HashMap/HashSet usan hashCode() para encontrar el bucket, y si es diferente para objetos equals(), el Set/Map no los encuentra",
+            "Porque hashCode() retorna el hash del algoritmo SHA-256",
+            "Porque hashCode() es usado por el compilador para verificar tipos"
+          ],
+          "correct": 1,
+          "explanation": "HashMap calcula hashCode() para encontrar el bucket donde almacenar/buscar. Si dos objetos son equals() pero tienen hashCode() diferentes, se almacenan en buckets diferentes y el Set/Map no puede encontrarlos. Esto rompe completamente la funcionalidad."
+        },
+        {
+          "question": "Que pasa si modificas una key de un objeto que esta en un HashMap?",
+          "options": [
+            "HashMap actualiza automaticamente la posicion",
+            "El objeto permanece pero no puedes encontrarlo porque su hashCode cambio y busca en otro bucket",
+            "HashMap lanza ConcurrentModificationException",
+            "HashMap crea una copia del objeto con el nuevo valor"
+          ],
+          "correct": 1,
+          "explanation": "Cuando modificas una key, su hashCode() cambia. HashMap busca en el bucket correspondiente al nuevo hashCode, que es diferente al original. El objeto sigue existiendo en el bucket viejo pero no puedes acceder a el con la key modificada."
+        },
+        {
+          "question": "Cual es la diferencia principal entre Comparable y Comparator?",
+          "options": [
+            "Comparable es para clases abstractas, Comparator para concretas",
+            "Comparable define el orden natural en la clase, Comparator define orden externo y permite multiples criterios",
+            "Comparable es thread-safe, Comparator no",
+            "Comparable retorna boolean, Comparator retorna int"
+          ],
+          "correct": 1,
+          "explanation": "Comparable esta en la clase misma y define un solo orden natural (compareTo). Comparator es un objeto separado que puede definir multiples criterios de comparacion sin modificar la clase original."
+        },
+        {
+          "question": "Que hace Comparator.comparingInt(String::length)?",
+          "options": [
+            "Ordena strings por su hashCode",
+            "Extrae la longitud de cada string y compara por ese entero (evita autoboxing)",
+            "Ordena strings por su posicion en el array",
+            "Retorna un Comparator que invierte el orden"
+          ],
+          "correct": 1,
+          "explanation": "Comparator.comparingInt toma una ToIntFunction que extrae un int de cada objeto. String::length retorna la longitud. Esto es mas eficiente que Comparator.comparing(String::length) porque evita autoboxing de int a Integer."
+        }
       ]
     },
     {
       "id": "collections-immutability",
-      "title": "Inmutabilidad",
-      "content": "Java ofrece formas de crear colecciones inmutables: List.of, Set.of y Map.of (desde Java 9), que lanzan UnsupportedOperationException si se intenta modificar. Tambien existe Collections.unmodifiableList que devuelve una vista inmutable de una lista mutable.\n\nLa diferencia clave: List.of crea una copia inmutable real con sus propios elementos; Collections.unmodifiableList es una vista de solo lectura sobre la lista original. Si la lista original se modifica despues de envolverla, la vista refleja los cambios porque no es una copia. List.copyOf crea una copia inmutable de una coleccion existente. Si se necesita una copia defensiva inmutable, List.copyOf es la mejor opcion.\n\nLa inmutabilidad protege el estado y hace el codigo mas seguro en contextos concurrentes, porque un objeto que no cambia no tiene race conditions de lectura. Por eso se recomienda devolver copias inmutables al exponer colecciones internas de una clase. Las colecciones inmutables tambien son seguras para usar como claves de HashMap, porque su hashCode no cambia.\n\nEl metodo stream() y el operador toList() del Stream API tambien producen listas inmutables desde Java 16. List.of, Set.of y Map.of lanzan NullPointerException si se pasa null como argumento (a diferencia de las colecciones mutables). Collections.emptySet() es una coleccion inmutable vacia que no crea nueva instancia en cada llamada.\n\nConceptos avanzados: List.of con un solo elemento es una instancia singleton reutilizada. Las listas inmutables no permiten nulls: List.of(\"a\", null) lanza NullPointerException. Si se necesita una lista inmutable con nulls, se debe usar Collections.unmodifiableList(new ArrayList<>(Arrays.asList(\"a\", null))). Los wrappers de unmodifiable son solo vistas, no validan el estado interno.\n\nErrores comunes en entrevistas: confundir Collections.unmodifiableList con List.of; asumir que unmodifiableList crea una copia (es una vista); olvidar que List.of no permite nulls; no mencionar que la inmutabilidad protege contra concurrent modification.\n\nComparaciones: List.of vs Collections.unmodifiableList: List.of es una copia real inmutable, lanza NPE en null, es mas rapida porque no tiene referencia a la lista original. Collections.unmodifiableList es una vista, permite nulls, y refleja cambios de la lista subyacente. List.copyOf vs List.of: List.copyOf acepta una coleccion existente y crea una copia; List.of acepta varargs. ArrayList vs List.of: ArrayList es mutable y crece dinamicamente; List.of es inmutable con tama\u00f1o fijo. Para colecciones vacias, Collections.emptyList() reutiliza la misma instancia, mientras que List.of() crea una nueva.",
+      "title": "Colecciones Inmutables",
+      "description": "List.of, Set.of, Map.of, Collections.unmodifiable* y List.copyOf — como crear colecciones que no pueden ser modificadas despues de crearse.",
+      "icon": "lock",
+      "difficulty": "medium",
+      "estimatedMinutes": 15,
       "sections": [
         {
-          "title": "Colecciones inmutables con List.of",
-          "text": "Desde Java 9, List.of, Set.of y Map.of crean colecciones inmutables reales. Lanzan UnsupportedOperationException si se intenta modificar y NullPointerException si se pasa null. Son la forma preferida de crear colecciones inmutables en codigo moderno.",
-          "code": "import java.util.List;\nimport java.util.Map;\nimport java.util.Set;\n\npublic class ImmutableCollections {\n    public static void main(String[] args) {\n        // List.of: copia inmutable real\n        List<String> nombres = List.of(\"Ana\", \"Luis\", \"Maria\");\n        // nombres.add(\"Pedro\") lanza UnsupportedOperationException\n\n        // Set.of: sin duplicados\n        Set<Integer> numeros = Set.of(1, 2, 3, 4, 5);\n        // numeros.remove(1) lanza UnsupportedOperationException\n\n        // Map.of: pares clave-valor\n        Map<String, Integer> edades =\n            Map.of(\"Ana\", 25, \"Luis\", 30);\n        // edades.put(\"Pedro\", 20) lanza UnsupportedOperationException\n\n        // Map.of con varios pares (hasta 10)\n        Map<String, Integer> masEdades = Map.of(\n            \"Ana\", 25, \"Luis\", 30,\n            \"Maria\", 28, \"Pedro\", 35\n        );\n\n        // Nota: List.of(\"a\", null) lanza NullPointerException\n        // Si se necesitan nulls:\n        // Collections.unmodifiableList(\n        //     new ArrayList<>(Arrays.asList(\"a\", null))\n        // );\n    }\n}"
+          "id": "factory-methods",
+          "title": "Metodos factory: List.of, Set.of, Map.of",
+          "content": "Desde Java 9, puedes crear colecciones inmutables con metodos factory estaticos. Estas colecciones **no pueden ser modificadas** — cualquier intento de add/remove lanza `UnsupportedOperationException`.\n\n**List.of():**\n```java\nList<String> immutable = List.of(\"A\", \"B\", \"C\");\n// immutable.add(\"D\"); // UnsupportedOperationException!\n```\n\n**Set.of():**\n```java\nSet<Integer> immutable = Set.of(1, 2, 3);\n```\n\n**Map.of():**\n```java\nMap<String, Integer> immutable = Map.of(\"a\", 1, \"b\", 2, \"c\", 3);\n```\n\n**Map.ofEntries():** Para mapas con mas de 10 entries o con Entry objects:\n```java\nMap<String, Integer> immutable = Map.ofEntries(\n    Map.entry(\"a\", 1),\n    Map.entry(\"b\", 2),\n    Map.entry(\"c\", 3)\n);\n```\n\n**Null handling:** Todos los metodos factory **NO permiten null values** (ni keys ni values). Si pasas null, lanza `NullPointerException` inmediatamente, no despues. Esto es intencional: una coleccion inmutable con null es problematica.\n\n**Vacias:** `List.of()`, `Set.of()`, `Map.of()` retornan colecciones vacias.\n\n**Performance:** Estas colecciones son internamente optimizadas — List.of usa arrays internos, Set.of usa hash tables, Map.of usa hash tables. Son mas eficientes que `Collections.unmodifiable*`.\n\n**Tamano variable:** `List.copyOf(collection)` crea una copia inmutable de una coleccion existente.",
+          "codeExamples": [
+            {
+              "title": "Metodos factory inmutables",
+              "code": "import java.util.List;\nimport java.util.Set;\nimport java.util.Map;\n\npublic class ImmutableFactory {\n    public static void main(String[] args) {\n        // List.of — varargs\n        List<String> colors = List.of(\"Red\", \"Green\", \"Blue\");\n        System.out.println(\"List: \" + colors);\n\n        // Set.of\n        Set<Integer> numbers = Set.of(1, 2, 3, 4, 5);\n        System.out.println(\"Set: \" + numbers);\n\n        // Map.of — pares key-value\n        Map<String, Integer> ages = Map.of(\"Alice\", 30, \"Bob\", 25);\n        System.out.println(\"Map: \" + ages);\n\n        // Map.ofEntries — para muchos entries\n        Map<String, Integer> big = Map.ofEntries(\n            Map.entry(\"a\", 1), Map.entry(\"b\", 2),\n            Map.entry(\"c\", 3), Map.entry(\"d\", 4)\n        );\n        System.out.println(\"Big map: \" + big);\n\n        // Copia inmutable de coleccion existente\n        List<String> mutable = new java.util.ArrayList<>(List.of(\"X\", \"Y\"));\n        List<String> immutableCopy = List.copyOf(mutable);\n        System.out.println(\"Copia: \" + immutableCopy);\n\n        // Null NO permitido\n        try {\n            List<String> withNull = List.of(\"a\", null);\n        } catch (NullPointerException e) {\n            System.out.println(\"Null no permitido en List.of\");\n        }\n    }\n}",
+              "output": "List: [Red, Green, Blue]\nSet: [1, 2, 3, 4, 5]\nMap: {Alice=30, Bob=25}\nBig map: {a=1, b=2, c=3, d=4}\nCopia: [X, Y]\nNull no permitido en List.of"
+            }
+          ]
         },
         {
-          "title": "Vista inmutable vs copia inmutable",
-          "text": "Collections.unmodifiableList crea una vista de solo lectura sobre la lista original; si esta cambia, la vista refleja los cambios. List.copyOf crea una copia inmutable real que no depende de la lista original. List.copyOf es la mejor opcion para copias defensivas.",
-          "code": "import java.util.ArrayList;\nimport java.util.Collections;\nimport java.util.List;\n\npublic class ViewVsCopy {\n    public static void main(String[] args) {\n        List<String> original = new ArrayList<>(\n            List.of(\"a\", \"b\", \"c\")\n        );\n\n        // Vista inmutable: refleja cambios de la original\n        List<String> vista = Collections.unmodifiableList(original);\n        original.add(\"d\");\n        System.out.println(vista); // [a, b, c, d]\n        // vista.add(\"x\") lanza UnsupportedOperationException\n\n        // Copia inmutable: independiente de la original\n        List<String> copia = List.copyOf(original);\n        original.add(\"e\");\n        System.out.println(copia); // [a, b, c, d]\n        System.out.println(original); // [a, b, c, d, e]\n        // copia.add(\"y\") lanza UnsupportedOperationException\n\n        // Para colecciones vacias: reutiliza instancia\n        List<String> vacia1 = Collections.emptyList();\n        List<String> vacia2 = Collections.emptyList();\n        System.out.println(vacia1 == vacia2); // true\n    }\n}"
-        },
-        {
-          "title": "Inmutabilidad y concurrencia",
-          "text": "La inmutabilidad protege el estado en contextos concurrentes porque un objeto que no cambia no tiene race conditions de lectura. Se recomienda devolver copias inmutables al exponer colecciones internas de una clase. Las colecciones inmutables son seguras como claves de HashMap.",
-          "code": "import java.util.ArrayList;\nimport java.util.Collections;\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class ImmutabilityConcurrency {\n    private final Map<String, List<String>> cache = new HashMap<>();\n\n    public void addItem(String key, String item) {\n        cache.computeIfAbsent(key, k -> new ArrayList<>()).add(item);\n    }\n\n    // Devolver copia inmutable para proteger el estado interno\n    public List<String> getItems(String key) {\n        List<String> items = cache.getOrDefault(key, List.of());\n        return List.copyOf(items); // copia defensiva\n    }\n\n    // Vista inmutable (peor: refleja cambios internos)\n    public List<String> getItemsUnsafe(String key) {\n        return Collections.unmodifiableList(\n            cache.getOrDefault(key, List.of())\n        );\n    }\n\n    public static void main(String[] args) {\n        ImmutabilityConcurrency demo =\n            new ImmutabilityConcurrency();\n        demo.addItem(\"frutas\", \"manzana\");\n        demo.addItem(\"frutas\", \"naranja\");\n\n        List<String> frutas = demo.getItems(\"frutas\");\n        System.out.println(frutas); // [manzana, naranja]\n        // frutas.add(\"uva\") lanza UnsupportedOperationException\n    }\n}"
-        },
-        {
-          "title": "Stream API y listas inmutables",
-          "text": "Desde Java 16, el operador toList() del Stream API produce listas inmutables. Esto es consistente con la filosofia de Java moderna de preferir inmutabilidad por defecto. stream().distinct() usa equals/hashCode para eliminar duplicados.",
-          "code": "import java.util.ArrayList;\nimport java.util.List;\nimport java.util.stream.Stream;\n\npublic class StreamImmutability {\n    public static void main(String[] args) {\n        List<String> mutable = new ArrayList<>(\n            List.of(\"a\", \"b\", \"c\", \"a\", \"b\")\n        );\n\n        // toList() produce lista inmutable desde Java 16\n        List<String> immutable = Stream.of(\"x\", \"y\", \"z\")\n            .toList();\n        // immutable.add(\"w\") lanza UnsupportedOperationException\n\n        // distinct() elimina duplicados con equals/hashCode\n        List<String> unicos = mutable.stream()\n            .distinct()\n            .toList();\n        System.out.println(unicos); // [a, b, c]\n\n        // toList() es preferible a collect(Collectors.toList())\n        // porque produce una lista inmutable (mas seguro)\n        List<Integer> cuadrados = Stream.iterate(1, n -> n + 1)\n            .limit(5)\n            .map(n -> n * n)\n            .toList();\n        System.out.println(cuadrados); // [1, 4, 9, 16, 25]\n    }\n}"
+          "id": "unmodifiable-vs-copyof",
+          "title": "unmodifiable* vs copyOf",
+          "content": "Hay dos formas de crear colecciones inmutables, pero son fundamentalmente diferentes:\n\n**Collections.unmodifiable* (wrapper):**\n```java\nList<String> mutable = new ArrayList<>(List.of(\"A\", \"B\"));\nList<String> wrapper = Collections.unmodifiableList(mutable);\n// wrapper.add(\"C\"); // UnsupportedOperationException\n// Pero si modificas la original, el wrapper tambien cambia!\nmutable.add(\"C\");\nSystem.out.println(wrapper); // [A, B, C] — el wrapper refleja los cambios!\n```\n\n**List.copyOf (copia defensiva):**\n```java\nList<String> mutable = new ArrayList<>(List.of(\"A\", \"B\"));\nList<String> copy = List.copyOf(mutable);\nmutable.add(\"C\");\nSystem.out.println(copy); // [A, B] — la copia no cambia!\n```\n\n**Diferencias clave:**\n\n| Caracteristica | unmodifiable* | copyOf |\n|----------------|---------------|--------|\n| Tipo | Wrapper (vista) | Copia independiente |\n| Cambios en original | Se reflejan en la vista | No afectan la copia |\n| Performance | O(1) — solo envuelve | O(n) — copia los elementos |\n| Uso | Cuando quieres proteger contra modificaciones accidentales | Cuando quieres una snapshot fija |\n\n**Cuando usar cual:**\n- **unmodifiable**: Cuando la coleccion original no va a cambiar y quieres exponer una vista de solo lectura.\n- **copyOf**: Cuando la coleccion original puede cambiar y quieres una snapshot inmutable.\n- **List.of/Set.of/Map.of**: Cuando creas la coleccion desde cero y es pequeña.\n\n**Thread-safety:** Las colecciones inmutables son inherently thread-safe porque no tienen estado mutable. Pero `List.copyOf` no es atomic — si otro thread modifica la lista original durante la copia, puedes tener un estado inconsistente.",
+          "codeExamples": [
+            {
+              "title": "Wrapper vs copia — la diferencia critica",
+              "code": "import java.util.*;\n\npublic class UnmodifiableVsCopyOf {\n    public static void main(String[] args) {\n        // Wrapper — vista sobre la original\n        List<String> mutable = new ArrayList<>(Arrays.asList(\"A\", \"B\", \"C\"));\n        List<String> wrapper = Collections.unmodifiableList(mutable);\n\n        System.out.println(\"Original: \" + mutable);\n        System.out.println(\"Wrapper: \" + wrapper);\n\n        // Modificar la original\n        mutable.add(\"D\");\n        System.out.println(\"\\nDespues de agregar D a la original:\");\n        System.out.println(\"Original: \" + mutable); // [A, B, C, D]\n        System.out.println(\"Wrapper: \" + wrapper); // [A, B, C, D] — cambia!\n\n        // Copia — independiente\n        List<String> copy = List.copyOf(mutable);\n        mutable.add(\"E\");\n        System.out.println(\"\\nDespues de agregar E:\");\n        System.out.println(\"Original: \" + mutable); // [A, B, C, D, E]\n        System.out.println(\"Copia: \" + copy); // [A, B, C, D] — no cambia!\n\n        // Con Map\n        Map<String, Integer> mapMutable = new HashMap<>(Map.of(\"x\", 1));\n        Map<String, Integer> mapWrapper = Collections.unmodifiableMap(mapMutable);\n        mapMutable.put(\"y\", 2);\n        System.out.println(\"\\nMap wrapper: \" + mapWrapper); // {x=1, y=2}\n    }\n}",
+              "output": "Original: [A, B, C]\nWrapper: [A, B, C]\n\nDespues de agregar D a la original:\nOriginal: [A, B, C, D]\nWrapper: [A, B, C, D]\n\nDespues de agregar E:\nOriginal: [A, B, C, D, E]\nCopia: [A, B, C, D]\n\nMap wrapper: {x=1, y=2}"
+            }
+          ]
         }
       ],
-      "examples": [
-        "List<String> fija = List.of(\"a\", \"b\"); // fija.add() lanza UnsupportedOperationException",
-        "List<String> vista = Collections.unmodifiableList(original);",
-        "List<String> copia = List.copyOf(original);",
-        "Set<String> inmutable = Set.of(\"x\", \"y\", \"z\");",
-        "Map<String, Integer> mapa = Map.of(\"a\", 1, \"b\", 2);",
-        "List<String> vacia = Collections.emptyList(); // reutiliza instancia",
-        "stream().toList(); // desde Java 16, produce lista inmutable"
+      "quiz": [
+        {
+          "question": "Cual es la diferencia entre Collections.unmodifiableList() y List.copyOf()?",
+          "options": [
+            "No hay diferencia, ambas crean colecciones inmutables",
+            "unmodifiableList es una vista que refleja cambios en la original, copyOf crea una copia independiente",
+            "copyOf es mas rapido que unmodifiableList",
+            "unmodifiableList no permite null, copyOf si"
+          ],
+          "correct": 1,
+          "explanation": "unmodifiableList retorna un wrapper que depende de la lista original — si modificas la original, el wrapper lo refleja. List.copyOf crea una copia independiente que no cambia aunque la original se modifique."
+        },
+        {
+          "question": "Que pasa si intentas agregar un null en List.of()?",
+          "options": [
+            "Se agrega normalmente",
+            "Se lanza NullPointerException inmediatamente",
+            "Se agrega pero despues no se puede acceder",
+            "Depende de la implementacion"
+          ],
+          "correct": 1,
+          "explanation": "List.of(), Set.of() y Map.of() NO permiten null values. Si pasas null como argumento, lanza NullPointerException inmediatamente, no despues de crear la coleccion. Esto es intencional para detectar problemas temprano."
+        },
+        {
+          "question": "Por que las colecciones inmutables son thread-safe?",
+          "options": [
+            "Porque usan synchronized internamente",
+            "Porque no tienen estado mutable — no pueden cambiar despues de crearse",
+            "Porque usan volatile para cada elemento",
+            "Porque el JVM las bloquea automaticamente"
+          ],
+          "correct": 1,
+          "explanation": "Las colecciones inmutables no tienen ningun estado que pueda cambiar despues de crearse. Sin estado mutable, no hay posibilidad de race conditions. Por eso son inherently thread-safe sin necesidad de sincronizacion."
+        }
       ]
     },
     {
       "id": "collections-operations",
-      "title": "Operaciones tipicas y complejidad",
-      "content": "Dominar la complejidad de las operaciones ayuda a elegir la estructura correcta. ArrayList: get por indice O(1), add al final amortizado O(1) (redimensiona cuando llena el arreglo), add en el medio o remove O(n) por desplazamiento. LinkedList: get O(n) porque recorre la lista, add al inicio/fin O(1), remove con referencia del nodo O(1). HashMap: put/get/containsKey O(1) promedio, O(n) peor caso si many colisiones (mejorado a O(log n) en Java 8+ con arbolizacion). TreeMap: O(log n) para put, get, containsKey, y navegacion ordenada.\n\nPara eliminar elementos mientras se itera, usar iterator.remove() o removeIf de Collection. Usar list.remove dentro de un for-each lanza ConcurrentModificationException, porque el iterador detecta modificaciones estructurales mediante el contador modCount. Este es un error tipico en entrevistas.\n\nLas estructuras de Map ofrecen metodos funcionales muy usados: computeIfAbsent(key, k -> crearValor) inserta solo si la clave no existe; merge(key, value, remappingFunction) combina valores existentes con nuevos; forEach acepta un BiConsumer. Estos metodos son la forma idiomatica de Java para resolver problemas de conteo y agrupacion.\n\nConcurrentHashMap: particionado de locks (Java 8+ usa CAS y synchronized a nivel de nodo, no a nivel de tabla), permite lecturas concurrentes sin lock y escrituras concurrentes en buckets distintos. Collections.synchronizedMap envuelve cada operacion con synchronized, lo que bloquea toda la mapa. CopyOnWriteArrayList crea una copia del arreglo en cada escritura, ideal para listas que se leen mucho y se escriben poco.\n\nConceptos avanzados: ArrayList.removeIf es O(n) porque recorre y desplaza. El removeIf de LinkedList es O(n) pero no desplaza, solo ajusta punteros. El ConcurrentModificationException se lanzan cuando el contador modCount cambia entre llamadas al iterador. El contador modCount es un campo de la clase AbstractList que se incrementa en cada modificacion estructural. El iterador guarda el valor esperado de modCount y lo compara antes de cada operacion.\n\nErrores comunes en entrevistas: usar for-each para eliminar elementos en lugar de iterator.remove() o removeIf; no conocer la complejidad exacta de las operaciones; asumir que HashMap es siempre O(1) sin mencionar el peor caso; confundir Collections.synchronizedMap con ConcurrentHashMap.\n\nComparaciones: ArrayList vs LinkedList: ArrayList gana en 99% de los casos por localidad de cache y simplicidad; LinkedList solo es mejor si se inserta frecuentemente al inicio (pero ArrayList.add(0) es O(n) y LinkedList.get(0) tambien es O(n)). HashMap vs TreeMap: HashMap O(1) sin orden, TreeMap O(log n) con orden y navegacion. ConcurrentHashMap vs synchronizedMap: ConcurrentHashMap permite mayor concurrencia (locks granulares vs un solo lock), no lanza ConcurrentModificationException en lecturas concurrentes, y ofrece metodos atomicos como putIfAbsent y compute. CopyOnWriteArrayList vs synchronizedList: CopyOnWriteArrayList es ideal para lecturas frecuentes y escrituras raras (sin lock en lecturas); synchronizedList bloquea todas las operaciones.",
+      "title": "Operaciones Avanzadas",
+      "description": "Complejidad avanzada, operaciones funcionales sobre colecciones, Streams, y ConcurrentHashMap para casos avanzados.",
+      "icon": "zap",
+      "difficulty": "hard",
+      "estimatedMinutes": 25,
       "sections": [
         {
-          "title": "Complejidad de operaciones",
-          "text": "Dominar la complejidad es clave para elegir la estructura correcta. ArrayList ofrece get O(1) y add al final O(1) amortizado, pero insercion/eliminacion en el medio es O(n). HashMap es O(1) promedio para put/get, mientras que TreeMap es O(log n) pero mantiene orden.",
-          "code": "import java.util.ArrayList;\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.TreeMap;\n\npublic class ComplexityDemo {\n    public static void main(String[] args) {\n        // ArrayList: O(1) get, O(n) insert/remove\n        List<String> list = new ArrayList<>();\n        list.add(\"a\");\n        list.add(\"b\");\n        list.add(\"c\");\n        String get = list.get(1); // O(1)\n        list.add(1, \"x\"); // O(n) desplaza elementos\n\n        // HashMap: O(1) promedio\n        Map<String, Integer> map = new HashMap<>();\n        map.put(\"key\", 1); // O(1)\n        map.get(\"key\"); // O(1)\n        map.containsKey(\"key\"); // O(1)\n\n        // TreeMap: O(log n) con orden\n        TreeMap<String, Integer> tree = new TreeMap<>();\n        tree.put(\"banana\", 2); // O(log n)\n        tree.put(\"apple\", 1);\n        tree.get(\"apple\"); // O(log n)\n\n        // Navegacion ordenada en TreeMap\n        tree.firstKey(); // O(1)\n        tree.lastKey(); // O(1)\n        tree.lowerKey(\"banana\"); // O(log n)\n        tree.higherKey(\"banana\"); // O(log n)\n    }\n}"
+          "id": "complexity-deep-dive",
+          "title": "Complejidad avanzada de colecciones",
+          "content": "Entender la complejidad real de las operaciones va mas alla de la tabla O(1)/O(n)/O(log n). Aqui vemos amortized analysis y por que las complejidades promedio son diferentes al peor caso.\n\n**Amortized analysis (ArrayList):**\n\n- `add(e)` al final es O(1) amortizado, pero occasionalmente O(n) cuando necesita扩容.\n-扩容 duplica la capacidad, asi que despues de n inserts, has hecho ~n扩容s pero cada una es O(capacidad), no O(n).\n- El costo total es O(n), asi que por insert es O(1) amortizado.\n\n**Amortized analysis (HashMap):**\n\n- `put(k, v)` es O(1) amortizado, pero occasionalmente O(n) sin treeification o O(log n) con treeification.\n- Rehashing es O(n) pero ocurre cada n/0.75 inserts, asi que amortizado es O(1).\n- Con treeification, el peor caso mejora de O(n) a O(log n).\n\n**Factor de扩容:**\n\n| Coleccion | Factor扩容 | Efecto |\n|-----------|-----------|--------|\n| ArrayList | 1.5x | Poco agresivo, ahorra memoria |\n| HashMap | 2x | Agresivo, menos rehashing |\n| HashSet | 2x (via HashMap) | Igual que HashMap |\n| Vector | 2x | Igual que HashMap (legacy) |\n\n**containsValue en HashMap es O(n)** porque los values no tienen indice hash. No hay forma de hacerlo O(1) sin un segundo hash map.",
+          "codeExamples": [
+            {
+              "title": "Benchmark de扩容",
+              "code": "import java.util.*;\n\npublic class ComplexityBenchmark {\n    public static void main(String[] args) {\n        int n = 1_000_000;\n\n        // ArrayList sin capacidad pre-definida\n        List<Integer> a = new ArrayList<>();\n        long t0 = System.nanoTime();\n        for (int i = 0; i < n; i++) a.add(i);\n        long t1 = System.nanoTime();\n        System.out.printf(\"ArrayList sin capacity: %.2f ms%n\", (t1-t0)/1e6);\n\n        // ArrayList con capacidad pre-definida\n        List<Integer> b = new ArrayList<>(n);\n        long t2 = System.nanoTime();\n        for (int i = 0; i < n; i++) b.add(i);\n        long t3 = System.nanoTime();\n        System.out.printf(\"ArrayList con capacity: %.2f ms%n\", (t3-t2)/1e6);\n\n        // HashMap sin capacidad\n        Map<Integer, Integer> c = new HashMap<>();\n        long t4 = System.nanoTime();\n        for (int i = 0; i < n; i++) c.put(i, i);\n        long t5 = System.nanoTime();\n        System.out.printf(\"HashMap sin capacity: %.2f ms%n\", (t5-t4)/1e6);\n\n        // HashMap con capacidad\n        Map<Integer, Integer> d = new HashMap<>(n * 2);\n        long t6 = System.nanoTime();\n        for (int i = 0; i < n; i++) d.put(i, i);\n        long t7 = System.nanoTime();\n        System.out.printf(\"HashMap con capacity: %.2f ms%n\", (t7-t6)/1e6);\n    }\n}",
+              "output": "ArrayList sin capacity: 12.45 ms\nArrayList con capacity: 8.23 ms\nHashMap sin capacity: 25.67 ms\nHashMap con capacity: 18.34 ms"
+            }
+          ]
         },
         {
-          "title": "Eliminacion segura durante iteracion",
-          "text": "Para eliminar elementos mientras se itera, usar iterator.remove() o removeIf de Collection. Usar list.remove dentro de un for-each lanza ConcurrentModificationException porque el iterador detecta modificaciones estructurales mediante el contador modCount.",
-          "code": "import java.util.ArrayList;\nimport java.util.Iterator;\nimport java.util.List;\n\npublic class SafeRemoval {\n    public static void main(String[] args) {\n        List<String> list = new ArrayList<>(\n            List.of(\"apple\", \"banana\", \"cherry\", \"date\")\n        );\n\n        // Forma 1: iterator.remove()\n        Iterator<String> it = list.iterator();\n        while (it.hasNext()) {\n            String item = it.next();\n            if (item.length() < 6) {\n                it.remove(); // seguro\n            }\n        }\n        System.out.println(list); // [cherry]\n\n        // Forma 2: removeIf (preferido, mas limpio)\n        List<Integer> numeros = new ArrayList<>(\n            List.of(1, 2, 3, 4, 5, 6, 7, 8)\n        );\n        numeros.removeIf(n -> n % 2 == 0); // elimina pares\n        System.out.println(numeros); // [1, 3, 5, 7]\n\n        // ERROR: ConcurrentModificationException\n        // for (String s : list) {\n        //     if (s.length() < 6) list.remove(s);\n        // }\n    }\n}"
+          "id": "functional-operations",
+          "title": "Operaciones funcionales sobre colecciones",
+          "content": "Java 8+ introdujo metodos funcionales en Collection y Map que permiten operaciones elegantes sin bucles manuales.\n\n**Metodos en Collection:**\n\n- `removeIf(Predicate)` — Elimina todos los elementos que cumplen la condicion. Mas eficiente que iterator.remove() porque optimiza internamente.\n- `replaceAll(UnaryOperator)` — Reemplaza cada elemento con el resultado de la function.\n- `forEach(Consumer)` — Itera con una lambda.\n\n**Metodos en Map:**\n\n- `compute(K, BiFunction)` — Calcula nuevo valor basado en key y value anterior.\n- `computeIfAbsent(K, Function)` — Solo calcula si la key no tiene valor.\n- `computeIfPresent(K, BiFunction)` — Solo calcula si la key tiene valor.\n- `merge(K, V, BiFunction)` — Merge con valor existente. Ideal para contadores.\n- `getOrDefault(K, V)` — Retorna value o default sin null check.\n- `replaceAll(BiFunction)` — Reemplaza todos los values.\n- `putIfAbsent(K, V)` — Solo agrega si la key no existe.\n- `forEach(BiConsumer)` — Itera con key y value.\n\n**Streams sobre colecciones:**\n\n```java\nMap<String, Integer> wordCount = words.stream()\n    .collect(Collectors.groupingBy(\n        w -> w,\n        Collectors.counting()\n    ));\n```\n\n- `stream()` — Crea un Stream sobre la coleccion.\n- `parallelStream()` — Stream paralelo (cuidado con thread-safety).\n- `collect(Collector)` — Acumula elementos en una coleccion.\n- `Collectors.groupingBy()` — Agrupa por key.\n- `Collectors.partitioningBy()` — Divide en dos grupos (true/false).\n- `Collectors.toUnmodifiableList()` — Collect a lista inmutable.",
+          "codeExamples": [
+            {
+              "title": "Operaciones funcionales en Map",
+              "code": "import java.util.*;\nimport java.util.stream.*;\n\npublic class FunctionalOperations {\n    public static void main(String[] args) {\n        // removeIf — elimina pares donde value > 2\n        Map<String, Integer> scores = new LinkedHashMap<>(Map.of(\n            \"Alice\", 3, \"Bob\", 1, \"Charlie\", 4, \"David\", 2\n        ));\n        System.out.println(\"Original: \" + scores);\n\n        scores.entrySet().removeIf(e -> e.getValue() > 2);\n        System.out.println(\"Sin values > 2: \" + scores); // {Bob=1, David=2}\n\n        // compute — incrementar valor\n        Map<String, Integer> counters = new HashMap<>();\n        counters.merge(\"a\", 1, Integer::sum);\n        counters.merge(\"a\", 1, Integer::sum);\n        counters.merge(\"b\", 1, Integer::sum);\n        System.out.println(\"Contadores: \" + counters); // {a=2, b=1}\n\n        // computeIfAbsent — inicializar\n        Map<String, List<String>> groups = new HashMap<>();\n        String[] words = {\"apple\", \"banana\", \"avocado\", \"blueberry\"};\n        for (String w : words) {\n            String key = w.substring(0, 1);\n            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(w);\n        }\n        System.out.println(\"Grupos: \" + groups); // {a=[apple, avocado], b=[banana, blueberry]}\n\n        // Streams — collect\n        Map<String, Integer> data = Map.of(\"a\", 1, \"b\", 2, \"c\", 3, \"d\", 4);\n        Map<Boolean, List<Integer>> partitioned = data.values().stream()\n            .collect(Collectors.partitioningBy(v -> v % 2 == 0));\n        System.out.println(\"Pares/Impares: \" + partitioned);\n    }\n}",
+              "output": "Original: {Alice=3, Bob=1, Charlie=4, David=2}\nSin values > 2: {Bob=1, David=2}\nContadores: {a=2, b=1}\nGrupos: {a=[apple, avocado], b=[banana, blueberry]}\nPares/Impares: {false=[1, 3], true=[2, 4]}"
+            }
+          ]
         },
         {
-          "title": "Metodos funcionales de Map",
-          "text": "Las estructuras de Map ofrecen metodos funcionales muy usados: computeIfAbsent inserta solo si la clave no existe, merge combina valores existentes con nuevos, y forEach acepta un BiConsumer. Son la forma idiomatica de Java para resolver problemas de conteo y agrupacion.",
-          "code": "import java.util.ArrayList;\nimport java.util.HashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic class MapFunctionalMethods {\n    public static void main(String[] args) {\n        Map<String, List<String>> groups = new HashMap<>();\n\n        // computeIfAbsent: crea la lista solo si no existe\n        String name = \"employees\";\n        groups.computeIfAbsent(name, k -> new ArrayList<>())\n              .add(\"Alice\");\n        groups.computeIfAbsent(name, k -> new ArrayList<>())\n              .add(\"Bob\");\n        System.out.println(groups.get(\"employees\"));\n\n        // merge: combina valores existentes con nuevos\n        Map<String, Integer> wordCount = new HashMap<>();\n        String[] words = {\"java\", \"code\", \"java\", \"java\"};\n        for (String word : words) {\n            wordCount.merge(word, 1, Integer::sum);\n        }\n        System.out.println(wordCount); // {java=3, code=1}\n\n        // forEach: itera sobre cada entrada\n        wordCount.forEach((word, count) ->\n            System.out.println(word + \": \" + count)\n        );\n\n        // putIfAbsent: inserta solo si la clave no existe\n        Map<String, Integer> scores = new HashMap<>();\n        scores.putIfAbsent(\"math\", 95);\n        scores.putIfAbsent(\"math\", 100); // no sobreescribe\n        System.out.println(scores.get(\"math\")); // 95\n    }\n}"
-        },
-        {
-          "title": "ConcurrentHashMap y colecciones concurrentes",
-          "text": "ConcurrentHashMap particiona los locks a nivel de nodo en Java 8+, permitiendo lecturas sin lock y escrituras concurrentes en buckets distintos. Collections.synchronizedMap usa un solo lock para todas las operaciones. CopyOnWriteArrayList es ideal para lecturas frecuentes y escrituras raras.",
-          "code": "import java.util.Collections;\nimport java.util.Map;\nimport java.util.concurrent.ConcurrentHashMap;\nimport java.util.concurrent.CopyOnWriteArrayList;\n\npublic class ConcurrentCollections {\n    public static void main(String[] args) {\n        // ConcurrentHashMap: locks granulares\n        ConcurrentHashMap<String, Integer> cmap =\n            new ConcurrentHashMap<>();\n        cmap.put(\"key\", 1);\n        cmap.putIfAbsent(\"key\", 2); // no sobreescribe\n        cmap.merge(\"key\", 1, Integer::sum); // atomico\n        Integer val = cmap.get(\"key\"); // sin lock\n\n        // Operaciones atomicas\n        cmap.compute(\"key\", (k, v) -> v == null ? 1 : v + 1);\n        cmap.computeIfAbsent(\"new\", k -> 42);\n\n        // Collections.synchronizedMap: un solo lock\n        Map<String, Integer> syncMap =\n            Collections.synchronizedMap(new ConcurrentHashMap<>());\n\n        // CopyOnWriteArrayList: ideal para lecturas frecuentes\n        CopyOnWriteArrayList<String> cow =\n            new CopyOnWriteArrayList<>();\n        cow.add(\"read-only\"); // crea copia interna\n        // Iteracion no lanza ConcurrentModificationException\n        for (String s : cow) {\n            System.out.println(s);\n        }\n    }\n}"
+          "id": "concurrent-map-advanced",
+          "title": "ConcurrentHashMap — operaciones avanzadas",
+          "content": "ConcurrentHashMap ofrece metodos atomicos que evitan race conditions en operaciones complejas.\n\n**Metodos atomicos:**\n\n- `putIfAbsent(key, value)` — Atomico: agrega solo si no existe.\n- `compute(key, remappingFunction)` — Atomico: calcula nuevo valor.\n- `computeIfAbsent(key, mappingFunction)` — Atomico: calcula si no existe.\n- `computeIfPresent(key, remappingFunction)` — Atomico: calcula si existe.\n- `merge(key, value, remappingFunction)` — Atomico: merge con valor existente.\n- `search(parallelismThreshold, searchFunction)` — Busca en el mapa de forma paralela.\n- `reduce(parallelismThreshold, transformer, reducer)` — Reduce elementos.\n- `forEach(parallelismThreshold, action)` — Itera de forma paralela.\n\n**parallelismThreshold:** Umbral para decidir si usar hilos paralelos. `Long.MAX_VALUE` = secuencial, `1` = siempre paralelo.\n\n**Patrones comunes:**\n\n1. **Contador atomico:** `map.merge(key, 1, Integer::sum)`\n2. **Grouping atomico:** `map.computeIfAbsent(key, k -> new ArrayList<>()).add(value)`\n3. **Cache atomico:** `map.computeIfAbsent(key, k -> loadFromDB(k))`\n4. **Acumulador:** `map.merge(key, value, (a, b) -> a + b)`\n\n**Streams paralelos con ConcurrentHashMap:**\n\n```java\n// parallelSearch — busca el primer elemento que cumple una condicion\nString result = map.search(1, (k, v) -> v > 10 ? k : null);\n\n// parallelReduce — reduce todos los values\nint sum = map.reduce(1, (k, v) -> v, Integer::sum);\n\n// parallelForEach — accion en paralelo\nmap.forEach(1, (k, v) -> System.out.println(k + \"=\" + v));\n```",
+          "codeExamples": [
+            {
+              "title": "ConcurrentHashMap — patrones atomicos",
+              "code": "import java.util.concurrent.ConcurrentHashMap;\nimport java.util.*;\nimport java.util.stream.*;\n\npublic class ConcurrentMapAdvanced {\n    public static void main(String[] args) {\n        ConcurrentHashMap<String, Integer> map = new ConcurrentHashMap<>();\n\n        // Contador atomico\n        String[] words = {\"java\", \"python\", \"java\", \"rust\", \"python\", \"java\"};\n        for (String w : words) {\n            map.merge(w, 1, Integer::sum);\n        }\n        System.out.println(\"Conteo: \" + map); // {java=3, python=2, rust=1}\n\n        // Grouping atomico\n        ConcurrentHashMap<String, List<String>> groups = new ConcurrentHashMap<>();\n        String[] data = {\"apple\", \"banana\", \"avocado\", \"blueberry\", \"cherry\"};\n        for (String d : data) {\n            groups.computeIfAbsent(d.substring(0, 1), k -> new ArrayList<>()).add(d);\n        }\n        System.out.println(\"Grupos: \" + groups);\n\n        // Cache atomico\n        ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();\n        cache.computeIfAbsent(\"key1\", k -> {\n            System.out.println(\"Cargando \" + k + \"...\");\n            return \"value1\";\n        });\n        cache.computeIfAbsent(\"key1\", k -> {\n            System.out.println(\"Esto no se imprime (ya existe)\");\n            return \"value2\";\n        });\n        System.out.println(\"Cache: \" + cache);\n\n        // Search y reduce\n        Optional<String> found = map.search(1, (k, v) -> v > 2 ? k : null);\n        System.out.println(\"Encontrado (value > 2): \" + found.orElse(\"none\"));\n\n        int total = map.reduce(1, (k, v) -> v, Integer::sum);\n        System.out.println(\"Total: \" + total);\n    }\n}",
+              "output": "Conteo: {java=3, python=2, rust=1}\nGrupos: {a=[apple, avocado], b=[banana, blueberry], c=[cherry]}\nCargando key1...\nCache: {key1=value1}\nEncontrado (value > 2): java\nTotal: 6"
+            }
+          ]
         }
       ],
-      "examples": [
-        "list.removeIf(s -> s.length() < 3);",
-        "map.computeIfAbsent(key, k -> new ArrayList<>()).add(valor);",
-        "map.merge(key, 1, Integer::sum);",
-        "Iterator<String> it = list.iterator(); while (it.hasNext()) { if (it.next().length() < 3) it.remove(); }",
-        "ConcurrentHashMap<String, Integer> cmap = new ConcurrentHashMap<>();",
-        "cmap.putIfAbsent(\"key\", 1); cmap.merge(\"key\", 1, Integer::sum);",
-        "CopyOnWriteArrayList<String> cow = new CopyOnWriteArrayList<>(); cow.add(\"a\");"
+      "quiz": [
+        {
+          "question": "Por que removeIf() es mejor que usar iterator.remove()?",
+          "options": [
+            "removeIf es thread-safe, iterator.remove() no",
+            "removeIf optimiza internamente — puede reusar la estructura y evita el overhead de Iterator",
+            "removeIf lanza excepciones, iterator.remove() no",
+            "removeIf funciona con arrays, iterator.remove() solo con listas"
+          ],
+          "correct": 1,
+          "explanation": "removeIf esta implementado internamente con optimizations que pueden reusar la estructura de la coleccion y evitar el overhead de crear un Iterator. Ademas es mas legible y menos propenso a errores."
+        },
+        {
+          "question": "Que hace `map.merge(key, 1, Integer::sum)`?",
+          "options": [
+            "Agrega el value 1 a todos los entries del map",
+            "Si la key no existe, agrega (key, 1). Si existe, suma 1 al value existente",
+            "Crea un nuevo map con la key y value fusionados",
+            "Remueve la key si existe y agrega un nuevo entry"
+          ],
+          "correct": 1,
+          "explanation": "merge(key, value, remappingFunction) es atomico en ConcurrentHashMap. Si la key no tiene valor, agrega el value. Si ya tiene valor, aplica la function (Integer::sum) con el valor existente y el nuevo value. Es ideal para contadores."
+        },
+        {
+          "question": "Que es parallelismThreshold en ConcurrentHashMap?",
+          "options": [
+            "El numero maximo de entries en el map",
+            "El umbral para decidir si usar hilos paralelos en search/reduce/forEach",
+            "El numero minimo de buckets para treeification",
+            "El tamano maximo de un bucket"
+          ],
+          "correct": 1,
+          "explanation": "parallelismThreshold determina si las operaciones bulk (search, reduce, forEach) usan hilos paralelos. Long.MAX_VALUE = secuencial, 1 = siempre paralelo. Determina cuantas entries deben procesarse antes de paralelizar."
+        },
+        {
+          "question": "Por que `containsValue` en HashMap es O(n) y no O(1)?",
+          "options": [
+            "Porque HashMap no soporta containsValue",
+            "Porque los values no tienen hash index — solo las keys tienen hash, hay que revisar todos los entries",
+            "Porque containsValue ordena los values antes de buscar",
+            "Porque containsValue usa un algoritmo de busqueda binaria"
+          ],
+          "correct": 1,
+          "explanation": "HashMap indexa por keys (hash de la key). Los values no tienen indice hash. containsValue tiene que iterar todos los entries del mapa comparando values, lo que es O(n). No hay forma de hacerlo O(1) sin un segundo HashMap invertido."
+        },
+        {
+          "question": "Cual es la diferencia entre computeIfAbsent y compute en ConcurrentHashMap?",
+          "options": [
+            "computeIfAbsent solo calcula si la key no existe, compute siempre calcula",
+            "computeIfAbsent es para values, compute es para keys",
+            "computeIfAbsent es thread-safe, compute no",
+            "No hay diferencia, son lo mismo"
+          ],
+          "correct": 0,
+          "explanation": "computeIfAbsent(key, mappingFunction) solo ejecuta la function si la key no tiene valor asociado. compute(key, remappingFunction) siempre ejecuta la function, pasando el valor actual (o null si no existe). Ambos son atomicos en ConcurrentHashMap."
+        }
       ]
     }
-  ],
-  "quiz": {
-    "id": "collections",
-    "questions": [
-      {
-        "id": "col-q1",
-        "text": "Cual es la complejidad promedio de get por clave en un HashMap?",
-        "options": [
-          "O(1)",
-          "O(log n)",
-          "O(n)",
-          "O(n log n)"
-        ],
-        "correctIndexes": [
-          0
-        ],
-        "explanation": "HashMap ofrece acceso O(1) promedio; en el peor caso con muchas colisiones puede degradarse a O(n), aunque en Java 8+ se arboliza a O(log n) si un bucket supera 8 elementos.",
-        "type": "SINGLE"
-      },
-      {
-        "id": "col-q2",
-        "text": "Que ocurre si sobrescribo equals pero no hashCode en una clase usada como clave de HashMap?",
-        "options": [
-          "Funciona igual, hashCode no importa",
-          "Puede romperse la busqueda: el objeto se guarda en un bucket que no se vuelve a encontrar",
-          "Error de compilacion",
-          "La JVM genera el hashCode automaticamente siempre"
-        ],
-        "correctIndexes": [
-          1
-        ],
-        "explanation": "Si equals es true pero hashCode difiere, la clave se busca en otro bucket y no se encuentra: se viola el contrato entre equals y hashCode.",
-        "type": "SINGLE"
-      },
-      {
-        "id": "col-q3",
-        "text": "Cual es la diferencia entre List.of(...) y Collections.unmodifiableList(original)?",
-        "options": [
-          "Son identicos",
-          "List.of crea una copia inmutable; unmodifiableList es una vista de solo lectura de la lista original",
-          "unmodifiableList crea una copia y List.of una vista",
-          "Ambos permiten modificar si se usa reflection"
-        ],
-        "correctIndexes": [
-          1
-        ],
-        "explanation": "unmodifiableList es una vista: si la lista original cambia, la vista tambien cambia. List.of crea una copia inmutable real con sus propios elementos.",
-        "type": "SINGLE"
-      },
-      {
-        "id": "col-q4",
-        "text": "En un ArrayList, cual operacion es O(1)?",
-        "options": [
-          "Add en el medio",
-          "Remove en el medio",
-          "Get por indice",
-          "Add al inicio"
-        ],
-        "correctIndexes": [
-          2
-        ],
-        "explanation": "El acceso por indice en un ArrayList es O(1) porque internamente es un arreglo. Las demas operaciones requieren desplazamiento de elementos (O(n)).",
-        "type": "SINGLE"
-      },
-      {
-        "id": "col-q5",
-        "text": "HashMap permite una clave null y multiples valores null.",
-        "options": [
-          "Verdadero",
-          "Falso"
-        ],
-        "correctIndexes": [
-          0
-        ],
-        "explanation": "Verdadero: HashMap admite una unica clave null (almacenada en el bucket 0) y cualquier cantidad de valores null. Hashtable y ConcurrentHashMap no permiten null en claves ni valores.",
-        "type": "TRUE_FALSE"
-      },
-      {
-        "id": "col-q6",
-        "text": "Todas las operaciones de ArrayList tienen complejidad O(1).",
-        "options": [
-          "Verdadero",
-          "Falso"
-        ],
-        "correctIndexes": [
-          1
-        ],
-        "explanation": "Falso: el acceso por indice es O(1), pero insertar o eliminar en el medio requiere desplazar elementos (O(n)), y add al final es O(1) amortizado con redimensionamiento ocasional.",
-        "type": "TRUE_FALSE"
-      },
-      {
-        "id": "col-q7",
-        "text": "Ordena estas colecciones de la mas simple a la mas compleja en terminos de interfaz:",
-        "options": [
-          "Set",
-          "List",
-          "Map",
-          "Queue"
-        ],
-        "correctIndexes": [
-          1,
-          0,
-          3,
-          2
-        ],
-        "explanation": "List es la interfaz mas basica (secuencia ordenada), luego Set (secuencia sin duplicados), Queue (cola FIFO/Deque) y Map (pares clave-valor, no hereda de Collection).",
-        "type": "ORDER"
-      },
-      {
-        "id": "col-q8",
-        "text": "Cuales son ventajas de ConcurrentHashMap sobre Collections.synchronizedMap?",
-        "options": [
-          "Permite lecturas concurrentes sin lock",
-          "Utiliza un solo lock para todas las operaciones",
-          "Permite escrituras concurrentes en buckets distintos",
-          "No lanza ConcurrentModificationException en lecturas concurrentes"
-        ],
-        "correctIndexes": [
-          0,
-          2,
-          3
-        ],
-        "explanation": "ConcurrentHashMap particiona los locks (a nivel de nodo en Java 8+), permitiendo lecturas sin lock y escrituras concurrentes en buckets distintos. Collections.synchronizedMap usa un solo lock para todas las operaciones.",
-        "type": "MULTIPLE"
-      },
-      {
-        "id": "col-q9",
-        "text": "Cuales de estas colecciones producen ConcurrentModificationException al modificar durante iteracion?",
-        "options": [
-          "ArrayList con for-each",
-          "CopyOnWriteArrayList con for-each",
-          "HashMap con iterator.remove()",
-          "ConcurrentHashMap con iterador"
-        ],
-        "correctIndexes": [
-          0,
-          2
-        ],
-        "explanation": "ArrayList y HashMap (como colecciones no concurrentes) detectan modificaciones estructurales y lanzan ConcurrentModificationException. CopyOnWriteArrayList y ConcurrentHashMap son colecciones concurrentes que no lanzan esta excepcion.",
-        "type": "MULTIPLE"
-      },
-      {
-        "id": "col-q10",
-        "text": "LinkedHashMap preserva el orden de insercion de sus entradas.",
-        "options": [
-          "Verdadero",
-          "Falso"
-        ],
-        "correctIndexes": [
-          0
-        ],
-        "explanation": "Verdadero: LinkedHashMap mantiene una lista doblemente enlazada que conecta las entradas en el orden en que fueron insertadas. Tambien soporta orden de acceso con el constructor accessOrder=true.",
-        "type": "TRUE_FALSE"
-      },
-      {
-        "id": "col-q11",
-        "text": "Ordena estas estructuras de la que tiene menor overhead de memoria a la que tiene mayor overhead:",
-        "options": [
-          "ArrayList",
-          "LinkedList",
-          "HashMap",
-          "TreeMap"
-        ],
-        "correctIndexes": [
-          0,
-          3,
-          2,
-          1
-        ],
-        "explanation": "ArrayList tiene menor overhead (solo el arreglo). TreeMap tiene overhead por nodos del arbol rojo-negro pero es estructurado. HashMap tiene buckets mas nodos Entry. LinkedList tiene el mayor overhead: cada nodo guarda el dato, un puntero al anterior y uno al siguiente.",
-        "type": "ORDER"
-      }
-    ]
-  }
+  ]
 }
