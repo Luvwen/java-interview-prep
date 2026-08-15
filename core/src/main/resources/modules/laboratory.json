@@ -40,14 +40,14 @@
     "category": "Concurrencia",
     "difficulty": "intermediate",
     "description": "Compara el comportamiento de un contador compartido con y sin la palabra clave synchronized para resolver race conditions.",
-    "theory": "El bloque synchronized确保 que solo un thread puede ejecutar el bloque de codigo a la vez. Cuando un thread entra en un synchronized block sobre un objeto, otros threads que intenten entrar al mismo bloque bloquearan (wait) hasta que el primero salga. Esto garantiza atomicidad en la operacion critica.",
+    "theory": "El bloque synchronized garantiza que solo un thread puede ejecutar el bloque de codigo a la vez. Cuando un thread entra en un synchronized block sobre un objeto, otros threads que intenten entrar al mismo bloque bloquearan (wait) hasta que el primero salga. Esto garantiza atomicidad en la operacion critica.",
     "code": "public class SyncDemo {\n    static int counter = 0;\n    static final Object lock = new Object();\n\n    public static void main(String[] args) throws InterruptedException {\n        // SIN synchronized: valor impredecible\n        Thread t1 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                counter++;\n            }\n        });\n        Thread t2 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                counter++;\n            }\n        });\n\n        t1.start();\n        t2.start();\n        t1.join();\n        t2.join();\n\n        System.out.println(\"Sin sync: \" + counter);\n\n        // CON synchronized: valor siempre 2000\n        counter = 0;\n        Thread t3 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                synchronized (lock) {\n                    counter++;\n                }\n            }\n        });\n        Thread t4 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                synchronized (lock) {\n                    counter++;\n                }\n            }\n        });\n\n        t3.start();\n        t4.start();\n        t3.join();\n        t4.join();\n\n        System.out.println(\"Con sync: \" + counter);\n    }\n}",
     "expectedOutput": "Sin sync: 1847\nCon sync: 2000",
     "steps": [
       {"line": 2, "explanation": "Variable compartida counter, inicializada en 0."},
       {"line": 3, "explanation": "Objeto lock usado como monitor para los bloques synchronized."},
-      {"line": 6, "part": "sin-sync", "explanation": "Primera parte: SIN sincronizacion. Los threads modifican counter sin proteccion, produciendo lost updates."},
-      {"line": 24, "part": "con-sync", "explanation": "Segunda parte: CON sincronizacion. Cada incremento esta protegido por synchronized(lock), garantizando atomicidad."},
+      {"line": 6, "explanation": "Primera parte: SIN sincronizacion. Los threads modifican counter sin proteccion, produciendo lost updates."},
+      {"line": 24, "explanation": "Segunda parte: CON sincronizacion. Cada incremento esta protegido por synchronized(lock), garantizando atomicidad."},
       {"line": 29, "explanation": "synchronized(lock) asegura que solo un thread ejecuta counter++ a la vez, eliminando la race condition."}
     ]
   }
