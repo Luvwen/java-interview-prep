@@ -41,12 +41,12 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
       }
     });
 
-    runner.reset(exercise.code);
+    runner.reset();
     setOutput("");
     setHighlightLine(null);
     setIsRunning(false);
     setIsPaused(false);
-  }, [exercise.code]);
+  }, [exercise.id]);
 
   useEffect(() => {
     runnerRef.current?.setSpeed(speed);
@@ -59,8 +59,8 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
     setIsPaused(false);
     setOutput("");
     runner.setSpeed(speed);
-    await runner.run(exercise.code);
-  }, [exercise.code, speed]);
+    await runner.run(exercise.id);
+  }, [exercise.id, speed]);
 
   const handlePause = useCallback(() => {
     const runner = runnerRef.current;
@@ -78,12 +78,12 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
     const runner = runnerRef.current;
     if (!runner) return;
     runner.stop();
-    runner.reset(exercise.code);
+    runner.reset();
     setOutput("");
     setHighlightLine(null);
     setIsRunning(false);
     setIsPaused(false);
-  }, [exercise.code]);
+  }, []);
 
   const handleStep = useCallback(() => {
     const runner = runnerRef.current;
@@ -92,8 +92,8 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
       setIsRunning(true);
       setIsPaused(true);
     }
-    runner.stepOnce();
-  }, [isRunning]);
+    runner.stepOnce(exercise.id);
+  }, [isRunning, exercise.id]);
 
   const lines = exercise.code.split("\n");
 
@@ -110,31 +110,32 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
             Codigo
           </Text>
           <Box
-            bg="#272822"
+            bg={colors.codeBg}
             borderRadius="8px"
             border="1px solid"
-            borderColor="#3e3d32"
+            borderColor={colors.codeBorder}
             overflow="auto"
             maxH="400px"
           >
             <Box display="flex" fontFamily="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace" fontSize="0.82rem" lineHeight="1.6">
               <Box
-                bg="#2d2e27"
-                color="#90908a"
+                bg={colors.codeBg}
+                color={colors.textMuted}
                 px={2}
                 py={3}
                 textAlign="right"
                 userSelect="none"
                 minW="2.5rem"
                 borderRight="1px solid"
-                borderColor="#3e3d32"
+                borderColor={colors.codeBorder}
+                opacity={0.7}
               >
                 {lines.map((_, i) => (
                   <Box
                     key={i}
                     h="1.6em"
-                    bg={highlightLine === i + 1 ? "rgba(74, 108, 247, 0.2)" : "transparent"}
-                    color={highlightLine === i + 1 ? "#f8f8f2" : undefined}
+                    bg={highlightLine === i + 1 ? `${colors.accent}22` : "transparent"}
+                    color={highlightLine === i + 1 ? colors.textPrimary : undefined}
                     transition="background 0.15s"
                   >
                     {i + 1}
@@ -150,10 +151,10 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
                       key={i}
                       px={3}
                       whiteSpace="pre"
-                      bg={highlightLine === i + 1 ? "rgba(74, 108, 247, 0.15)" : "transparent"}
-                      borderLeft={highlightLine === i + 1 ? "3px solid #4a6cf7" : "3px solid transparent"}
+                      bg={highlightLine === i + 1 ? `${colors.accent}15` : "transparent"}
+                      borderLeft={highlightLine === i + 1 ? `3px solid ${colors.accent}` : "3px solid transparent"}
                       transition="background 0.15s, border-color 0.15s"
-                      color="#f8f8f2"
+                      color={colors.codeText}
                       dangerouslySetInnerHTML={{ __html: highlightedLine }}
                     />
                   );
@@ -168,10 +169,10 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
             Consola
           </Text>
           <Box
-            bg="#1a1b26"
+            bg={colors.codeBg}
             borderRadius="8px"
             border="1px solid"
-            borderColor="#333"
+            borderColor={colors.codeBorder}
             p={3}
             minH="120px"
             maxH="400px"
@@ -182,12 +183,12 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
           >
             {output ? (
               output.split("\n").map((line, i) => (
-                <Text key={i} color={line.startsWith(">") ? "#7aa2f7" : "#9ece6a"} whiteSpace="pre-wrap">
+                <Text key={i} color={line.startsWith(">") ? colors.accent : colors.success} whiteSpace="pre-wrap">
                   {line}
                 </Text>
               ))
             ) : (
-              <Text color="#565f89" fontStyle="italic">
+              <Text color={colors.textMuted} fontStyle="italic">
                 Presiona Run para ejecutar...
               </Text>
             )}
@@ -200,7 +201,6 @@ export default function LabRunner({ exercise }: LabRunnerProps) {
                 colorScheme={isRunning && !isPaused ? "yellow" : "green"}
                 leftIcon={isRunning && !isPaused ? <Pause size={14} /> : <Play size={14} />}
                 onClick={isRunning ? handlePause : handleRun}
-                isDisabled={isRunning && isPaused && false}
               >
                 {isRunning && !isPaused ? "Pausar" : isPaused ? "Reanudar" : "Run"}
               </Button>

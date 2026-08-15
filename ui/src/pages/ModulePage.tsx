@@ -86,7 +86,7 @@ function TOCItem({
         borderRadius="8px"
         fontSize="sm"
         fontWeight={isActive ? 600 : 500}
-        color={isActive ? colors.accent : "#8b95a8"}
+        color={isActive ? colors.accent : colors.textMuted}
         bg={isActive ? "rgba(108,140,255,0.12)" : "transparent"}
         transition="all 0.15s"
         _hover={{ bg: "rgba(108,140,255,0.08)", color: colors.textPrimary }}
@@ -120,7 +120,7 @@ function TOCItem({
                 borderRadius="6px"
                 fontSize="xs"
                 fontWeight={activeSectionId === s.id ? 600 : 400}
-                color={activeSectionId === s.id ? "#a3b5f0" : "#6b7280"}
+                color={activeSectionId === s.id ? colors.accent : colors.textMuted}
                 bg={activeSectionId === s.id ? "rgba(108,140,255,0.08)" : "transparent"}
                 transition="all 0.15s"
                 _hover={{ color: colors.textPrimary, bg: "rgba(108,140,255,0.05)" }}
@@ -214,7 +214,7 @@ function ModuleTOC({
         maxW="260px"
         boxShadow={colors.shadow}
       >
-        <Text fontSize="xs" color="#6b7280" textTransform="uppercase" letterSpacing="1px" fontWeight={700} mb={3}>
+        <Text fontSize="xs" color={colors.textMuted} textTransform="uppercase" letterSpacing="1px" fontWeight={700} mb={3}>
           Contenidos
         </Text>
         {tocList}
@@ -231,7 +231,7 @@ function ModuleTOC({
         borderRadius="full"
         bg={colors.accent}
         color="white"
-        _hover={{ bg: "#5a7aee", transform: "scale(1.05)" }}
+        _hover={{ bg: colors.accent, transform: "scale(1.05)" }}
         _active={{ transform: "scale(0.95)" }}
         boxShadow="0 4px 16px rgba(108,140,255,0.4)"
         onClick={onOpen}

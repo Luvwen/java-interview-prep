@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Box, Code } from "@chakra-ui/react";
 import Prism from "prismjs";
 import "prismjs/components/prism-java";
+import { colors } from "../colors";
 
 export default function CodeBlock({ code }: { code: string }) {
   const ref = useRef<HTMLElement>(null);
@@ -13,9 +14,9 @@ export default function CodeBlock({ code }: { code: string }) {
     <Box mb={3}>
       <Box
         as="pre"
-        bg="#272822"
+        bg={colors.codeBg}
         border="1px solid"
-        borderColor="#3e3d32"
+        borderColor={colors.codeBorder}
         borderRadius="8px"
         p={4}
         overflowX="auto"
@@ -29,7 +30,7 @@ export default function CodeBlock({ code }: { code: string }) {
           as="code"
           className="language-java"
           bg="transparent"
-          color="#f8f8f2"
+          color={colors.codeText}
           p={0}
           display="block"
           whiteSpace="pre"

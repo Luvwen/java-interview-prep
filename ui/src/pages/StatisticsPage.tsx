@@ -75,8 +75,8 @@ function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }
                   contentStyle={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: "8px" }}
                   labelStyle={{ color: colors.textPrimary }}
                 />
-                <Bar dataKey="correctas" fill="#37c38a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="incorrectas" fill="#e5534b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="correctas" fill={colors.success} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="incorrectas" fill={colors.error} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Box>
@@ -96,8 +96,8 @@ function StatisticsPage({ onOpenModule }: { onOpenModule: (id: string) => void }
                     dataKey="value"
                     strokeWidth={0}
                   >
-                    <Cell fill="#37c38a" />
-                    <Cell fill="#e5534b" />
+                    <Cell fill={colors.success} />
+                    <Cell fill={colors.error} />
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>

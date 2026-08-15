@@ -3,6 +3,7 @@ import { Box } from "@chakra-ui/react";
 import Prism from "prismjs";
 import "prismjs/components/prism-java";
 import "../monokai-prism.css";
+import { colors } from "../colors";
 
 interface CodeEditorProps {
   code: string;
@@ -65,24 +66,25 @@ export default function CodeEditor({
   return (
     <Box
       position="relative"
-      bg="#272822"
+      bg={colors.codeBg}
       borderRadius="8px"
       border="1px solid"
-      borderColor="#3e3d32"
+      borderColor={colors.codeBorder}
       overflow="auto"
     >
       <Box display="flex" fontFamily="'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace" fontSize="0.85rem" lineHeight="1.6">
         {showLineNumbers && (
           <Box
-            bg="#2d2e27"
-            color="#90908a"
+            bg={colors.codeBg}
+            color={colors.textMuted}
             px={3}
             py={4}
             textAlign="right"
             userSelect="none"
             minW="3rem"
             borderRight="1px solid"
-            borderColor="#3e3d32"
+            borderColor={colors.codeBorder}
+            opacity={0.7}
           >
             {lines.map((_, i) => (
               <div key={i} style={{ height: "1.6em" }}>
@@ -97,7 +99,7 @@ export default function CodeEditor({
               as="pre"
               p={4}
               m={0}
-              color="#f8f8f2"
+              color={colors.codeText}
               whiteSpace="pre"
               overflow="hidden"
               dangerouslySetInnerHTML={{ __html: highlighted }}
@@ -108,7 +110,7 @@ export default function CodeEditor({
                 as="pre"
                 p={4}
                 m={0}
-                color="#f8f8f2"
+                color={colors.codeText}
                 whiteSpace="pre"
                 overflow="hidden"
                 pointerEvents="none"
