@@ -50,6 +50,7 @@ import CodeFillPage from "./pages/CodeFillPage";
 import BugHuntPage from "./pages/BugHuntPage";
 import RealWorldPage from "./pages/RealWorldPage";
 import LaboratorioPage from "./pages/LaboratorioPage";
+import PaletteSelector from "./components/PaletteSelector";
 import { useNavigation, type NavState } from "./useNavigation";
 import { useTheme } from "./useTheme";
 
@@ -143,15 +144,7 @@ function App() {
           </HStack>
 
           <HStack gap={2}>
-            <Button
-              size="sm"
-              variant="ghost"
-              color={colors.textMuted}
-              onClick={cycleTheme}
-              leftIcon={<Palette size={16} />}
-            >
-              {themeLabel}
-            </Button>
+            <PaletteSelector cycleTheme={cycleTheme} themeLabel={themeLabel} />
             <IconButton
               aria-label="Menu"
               icon={<Menu size={20} />}
