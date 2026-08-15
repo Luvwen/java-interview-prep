@@ -35,6 +35,7 @@ import {
   Coffee,
   Sun,
   Moon,
+  Beaker,
 } from "lucide-react";
 import CatalogPage from "./pages/CatalogPage";
 import ModulePage from "./pages/ModulePage";
@@ -49,6 +50,7 @@ import StatisticsPage from "./pages/StatisticsPage";
 import CodeFillPage from "./pages/CodeFillPage";
 import BugHuntPage from "./pages/BugHuntPage";
 import RealWorldPage from "./pages/RealWorldPage";
+import LaboratorioPage from "./pages/LaboratorioPage";
 import { useNavigation, type NavState } from "./useNavigation";
 import { useTheme } from "./useTheme";
 
@@ -66,6 +68,7 @@ const activities = [
 const navItems = [
   { id: "catalog" as const, label: "Modulos", icon: BookOpen },
   { id: "activities" as const, label: "Actividades", icon: Gamepad2 },
+  { id: "laboratorio" as const, label: "Laboratorio", icon: Beaker },
   { id: "real-world" as const, label: "Casos Reales", icon: Briefcase },
   { id: "progress" as const, label: "Progreso", icon: BarChart3 },
 ];
@@ -102,6 +105,7 @@ function App() {
   const isActive = (id: string) => {
     if (id === "catalog") return view === "catalog";
     if (id === "activities") return isActivity;
+    if (id === "laboratorio") return view === "laboratorio";
     if (id === "real-world") return view === "real-world";
     if (id === "progress") return view === "progress";
     return false;
@@ -249,6 +253,7 @@ function App() {
           {view === "bug-hunt" && <BugHuntPage onExit={() => go({ view: "activities", moduleId: null })} />}
           {view === "statistics" && <StatisticsPage onOpenModule={openModule} />}
           {view === "real-world" && <RealWorldPage onExit={() => go({ view: "catalog", moduleId: null })} />}
+          {view === "laboratorio" && <LaboratorioPage onExit={() => go({ view: "catalog", moduleId: null })} />}
           {view === "progress" && <ProgressPage onOpenModule={openModule} />}
         </Box>
       </Container>

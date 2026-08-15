@@ -14,7 +14,8 @@ type View =
   | "statistics"
   | "code-fill"
   | "bug-hunt"
-  | "real-world";
+  | "real-world"
+  | "laboratorio";
 
 interface NavState {
   view: View;
@@ -36,6 +37,7 @@ function viewToPath(state: NavState): string {
     statistics: "/statistics",
     "code-fill": "/activities/code-fill",
     "bug-hunt": "/activities/bug-hunt",
+    laboratorio: "/laboratorio",
   };
   return map[state.view] ?? "/";
 }
@@ -58,6 +60,7 @@ function parsePath(pathname: string): NavState {
     if (subMap[sub]) return { view: subMap[sub], moduleId: null };
   }
   if (parts[0] === "real-world") return { view: "real-world", moduleId: null };
+  if (parts[0] === "laboratorio") return { view: "laboratorio", moduleId: null };
   const viewMap: Record<string, View> = {
     progress: "progress",
     activities: "activities",

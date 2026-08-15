@@ -126,3 +126,20 @@ export interface RealWorldCase {
   interviewQuestions: string[];
   exercises: RealWorldExercise[];
 }
+
+export interface LabStep {
+  line: number;
+  explanation: string;
+}
+
+export interface LabExercise {
+  id: string;
+  title: string;
+  category: string;
+  difficulty: string;
+  description: string;
+  theory: string;
+  code: string;
+  expectedOutput: string;
+  steps: LabStep[];
+}

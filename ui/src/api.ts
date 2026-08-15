@@ -1,4 +1,5 @@
 import type {
+  LabExercise,
   ModuleDetail,
   ModuleSummary,
   Progress,
@@ -127,6 +128,10 @@ export const api = {
   },
 
   fetchRealWorldCases: () => request<RealWorldCase[]>("/api/real-world"),
+
+  fetchLabExercises: () => request<LabExercise[]>("/api/laboratory"),
+
+  fetchLabExercise: (id: string) => request<LabExercise>(`/api/laboratory/${id}`),
 };
 
 interface ModuleStats {

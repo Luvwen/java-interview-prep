@@ -1,0 +1,54 @@
+[
+  {
+    "id": "lab-concurrency-counter",
+    "title": "Contador Concorrente",
+    "category": "Concurrencia",
+    "difficulty": "intermediate",
+    "description": "Demuestra por que un contador compartido sin sincronizacion produce resultados incorrectos cuando multiples threads lo modifican simultaneamente.",
+    "theory": "Cuando dos o mas threads ejecutan counter++ sobre una variable compartida sin proteccion, la operacion read-modify-write se entrelaza. Un thread puede leer el valor antes de que el otro haya terminado de escribir, produciendo un valor final menor al esperado (lost updates). Esto se conoce como race condition.",
+    "code": "public class ContadorConcorrente {\n    static int counter = 0;\n\n    public static void main(String[] args) throws InterruptedException {\n        Thread t1 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                counter++;\n            }\n        });\n\n        Thread t2 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                counter++;\n            }\n        });\n\n        t1.start();\n        t2.start();\n        t1.join();\n        t2.join();\n\n        System.out.println(\"Valor esperado: 2000\");\n        System.out.println(\"Valor real: \" + counter);\n    }\n}",
+    "expectedOutput": "Valor esperado: 2000\nValor real: 1847",
+    "steps": [
+      {"line": 2, "explanation": "Se declara un contador estatico con valor inicial 0. Esta variable sera compartida entre los dos threads."},
+      {"line": 5, "explanation": "Se crea el Thread 1 que ejecutara un bucle de 1000 iteraciones incrementando counter."},
+      {"line": 12, "explanation": "Se crea el Thread 2 con la misma logica: 1000 incrementos al mismo counter compartido."},
+      {"line": 19, "explanation": "Ambos threads comienzan a ejecutarse. Aqui es donde puede ocurrir el entrelazamiento de operaciones."},
+      {"line": 22, "explanation": "join() espera a que ambos threads terminen. Sin sincronizacion, el counter tendra un valor impredecible menor a 2000."}
+    ]
+  },
+  {
+    "id": "lab-bubble-sort",
+    "title": "Bubble Sort Paso a Paso",
+    "category": "Algoritmos",
+    "difficulty": "easy",
+    "description": "Visualiza como funciona el algoritmo Bubble Sort comparando elementos adyacentes e intercambiandolos si estan en el orden incorrecto.",
+    "theory": "Bubble Sort recorre el array comparando elementos adyacentes. Si el izquierdo es mayor que el derecho, los intercambia. En cada pasada, el elemento mas grande 'burbuja' hacia su posicion final. Complejidad: O(n^2) en el peor caso. Es simple pero ineficiente para arrays grandes.",
+    "code": "public class BubbleSortDemo {\n    public static void main(String[] args) {\n        int[] arr = {64, 34, 25, 12, 22, 11, 90};\n        int n = arr.length;\n\n        for (int i = 0; i < n - 1; i++) {\n            System.out.println(\"Pasada \" + (i + 1) + \":\");\n            boolean swapped = false;\n            for (int j = 0; j < n - i - 1; j++) {\n                if (arr[j] > arr[j + 1]) {\n                    int temp = arr[j];\n                    arr[j] = arr[j + 1];\n                    arr[j + 1] = temp;\n                    swapped = true;\n                    System.out.println(\"  Swap: \" + arr[j+1] + \" <-> \" + arr[j]);\n                }\n            }\n            if (!swapped) break;\n            System.out.println(\"  Resultado: \" + java.util.Arrays.toString(arr));\n        }\n\n        System.out.println(\"Array final: \" + java.util.Arrays.toString(arr));\n    }\n}",
+    "expectedOutput": "Pasada 1:\n  Swap: 64 <-> 34\n  Swap: 64 <-> 25\n  Swap: 64 <-> 22\n  Swap: 64 <-> 12\n  Swap: 64 <-> 11\n  Swap: 90 <-> 64\n  Resultado: [34, 25, 12, 22, 11, 64, 90]\nPasada 2:\n  Swap: 34 <-> 25\n  Swap: 34 <-> 22\n  Swap: 34 <-> 12\n  Swap: 34 <-> 11\n  Resultado: [25, 12, 22, 11, 34, 64, 90]\nPasada 3:\n  Swap: 25 <-> 12\n  Swap: 25 <-> 22\n  Swap: 25 <-> 11\n  Resultado: [12, 22, 11, 25, 34, 64, 90]\nPasada 4:\n  Swap: 22 <-> 12\n  Swap: 22 <-> 11\n  Resultado: [12, 11, 22, 25, 34, 64, 90]\nPasada 5:\n  Swap: 12 <-> 11\n  Resultado: [11, 12, 22, 25, 34, 64, 90]\nArray final: [11, 12, 22, 25, 34, 64, 90]",
+    "steps": [
+      {"line": 3, "explanation": "Se define el array desordenado de 7 elementos que ordenaremos."},
+      {"line": 6, "explanation": "El bucle externo controla las pasadas. Cada pasada coloca el siguiente elemento mas grande en su posicion final."},
+      {"line": 8, "explanation": "La bandera swapped detecta si hubo intercambios. Si no los hubo, el array ya esta ordenado (optimizacion)."},
+      {"line": 9, "explanation": "El bucle interno compara elementos adyacentes desde el inicio hasta n-i-1 (los ultimos i ya estan ordenados)."},
+      {"line": 10, "explanation": "Si el elemento izquierdo es mayor que el derecho, se intercambian."},
+      {"line": 18, "explanation": "Si no hubo intercambios en toda la pasada, el array esta ordenado y salimos del bucle."}
+    ]
+  },
+  {
+    "id": "lab-sync-vs-nosync",
+    "title": "Synchronized vs No-Synchronized",
+    "category": "Concurrencia",
+    "difficulty": "intermediate",
+    "description": "Compara el comportamiento de un contador compartido con y sin la palabra clave synchronized para resolver race conditions.",
+    "theory": "El bloque synchronized确保 que solo un thread puede ejecutar el bloque de codigo a la vez. Cuando un thread entra en un synchronized block sobre un objeto, otros threads que intenten entrar al mismo bloque bloquearan (wait) hasta que el primero salga. Esto garantiza atomicidad en la operacion critica.",
+    "code": "public class SyncDemo {\n    static int counter = 0;\n    static final Object lock = new Object();\n\n    public static void main(String[] args) throws InterruptedException {\n        // SIN synchronized: valor impredecible\n        Thread t1 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                counter++;\n            }\n        });\n        Thread t2 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                counter++;\n            }\n        });\n\n        t1.start();\n        t2.start();\n        t1.join();\n        t2.join();\n\n        System.out.println(\"Sin sync: \" + counter);\n\n        // CON synchronized: valor siempre 2000\n        counter = 0;\n        Thread t3 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                synchronized (lock) {\n                    counter++;\n                }\n            }\n        });\n        Thread t4 = new Thread(() -> {\n            for (int i = 0; i < 1000; i++) {\n                synchronized (lock) {\n                    counter++;\n                }\n            }\n        });\n\n        t3.start();\n        t4.start();\n        t3.join();\n        t4.join();\n\n        System.out.println(\"Con sync: \" + counter);\n    }\n}",
+    "expectedOutput": "Sin sync: 1847\nCon sync: 2000",
+    "steps": [
+      {"line": 2, "explanation": "Variable compartida counter, inicializada en 0."},
+      {"line": 3, "explanation": "Objeto lock usado como monitor para los bloques synchronized."},
+      {"line": 6, "part": "sin-sync", "explanation": "Primera parte: SIN sincronizacion. Los threads modifican counter sin proteccion, produciendo lost updates."},
+      {"line": 24, "part": "con-sync", "explanation": "Segunda parte: CON sincronizacion. Cada incremento esta protegido por synchronized(lock), garantizando atomicidad."},
+      {"line": 29, "explanation": "synchronized(lock) asegura que solo un thread ejecuta counter++ a la vez, eliminando la race condition."}
+    ]
+  }
+]

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javatheory.application.ModuleService;
 import com.javatheory.application.ProgressService;
 import com.javatheory.application.QuizService;
+import com.javatheory.application.LaboratoryService;
 import com.javatheory.application.RealWorldService;
 import com.javatheory.application.StatisticsService;
 import com.javatheory.infrastructure.ModuleLoader;
@@ -53,6 +54,11 @@ public class AppConfig {
     @Bean
     public RealWorldService realWorldService(ObjectMapper mapper) {
         return new RealWorldService(mapper);
+    }
+
+    @Bean
+    public LaboratoryService laboratoryService(ObjectMapper mapper) {
+        return new LaboratoryService(mapper);
     }
 
     @Bean
