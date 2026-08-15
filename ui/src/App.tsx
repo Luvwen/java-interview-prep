@@ -33,8 +33,7 @@ import {
   Briefcase,
   Menu,
   Coffee,
-  Sun,
-  Moon,
+  Palette,
   Beaker,
 } from "lucide-react";
 import CatalogPage from "./pages/CatalogPage";
@@ -76,7 +75,7 @@ const navItems = [
 function App() {
   const { view, moduleId, navigate } = useNavigation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { theme, colors, toggleTheme } = useTheme();
+  const { colors, cycleTheme, themeLabel } = useTheme();
 
   useEffect(() => {
     document.body.style.backgroundColor = colors.bg;
@@ -144,14 +143,15 @@ function App() {
           </HStack>
 
           <HStack gap={2}>
-            <IconButton
-              aria-label="Toggle theme"
-              icon={theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            <Button
+              size="sm"
               variant="ghost"
               color={colors.textMuted}
-              onClick={toggleTheme}
-              size="sm"
-            />
+              onClick={cycleTheme}
+              leftIcon={<Palette size={16} />}
+            >
+              {themeLabel}
+            </Button>
             <IconButton
               aria-label="Menu"
               icon={<Menu size={20} />}
@@ -193,12 +193,12 @@ function App() {
                   variant="ghost"
                   color={colors.textMuted}
                   justifyContent="flex-start"
-                  leftIcon={theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-                  onClick={toggleTheme}
+                  leftIcon={<Palette size={18} />}
+                  onClick={cycleTheme}
                   borderRadius="10px"
                   mt={4}
                 >
-                  {theme === "dark" ? "Modo claro" : "Modo oscuro"}
+                  Tema: {themeLabel}
                 </Button>
               </VStack>
             </DrawerBody>
