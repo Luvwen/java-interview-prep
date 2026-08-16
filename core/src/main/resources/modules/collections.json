@@ -164,19 +164,30 @@
     {
       "id": "collections-immutability",
       "title": "Colecciones Inmutables",
-      "content": "Desde Java 9, puedes crear colecciones inmutables con metodos factory: List.of(), Set.of(), Map.of(), Map.ofEntries(). Estas colecciones no pueden ser modificadas — cualquier intento de add/remove lanza UnsupportedOperationException.\n\nList.of(\"A\", \"B\", \"C\") crea una lista inmutable. Set.of(1, 2, 3) crea un set inmutable. Map.of(\"a\", 1, \"b\", 2) crea un map inmutable. Todas las variantes NO permiten null values — si pasas null, lanza NullPointerException inmediatamente.\n\nList.copyOf(collection) crea una copia inmutable de una coleccion existente. Collections.unmodifiableList(collection) crea una wrapper (vista) que depende de la original — si modificas la original, el wrapper lo refleja. List.copyOf crea una copia independiente.\n\nLas colecciones inmutables son inherentemente thread-safe porque no tienen estado mutable. Pero List.copyOf no es atomico — si otro thread modifica la lista original durante la copia, puedes tener un estado inconsistente.\n\nCuando usar: List.of/Set.of/Map.of cuando creas la coleccion desde cero, copyOf cuando quieres una snapshot fija de una coleccion existente, unmodifiable cuando la coleccion original no va a cambiar y quieres proteger contra modificaciones accidentales.",
+      "content": "Las colecciones inmutables no pueden modificarse despues de creadas. Java ofrece dos mecanismos: los metodos factory (List.of, Set.of, Map.of) que crean colecciones inmutables optimizadas, y Collections.unmodifiable* que crea wrappers dependientes de la coleccion original.\n\nList.of/Set.of/Map.of crean colecciones inmutables pero no permiten null. list.size() es O(1) porque el tamano es fijo. Son mas eficientes que Collections.unmodifiable* porque no crean un wrapper; la coleccion real es internamente un array o estructura de datos optimizada.\n\nCollections.unmodifiableList/Set/Map crea un wrapper que refleja cambios de la coleccion subyacente. Si modificas la original, el wrapper lo refleja porque no es una copia. Esto puede causar ConcurrentModificationException si se usa en concurrencia.\n\nList.copyOf/Set.copyOf/Map.copyOf crean copias inmutables e independientes de la coleccion original. A diferencia de List.of, permiten null en la coleccion fuente pero la copia resultante no permite null.\n\nConsejos en entrevistas: preferir List.of sobre Collections.unmodifiableList cuando se conoce el contenido. Usar List.copyOf cuando se necesita una copia inmutable. Los metodos factory no permiten null; si se necesita, usar ArrayList + Collections.unmodifiableList.",
       "sections": [
         {
           "title": "Metodos factory: List.of, Set.of, Map.of",
           "text": "Metodos estaticos que crean colecciones inmutables optimizadas. No permiten null. Tamano fijo. Collections unmodifiable* crea wrappers dependientes de la original, copyOf crea copias independientes.",
           "code": "List<String> l = List.of(\"A\", \"B\", \"C\"); // inmutable\nSet<Integer> s = Set.of(1, 2, 3); // inmutable\nMap<String, Integer> m = Map.of(\"a\", 1, \"b\", 2); // inmutable\n\n// List.copyOf — copia independiente\nList<String> mutable = new ArrayList<>(List.of(\"X\", \"Y\"));\nList<String> copy = List.copyOf(mutable);\nmutable.add(\"Z\");\nSystem.out.println(copy); // [X, Y] — no cambia\n\n// Collections.unmodifiable — wrapper dependiente\nList<String> wrapper = Collections.unmodifiableList(mutable);\nmutable.add(\"W\");\nSystem.out.println(wrapper); // [X, Y, Z, W] — refleja cambios"
+        },
+        {
+          "title": "unmodifiable vs copyOf: diferencia clave",
+          "text": "Collections.unmodifiable* crea un wrapper que refleja cambios de la coleccion original (no es una copia). List.copyOf crea una copia independiente e inmutable. La diferencia critica es que unwrapper puede cambiar si cambia la original, mientras que copyOf es seguro.",
+          "code": "// unmodifiable: wrapper dependiente de la original\nList<String> original = new ArrayList<>(List.of(\"A\", \"B\"));\nList<String> unmod = Collections.unmodifiableList(original);\noriginal.add(\"C\");\nSystem.out.println(unmod); // [A, B, C] — cambio!\n\n// copyOf: copia independiente\nList<String> original2 = new ArrayList<>(List.of(\"X\", \"Y\"));\nList<String> copied = List.copyOf(original2);\noriginal2.add(\"Z\");\nSystem.out.println(copied); // [X, Y] — no cambio\n\n// Intentar modificar copia inmutable lanza UnsupportedOperation\ntry {\n    copied.add(\"W\");\n} catch (UnsupportedOperationException e) {\n    System.out.println(\"No se puede modificar copia inmutable\");\n}"
+        },
+        {
+          "title": "Uso en concurrencia y thread safety",
+          "text": "Las colecciones inmutables son thread-safe por construccion porque nunca cambian. Son ideales para compartir entre hilos sin sincronizacion. Sin embargo, los wrappers unmodifiable no son thread-safe si la coleccion subyacente es modificada por otro hilo.",
+          "code": "// Thread-safe: coleccion inmutable compartida\nprivate static final List<String> ITEMS = List.of(\"A\", \"B\", \"C\");\n// Cualquier hilo puede leer ITEMS sin riesgo\n\n// NO thread-safe: wrapper unmodifiable sobre mutable\nList<String> mutable = new ArrayList<>(List.of(\"X\", \"Y\"));\nList<String> wrapper = Collections.unmodifiableList(mutable);\n// Otro hilo podria modificar 'mutable' y 'wrapper' lo reflejaria\n\n// Para datos estaticos inmutables en apps:\nprivate static final Map<String, Integer> CONFIG = Map.of(\n    \"timeout\", 30,\n    \"retries\", 3,\n    \"port\", 8080\n);"
         }
       ],
       "examples": [
         "List.of(\"a\", \"b\", \"c\") // inmutable, no null",
         "Set.of(1, 2, 3) // inmutable, no null",
         "Map.of(\"k\", 1) // inmutable, no null",
-        "List.copyOf(existing) // copia inmutable independiente"
+        "List.copyOf(existing) // copia inmutable independiente",
+        "Collections.unmodifiableList(mutable) // wrapper dependiente"
       ]
     },
     {
@@ -400,6 +411,79 @@
         "correctIndexes": [1],
         "explanation": "poll() retorna null cuando la queue esta vacia. Si un null fuera un elemento valido, no podrias distinguir entre 'elemento null' y 'queue vacia'.",
         "type": "SINGLE"
+      },
+      {
+        "id": "cq-q16",
+        "text": "ArrayList puede crecer dinamicamente despues de creado, sin necesidad de definir un tamano fijo.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [0],
+        "explanation": "ArrayList internamente es un array que se redimensiona automaticamente (factor 1.5x) cuando se llena. No es necesario definir un tamano fijo al momento de crearlo.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cq-q17",
+        "text": "HashMap permite una unica null key y multiples null values.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [0],
+        "explanation": "HashMap permite exactamente una null key (su hashCode es 0, fijo) y multiples null values. TreeMap no permite null en keys porque necesita comparar con compareTo().",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cq-q18",
+        "text": "LinkedList es generalmente mas rapido que ArrayList para acceso aleatorio por indice.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [1],
+        "explanation": "ArrayList tiene acceso O(1) por indice via array interno. LinkedList tiene acceso O(n) porque debe recorrer la lista desde el inicio. En la practica, ArrayList es mas rapido en casi todos los casos.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "cq-q19",
+        "text": "Cuales colecciones permiten elementos null?",
+        "options": [
+          "ArrayList permite null",
+          "HashSet permite null (una sola)",
+          "TreeSet permite null",
+          "HashMap permite null values",
+          "TreeMap permite null key"
+        ],
+        "correctIndexes": [0, 1, 3],
+        "explanation": "ArrayList y LinkedList permiten null. HashSet permite un null. HashMap permite null key y multiples null values. TreeMap y TreeSet no permiten null porque usan compareTo/Comparator.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "cq-q20",
+        "text": "Ordena las colecciones de mayor a menor complejidad promedio para busqueda por valor:",
+        "options": [
+          "HashMap: O(1)",
+          "TreeMap: O(log n)",
+          "ArrayList: O(n)",
+          "LinkedList: O(n)"
+        ],
+        "correctIndexes": [2, 3, 1, 0],
+        "explanation": "ArrayList y LinkedList son O(n) porque recorren todos los elementos. TreeMap es O(log n) por su arbol balanceado. HashMap es O(1) por su hash table.",
+        "type": "ORDER"
+      },
+      {
+        "id": "cq-q21",
+        "text": "Que operaciones son thread-safe en ConcurrentHashMap?",
+        "options": [
+          "putIfAbsent (atomico)",
+          "compute (atomico)",
+          "forEach sobre la coleccion completa",
+          "size() en tiempo real exacto"
+        ],
+        "correctIndexes": [0, 1, 2],
+        "explanation": "putIfAbsent y compute son operaciones atomicas en ConcurrentHashMap. forEach es seguro para iterar pero size() no es exacto en concurrencia porque puede cambiar entre llamadas.",
+        "type": "MULTIPLE"
       }
     ]
   }

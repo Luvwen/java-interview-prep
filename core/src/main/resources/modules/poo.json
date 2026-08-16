@@ -149,6 +149,50 @@
           "code": "public interface Logger {\n    void log(String mensaje);\n}\n\npublic class ConsolaLogger implements Logger {\n    @Override\n    public void log(String mensaje) {\n        System.out.println(mensaje);\n    }\n}\n\n// Decorator: agrega timestamp\npublic class TimestampLogger implements Logger {\n    private final Logger delegado;\n\n    public TimestampLogger(Logger delegado) {\n        this.delegado = delegado;\n    }\n\n    @Override\n    public void log(String mensaje) {\n        delegado.log(\"[\" + java.time.LocalTime.now() + \"] \" + mensaje);\n    }\n}\n\n// Composicion: combinar comportamientos\nLogger logger = new TimestampLogger(new ConsolaLogger());\nlogger.log(\"Hola\"); // [14:30:22.123] Hola"
         }
       ]
+    },
+    {
+      "id": "poo-generics",
+      "title": "Generics: tipado estatico parametrico",
+      "content": "Los generics permiten crear clases, interfaces y metodos que trabajan con tipos parametricos. Un ArrayList<String> solo acepta Strings; el compilador detecta errores de tipo en tiempo de compilacion, evitando ClassCastExceptions en runtime.\n\nLa type erasure (borrado de tipo) elimina los tipos genericos en runtime: List<String> y List<Integer> son la misma clase List en la JVM. Esto implica que no se puede hacer new T() ni instanceof List<String>. Los bounded types (extends Number) permiten restringir los tipos validos.\n\nLos wildcards son fundamentales: ? extends T (covarianza, solo lectura), ? super T (contravariania, solo escritura) y ? (any). El principio PECS (Producer Extends, Consumer Super) guia cuando usar cada uno: si el generic produce datos, usa extends; si los consume, usa super.\n\nConceptos avanzados:\n- Type erasure significa que List<String> y List<Integer> son la misma clase en runtime. No se puede hacer new T() porque T no existe en runtime.\n- Bounded type parameters: <T extends Comparable<T>> restringe T a clases que implementen Comparable.\n- Wildcards: ? extends T (lectura), ? super T (escritura). PECS: Producer Extends, Consumer Super.\n- Metodos genericos: <T> T metodo(T parametro) define un tipo generico por metodo, no por clase.\n- Raw types (List sin generic) son backward compatible pero generan warnings.\n\nErrores comunes en entrevistas:\n- Asumir que se puede hacer instanceof List<String> en runtime (no es posible por type erasure).\n- Creer que List<Integer> y List<Double> son clases distintas en runtime (son la misma).\n- No entender PECS y confundir extends con super en wildcards.",
+      "sections": [
+        {
+          "title": "Type erasure y bounded types",
+          "text": "La type erasure elimina los tipos genericos en runtime: List<String> y List<Integer> son la misma clase List. Esto implica que no se puede hacer new T() ni instanceof con tipos genericos. Los bounded types (extends Number) restringen los tipos validos en compilacion.",
+          "code": "// Type erasure: no se puede hacer esto\npublic <T> boolean esLista(Object obj) {\n    return obj instanceof List<T>; // ERROR DE COMPILACION\n}\n\n// Bounded type: T debe ser Number o subtipo\npublic <T extends Number> double sumar(List<T> lista) {\n    return lista.stream()\n        .mapToDouble(Number::doubleValue)\n        .sum();\n}\n\n// Multiple bounds\npublic <T extends Comparable<T> & Serializable> T max(List<T> lista) {\n    return lista.stream().max(Comparator.naturalOrder()).orElseThrow();\n}\n\n// Metodos genericos\npublic static <T> List<T> singleton(T item) {\n    return List.of(item);\n}"
+        },
+        {
+          "title": "Wildcards y PECS",
+          "text": "? extends T (covarianza) permite leer pero no escribir. ? super T (contravariania) permite escribir pero no leer con precision. ? wildcard permite cualquier tipo. PECS: Producer Extends (datos salen), Consumer Super (datos entran).",
+          "code": "// Producer Extends: solo lectura\npublic void imprimirNumeros(List<? extends Number> lista) {\n    for (Number n : lista) {  // OK: leer como Number\n        System.out.println(n);\n    }\n    // lista.add(42); // ERROR: no se puede escribir\n}\n\n// Consumer Super: solo escritura\npublic void agregarEnteros(List<? super Integer> lista) {\n    lista.add(42);      // OK: escribir Integer\n    lista.add(100);     // OK: Integer es subtipo de super\n    // Integer n = lista.get(0); // ERROR: no se puede leer como Integer\n}\n\n// Ejemplo real: Collections.copy()\npublic static <T> void copy(List<? super T> dest, List<? extends T> src) {\n    for (T item : src) {\n        dest.add(item);\n    }\n}"
+        },
+        {
+          "title": "Generics en la practica",
+          "text": "Los generics son la base de toda la coleccion y stream API. Clases como Optional<T>, CompletableFuture<T>, y Pair<A,B> son genericas. En entrevistas, entender type erasure y PECS es clave para resolver problemas de diseno y debugging.",
+          "code": "// Optional con generics\npublic <T> Optional<T> encontrar(List<T> lista, Predicate<T> filtro) {\n    return lista.stream().filter(filtro).findFirst();\n}\n\n// Pair genérico\npublic record Pair<A, B>(A first, B second) { }\nPair<String, Integer> par = new Pair<>(\"edad\", 25);\n\n// Generic interface\npublic interface Repositorio<T, ID> {\n    T findById(ID id);\n    List<T> findAll();\n    T save(T entity);\n}\n\npublic class CuentaRepositorio implements Repositorio<Cuenta, Long> {\n    @Override\n    public Cuenta findById(Long id) { ... }\n}"
+        }
+      ]
+    },
+    {
+      "id": "poo-nested",
+      "title": "Clases anidadas y patrones de diseño local",
+      "content": "Java permite clases dentro de otras clases: static nested classes (no dependen de la instancia), inner classes (dependen de la instancia), local classes (definidas dentro de un metodo) y anonymous classes (instancia unica de una clase sin nombre).\n\nLas static nested classes son las mas usadas y eficientes: no tienen referencia a la instancia de la clase externa. Son utiles cuando la clase anidada solo necesita acceso a miembros estaticos de la externa. Builder pattern tipicamente usa static nested classes.\n\nLas inner classes (no-static) tienen acceso a todos los miembros de la instancia externa, incluyendo privados. Esto crea acoplamiento fuerte y consumo de memoria (cada instancia interna guarda una referencia a la externa). Se usan poco en codigo moderno.\n\nLas local classes y anonymous classes son utiles para implementaciones cortas de interfaces, pero en Java moderno las lambdas las reemplazan en la mayoria de los casos.\n\nConceptos avanzados:\n- Las static nested classes no tienen referencia implicita a la instancia externa, por lo que son mas eficientes en memoria.\n- Builder pattern tipicamente usa static nested class: new Persona.Builder().nombre(\"Ana\").build().\n- Las inner classes generan archivos .class separados (OuterClass$InnerClass.class).\n- Las local classes solo son visibles dentro del metodo donde se definen.\n- Las anonymous classes son utiles para implementaciones una-vez, pero las lambdas son mas concisas.\n\nErrores comunes en entrevistas:\n- No entender la diferencia entre static nested y inner class.\n- Creer que las clases anidadas son solo un feature de organizacion (tienen implicaciones de memoria y acoplamiento).\n- No mencionar Builder pattern como uso tipico de static nested class.",
+      "sections": [
+        {
+          "title": "Static nested vs inner classes",
+          "text": "Las static nested classes no dependen de la instancia de la clase externa y solo acceden a miembros estaticos. Las inner classes (no-static) tienen referencia implicita a la instancia externa, lo que genera acoplamiento y mayor consumo de memoria. En codigo moderno, preferir static nested.",
+          "code": "// Static nested: eficiente, sin referencia a la instancia externa\npublic class Factoria {\n    private static int contador = 0;\n\n    public static class Producto {\n        private final int id;\n        private final String nombre;\n\n        public Producto(String nombre) {\n            this.id = ++contador;\n            this.nombre = nombre;\n        }\n\n        public String getNombre() { return nombre; }\n        public int getId() { return id; }\n    }\n}\n\n// Uso: no se necesita instancia de Factoria\nFactoria.Producto p = new Factoria.Producto(\"Laptop\");\n\n// Inner class: tiene referencia a la instancia externa\npublic class Externa {\n    private String secreto = \"privado\";\n\n    public class Interna {\n        public void verSecreto() {\n            System.out.println(secreto); // OK: accede a la externa\n        }\n    }\n}\n\nExterna ext = new Externa();\nExterna.Interna int = ext.new Interna();"
+        },
+        {
+          "title": "Builder pattern con static nested",
+          "text": "El Builder pattern usa una static nested class para construir objetos complejos de forma legible. Es especialmente util cuando un objeto tiene muchos campos opcionales. La interfaz fluente (method chaining) hace el codigo autoexplicativo.",
+          "code": "public class Persona {\n    private final String nombre;\n    private final String email;\n    private final int edad;\n    private final String telefono;\n\n    private Persona(Builder builder) {\n        this.nombre = builder.nombre;\n        this.email = builder.email;\n        this.edad = builder.edad;\n        this.telefono = builder.telefono;\n    }\n\n    public static class Builder {\n        private final String nombre;  // requerido\n        private String email;\n        private int edad;\n        private String telefono;\n\n        public Builder(String nombre) {\n            this.nombre = nombre;\n        }\n\n        public Builder email(String email) { this.email = email; return this; }\n        public Builder edad(int edad) { this.edad = edad; return this; }\n        public Builder telefono(String t) { this.telefono = t; return this; }\n\n        public Persona build() {\n            return new Persona(this);\n        }\n    }\n}\n\n// Uso: legible y flujo natural\nPersona p = new Persona.Builder(\"Ana\")\n    .email(\"ana@test.com\")\n    .edad(25)\n    .build();"
+        },
+        {
+          "title": "Lambda como reemplazo de anonymous classes",
+          "text": "Las lambdas reemplazan a las anonymous classes cuando se implementa una interfaz funcional (un metodo abstracto). Son mas concisas, pero no pueden reemplazar clases anidadas que necesitan estado o multiples metodos. Las local classes son utiles cuando se necesita una implementacion con estado dentro de un metodo.",
+          "code": "// Anonymous class (antes de Java 8)\nRunnable r = new Runnable() {\n    @Override\n    public void run() {\n        System.out.println(\"hola\");\n    }\n};\n\n// Lambda (despues de Java 8)\nRunnable r2 = () -> System.out.println(\"hola\");\n\n// Cuando SI se necesita anonymous class (multi-metodo)\nComparator<String> comp = new Comparator<>() {\n    @Override\n    public int compare(String a, String b) {\n        int lenComp = Integer.compare(a.length(), b.length());\n        return lenComp != 0 ? lenComp : a.compareTo(b);\n    }\n};\n\n// Equivalente con lambda (solo si es un solo metodo)\nComparator<String> comp2 = Comparator\n    .comparingInt(String::length)\n    .thenComparing(Comparator.naturalOrder());"
+        }
+      ]
     }
   ],
   "quiz": {
@@ -322,6 +366,92 @@
         ],
         "explanation": "Primero herencia simple, luego sobrescritura, interfaces multiples y finalmente metodos default (Java 8+).",
         "type": "ORDER"
+      },
+      {
+        "id": "poo-q12",
+        "text": "Que es la type erasure en Java generics?",
+        "options": [
+          "Los genericos se eliminan en tiempo de compilacion, no existen en runtime",
+          "Los genericos se verifican solo en runtime",
+          "Es un mecanismo de seguridad para evitar ClassCastExceptions",
+          "Permite crear instancias de tipos genericos con new T()"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Type erasure elimina los tipos genericos en runtime. List<String> y List<Integer> son la misma clase List en la JVM. No se puede hacer new T() ni instanceof con genericos.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "poo-q13",
+        "text": "Que significa PECS en generics?",
+        "options": [
+          "Producer Extends, Consumer Super",
+          "Private Encapsulated Class Structure",
+          "Polymorphic Extended Collection System",
+          "Protected Extends, Constructor Super"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "PECS: Producer Extends (si el generic produce datos, usa ? extends T), Consumer Super (si consume datos, usa ? super T).",
+        "type": "SINGLE"
+      },
+      {
+        "id": "poo-q14",
+        "text": "Cual es la diferencia entre static nested class y inner class?",
+        "options": [
+          "La static nested no tiene referencia a la instancia de la externa; la inner si",
+          "La inner class es mas rapida que la static nested",
+          "Ambas son equivalentes en rendimiento",
+          "La static nested no puede acceder a campos privados de la externa"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "La static nested class es independiente de la instancia externa (mas eficiente). La inner class tiene referencia implicita a la instancia externa, generando acoplamiento y mayor consumo de memoria.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "poo-q15",
+        "text": "Para que sirve el Builder pattern con static nested class?",
+        "options": [
+          "Para crear objetos con estado mutable",
+          "Para construir objetos complejos de forma legible con interfaz fluente",
+          "Para implementar patron Singleton",
+          "Para reemplazar el constructor de una clase"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Builder pattern usa una static nested class para construir objetos con muchos campos opcionales de forma legible. La interfaz fluente (method chaining) hace el codigo autoexplicativo.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "poo-q16",
+        "text": "List<Integer> y List<Double> son la misma clase en tiempo de ejecucion.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: por type erasure, los genericos se eliminan en runtime. Ambas son simplemente List. Esto implica que no se puede hacer instanceof List<Integer>.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "poo-q17",
+        "text": "Las lambdas pueden reemplazar a todas las anonymous classes en Java.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: las lambdas solo reemplazan anonymous classes que implementan una interfaz funcional (un metodo abstracto). Si la interfaz tiene multiples metodos, se necesita anonymous class.",
+        "type": "TRUE_FALSE"
       }
     ]
   }

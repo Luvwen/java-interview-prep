@@ -135,6 +135,30 @@
           "code": "import java.lang.ref.PhantomReference;\nimport java.lang.ref.Reference;\nimport java.lang.ref.ReferenceQueue;\n\npublic class PhantomDemo {\n    static class RecursoNativo {\n        private final String nombre;\n\n        RecursoNativo(String nombre) {\n            this.nombre = nombre;\n            System.out.println(\"Abriendo recurso: \" + nombre);\n        }\n\n        void liberar() {\n            System.out.println(\"Liberando recurso: \" + nombre);\n        }\n    }\n\n    static class RecursoRef extends PhantomReference<RecursoNativo> {\n        String nombre;\n\n        RecursoRef(RecursoNativo recurso, ReferenceQueue<? super RecursoNativo> queue) {\n            super(recurso, queue);\n            this.nombre = recurso.nombre;\n        }\n\n        void cleanup() {\n            System.out.println(\"Cleanup de: \" + nombre);\n            // Liberar recursos nativos aqui\n        }\n    }\n\n    public static void main(String[] args) throws InterruptedException {\n        ReferenceQueue<RecursoNativo> queue = new ReferenceQueue<>();\n        RecursoNativo recurso = new RecursoNativo(\"archivo.dat\");\n        RecursoRef ref = new RecursoRef(recurso, queue);\n\n        recurso = null;  // eliminar referencia fuerte\n        System.gc();\n        Thread.sleep(100);\n\n        // Verificar si el objeto fue recolectado\n        Reference<?> collected = queue.poll();\n        if (collected != null) {\n            ((RecursoRef) collected).cleanup();\n            collected.clear();\n        }\n    }\n}\n// Java 9+ Cleaner como alternativa mas segura:\n// Cleaner.create().register(obj, () -> liberarRecurso());"
         }
       ]
+    },
+    {
+      "id": "jvm-flags",
+      "title": "Flags utiles y diagnostico",
+      "content": "La JVM se configura con flags que controlan memoria, GC y comportamiento. Los flags -X son estandar (-Xmx, -Xms, -Xss) y los -XX son especificos de implementacion. Desde Java 9+ se usa el formato -XX:+Option para activar y -XX:-Option para desactivar.\n\nFlags de memoria esenciales: -Xmx (heap maximo), -Xms (heap inicial, idealmente igual a -Xmx), -Xss (stack por hilo), -XX:MaxMetaspaceSize (limite de Metaspace). Los flags de GC incluyen -XX:+UseG1GC, -XX:+UseZGC, -XX:MaxGCPauseMillis.\n\nHerramientas de diagnostico incluyen: jps (ver procesos JVM), jstack (threads y deadlocks), jmap (heap dump y memoria), jstat (estadisticas de GC), y jcmd (comando unificado). VisualVM y JConsole proporcionan interfaces graficas.\n\nConceptos avanzados:\n- -XX:+HeapDumpOnOutOfMemoryError genera un dump automatico cuando ocurre OOM, fundamental para diagnostico en produccion.\n- -XX:+PrintGCDetails y -Xlog:gc* (Java 9+) registran eventos de GC para analizar comportamiento y pausas.\n- jstack <pid> muestra el thread dump util para detectar deadlocks y threads stuck. Con -l incluye locks.\n- jmap -dump:format=b,file=dump.hprof <pid> genera heap dump para analizar con Eclipse MAT o VisualVM.\n- jcmd <pid> GC.run solicita un GC; jcmd <pid> VM.flags muestra todos los flags activos.\n- -XX:+UseStringDeduplication en G1 elimina Strings duplicados en memoria, ahorrando heap.\n\nErrores comunes en entrevistas:\n- No conocer la diferencia entre -Xmx y -Xms ni por que se recomienda igualarlos.\n- No saber que herramienta usar para diagnosticar un deadlock (jstack) o un OOM (heap dump + MAT).\n- Olvidar que -XX:+HeapDumpOnOutOfMemoryError es esencial para diagnostico en produccion.",
+      "sections": [
+        {
+          "title": "Flags de memoria y GC",
+          "text": "-Xmx define el heap maximo, -Xms el inicial (idealmente igual), -Xss el stack por hilo, y -XX:MaxMetaspaceSize limita Metaspace. Los flags de GC incluyen -XX:+UseG1GC, -XX:+UseZGC y -XX:MaxGCPauseMillis para controlar pausas.",
+          "code": "# Configuracion tipica de produccion\njava -Xms512m -Xmx512m \\\n     -Xss256k \\\n     -XX:MaxMetaspaceSize=256m \\\n     -XX:+UseG1GC \\\n     -XX:MaxGCPauseMillis=200 \\\n     -jar app.jar\n\n# ZGC (pausas minimas)\njava -XX:+UseZGC \\\n     -Xmx16g \\\n     -jar app.jar\n\n# Verificar flags activos\njava -XX:+PrintFlagsFinal -version | grep HeapSize"
+        },
+        {
+          "title": "Herramientas de diagnostico",
+          "text": "jps lista procesos JVM. jstack muestra thread dumps y detecta deadlocks. jmap genera heap dumps. jstat muestra estadisticas de GC. jcmd es el comando unificado que combina varias herramientas. VisualVM ofrece interfaz grafica.",
+          "code": "# Listar procesos JVM\njps -l\n\n# Thread dump (detectar deadlocks)\njstack <pid>\njstack -l <pid>  # incluye locks\n\n# Heap dump\njmap -dump:format=b,file=dump.hprof <pid>\njmap -heap <pid>  # resumen de memoria\n\n# Estadisticas de GC (actualizacion cada 1s)\njstat -gcutil <pid> 1000\n\n# Comando unificado\njcmd <pid> GC.run           # solicitar GC\njcmd <pid> VM.flags         # ver flags activos\njcmd <pid> Thread.print     # thread dump\njcmd <pid> GC.heap_info    # info del heap\n\n# Generar dump automatico en OOM\njava -XX:+HeapDumpOnOutOfMemoryError \\\n     -XX:HeapDumpPath=/tmp/dump.hprof \\\n     -jar app.jar"
+        }
+      ],
+      "examples": [
+        "java -Xms512m -Xmx512m -jar app.jar",
+        "jstack <pid>  # detectar deadlocks",
+        "jmap -dump:format=b,file=dump.hprof <pid>",
+        "jstat -gcutil <pid> 1000",
+        "jcmd <pid> VM.flags"
+      ]
     }
   ],
   "quiz": {
@@ -308,6 +332,53 @@
         ],
         "explanation": "El proceso es: Loading carga el bytecode y crea el Class object; Linking verifica, prepara memoria y resuelve referencias; Initialization ejecuta el codigo estatico. El orden es estricto y siempre el mismo.",
         "type": "ORDER"
+      },
+      {
+        "id": "jvm-q12",
+        "text": "Que flags son validos para configurar memoria en la JVM?",
+        "options": [
+          "-Xmx (heap maximo)",
+          "-Xms (heap inicial)",
+          "-Xss (stack por hilo)",
+          "-XX:MaxMetaspaceSize (limite de Metaspace)",
+          "-Xmem (configura Metaspace)"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "-Xmx, -Xms, -Xss y -XX:MaxMetaspaceSize son flags validos. No existe -Xmem; el Metaspace se configura con -XX:MaxMetaspaceSize.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "jvm-q13",
+        "text": "Que herramienta de diagnostico usar para detectar un deadlock?",
+        "options": [
+          "jstack",
+          "jmap",
+          "jstat",
+          "jps"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "jstack muestra el thread dump de todos los hilos y detecta deadlocks automaticamente con el mensaje 'Found one Java-level deadlock'.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "jvm-q14",
+        "text": "-XX:+HeapDumpOnOutOfMemoryError genera un dump automatico cuando ocurre OutOfMemoryError.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: este flag es fundamental para diagnostico en produccion, ya que genera un heap dump automatico que permite analizar que objetos consumieron toda la memoria.",
+        "type": "TRUE_FALSE"
       }
     ]
   }

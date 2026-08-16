@@ -1,12 +1,12 @@
 {
   "id": "core-java",
   "title": "Core Java",
-  "description": "Fundamentos del lenguaje: tipos, referencias, modificadores, control de flujo y manejo de excepciones. Es la base sobre la que se apoyan todos los demas modulos.",
+  "description": "Fundamentos del lenguaje: tipos, referencias, modificadores, control de flujo, manejo de excepciones, Strings y records. Es la base sobre la que se apoyan todos los demas modulos.",
   "topics": [
     {
       "id": "core-primitives",
       "title": "Tipos primitivos y envoltorios",
-      "content": "Java tiene 8 tipos primitivos: byte, short, int, long, float, double, char y boolean. Los primitivos se almacenan por valor directamente en la variable, no como objetos. La JVM usa 32 bits para un int y 64 bits para un long, mientras que float y double siguen el estandar IEEE 754.\n\nCada tipo primitivo tiene una clase envoltorio (wrapper): Byte, Short, Integer, Long, Float, Double, Character y Boolean. Los wrappers son objetos inmutables que se usan cuando se necesita un objeto (por ejemplo, dentro de una coleccion como List<Integer>) y ofrecen metodos de utilidad como Integer.parseInt. Java realiza autoboxing y unboxing de forma automatica al convertir entre primitivo y wrapper.\n\nUn detalle que se pregunta mucho en entrevistas: para valores enteros entre -128 y 127, Integer.valueOf devuelve instancias cacheadas, por lo que dos Integer con el mismo valor dentro de ese rango comparados con == dan true; fuera del rango, == compara referencias y da false. La regla general es comparar wrappers con equals, nunca con ==.\n\nEl operador == sobre primitivos compara valores; sobre objetos compara referencias (si apuntan al mismo objeto). Esta distincion es causa frecuente de errores y de preguntas en procesos de seleccion.\n\nConceptos avanzados:\n- El rango de cache de Integer se puede ampliar mediante el sistema -XX:AutoBoxCacheMax, pero no es portable ni recomendado.\n- El autoboxing puede generar NullPointerException si se intenta unboxear un Integer null a int.\n- Float y Double tienen valores especiales: NaN, POSITIVE_INFINITY, NEGATIVE_INFINITY. Comparaciones con NaN siempre retornan false, incluyendo NaN == NaN.\n- char en Java es un tipo sin signo de 16 bits (0 a 65535), por lo que no es apto para todos los caracteres Unicode, aunque supplementary characters se manejan con surrogate pairs.\n- La diferencia entre BigDecimal y double para calculos financieros: BigDecimal evita problemas de precision que surgen con punto flotante.\n\nErrores comunes en entrevistas:\n- Comparar Integer con == fuera del rango de cache y asumir que da true.\n- Olvidar que Long.valueOf tambien tiene cache (-128 a 127) igual que Integer.\n- Confundir autoboxing con creacion de objetos: Integer x = 5; no crea un objeto nuevo si el valor esta en cache.\n- Usar double para dinero sin pensar en precision; usar BigDecimal en su lugar.",
+      "content": "Java tiene 8 tipos primitivos: byte, short, int, long, float, double, char y boolean. Los primitivos se almacenan por valor directamente en la variable, no como objetos. La JVM usa 32 bits para un int y 64 bits para un long, mientras que float y double siguen el estandar IEEE 754.\n\nCada tipo primitivo tiene una clase envoltorio (wrapper): Byte, Short, Integer, Long, Float, Double, Character y Boolean. Los wrappers son objetos inmutables que se usan cuando se necesita un objeto (por ejemplo, dentro de una coleccion como List<Integer>) y ofrecen metodos de utilidad como Integer.parseInt. Java realiza autoboxing y unboxing de forma automatica al convertir entre primitivo y wrapper.\n\nUn detalle que se pregunta mucho en entrevistas: para valores enteros entre -128 y 127, Integer.valueOf devuelve instancias cacheadas, por lo que dos Integer con el mismo valor dentro de ese rango comparados con == dan true; fuera del rango, == compara referencias y da false. La regla general es comparar wrappers con equals, nunca con ==.\n\nEl operador == sobre primitivos compara valores; sobre objetos compara referencias (si apuntan al mismo objeto). Esta distincion es causa frecuente de errores y de preguntas en procesos de seleccion.\n\nConceptos avanzados:\n- El rango de cache de Integer se puede ampliar mediante el sistema -XX:AutoBoxCacheMax, pero no es portable ni recomendado.\n- El autoboxing puede generar NullPointerException si se intenta unboxear un Integer null a int.\n- Float y Double tienen valores especiales: NaN, POSITIVE_INFINITY, NEGATIVE_INFINITY. Comparaciones con NaN siempre retornan false, incluyendo NaN == NaN.\n- char en Java es un tipo sin signo de 16 bits (0 a 65535), por lo que no es apto para todos los caracteres Unicode, aunque supplementary characters se manejan con surrogate pairs.\n- La diferencia entre BigDecimal y double para calculos financieros: BigDecimal evita problemas de precision que surgen con punto flotante.\n\nErrores comunes:\n- Comparar wrappers con == fuera del rango de cache (-128 a 127).\n- Asumir que float tiene la misma precision que double.\n- Olvidar que el autoboxing de Integer null a int lanza NullPointerException.",
       "sections": [
         {
           "title": "Los 8 tipos primitivos",
@@ -150,7 +150,7 @@
     {
       "id": "core-exceptions",
       "title": "Excepciones",
-      "content": "Las excepciones en Java forman una jerarquia: Throwable es la raiz, con dos ramas: Error (problemas graves de la JVM, como OutOfMemoryError, que no se deben capturar) y Exception. Dentro de Exception estan las checked exceptions (la compilacion obliga a declararlas o capturarlas) y RuntimeException (unchecked, no obliga, cubren errores de programacion como NullPointerException o IllegalArgumentException).\n\nLa regla de oro: usar checked exceptions para condiciones recuperables y esperables, y unchecked para errores de programacion. En la practica moderna, muchas API prefieren excepciones unchecked.\n\nEl bloque try-with-resources cierra automaticamente recursos que implementan AutoCloseable, evitando fugas y eliminando la necesidad de finally para cerrar archivos, conexiones o streams. Cada recurso se cierra en orden inverso al de declaracion.\n\nSolo se debe capturar una excepcion si se puede hacer algo util con ella. Capturar Exception generico o peor aun, excepciones y seguir de largo, escribe deuda tecnica. Si se re-lanza, se usa throw y se puede usar la sintaxis de multi-catch con la barra (|).\n\nConceptos avanzados:\n- multi-catch (Java 7+): permite capturar multiples excepciones en un solo catch: catch (IOException | SQLException e). Dentro del bloque, e es effectively final.\n- try-with-resources permite declarar multiples recursos; se cierran en orden inverso. Si ambos lanzan excepciones, las secundarias se agregan como suppressed.\n- finally se ejecuta incluso si hay return, pero si finally contiene return, sobreescribe el return del try. Esto es un error comun.\n- AutoCloseable vs Closeable: AutoCloseable permite checked exceptions en close(), Closeable lanza IOException.\n- El patron de 'try-finally sin catch' es valido: permite propagar la excepcion mientras se garantiza la limpieza.\n- stackTrace en Excepciones: Throwable.getStackTrace() retorna un arreglo de StackTraceElement; util para logs.\n\nErrores comunes en entrevistas:\n- Capturar Exception generico en lugar de tipos especificos.\n- Olvidar que finally se ejecuta incluso con return; peor aun, usar return dentro de finally.\n- No usar try-with-resources y escribir finally manual con riesgo de olvidar cerrar.\n- Creer que finally no se ejecuta si hay System.exit() o un Error: es correcto, no se ejecuta.\n- Capturar Throwable sin pensar: incluye Error, que no se debe manejar.",
+      "content": "Las excepciones en Java forman una jerarquia: Throwable es la raiz, con dos ramas: Error (problemas graves de la JVM, como OutOfMemoryError, que no se deben capturar) y Exception. Dentro de Exception estan las checked exceptions (la compilacion obliga a declararlas o capturarlas) y RuntimeException (unchecked, no obliga, cubren errores de programacion como NullPointerException o IllegalArgumentException).\n\nLa regla de oro: usar checked exceptions para condiciones recuperables y esperables, y unchecked para errores de programacion. En la practica moderna, muchas API prefieren excepciones unchecked.\n\nEl bloque try-with-resources cierra automaticamente recursos que implementan AutoCloseable, evitando fugas y eliminando la necesidad de finally para cerrar archivos, conexiones o streams. Cada recurso se cierra en orden inverso al de declaracion.\n\nSolo se debe capturar una excepcion si se puede hacer algo util con ella. Capturar Exception generico o peor aun, excepciones y seguir de largo, escribe deuda tecnica. Si se re-lanza, se usa throw y se puede usar la sintaxis de multi-catch con la barra (|).\n\nConceptos avanzados:\n- multi-catch (Java 7+): permite capturar multiples excepciones en un solo catch: catch (IOException | SQLException e). Dentro del bloque, e es effectively final.\n- try-with-resources permite declarar multiples recursos; se cierran en orden inverso. Si ambos lanzan excepciones, las secundarias se agregan como suppressed.\n- finally se ejecuta incluso si hay return, pero si finally contiene return, sobreescribe el return del try. Esto es un error comun.\n- AutoCloseable vs Closeable: AutoCloseable permite checked exceptions en close(), Closeable lanza IOException.\n- El patron de 'try-finally sin catch' es valido: permite propagar la excepcion mientras se garantiza la limpieza.\n- stackTrace en Excepciones: Throwable.getStackTrace() retorna un arreglo de StackTraceElement; util para logs.\n\nErrores comunes en entrevistas:\n- Capturar Exception generico en lugar de tipos especificos.\n- Olvidar que finally con return sobreescribe el return del try.\n- Creer que try-with-resources solo funciona con un recurso.\n- No saber que suppressed exceptions se agregan a la excepcion principal.\n- Usar System.exit() o throw Error y creer que finally se ejecuta.",
       "sections": [
         {
           "title": "Jerarquia de excepciones",
@@ -181,6 +181,78 @@
         "catch (Exception e) { throw new RuntimeException(\"fallo\", e); } // wrapping checked en unchecked",
         "try { int r = 10 / 0; } catch (ArithmeticException e) { System.out.println(\"division por cero\"); }",
         "finally { recurso.close(); } // patron clasico sin try-with-resources"
+      ]
+    },
+    {
+      "id": "core-strings",
+      "title": "Strings en Java",
+      "content": "Los Strings en Java son objetos inmutables: una vez creado un String, su contenido nunca cambia. Cada operacion de manipulacion (concatenar, reemplazar, substring) devuelve un nuevo String. Esto tiene implicaciones de rendimiento importantes, especialmente en bucles donde se concatenan muchas veces.\n\nJava mantiene un String pool (tambien llamado intern pool) en el area de memoria constante. Los String literales se interningan automaticamente: si dos variables apuntan al mismo literal, comparten la misma instancia. Esto ahorra memoria pero puede causar confusion con el operador ==. El metodo intern() fuerza a que un String vaya al pool.\n\nStringBuilder y StringBuffer son clases mutables para construir Strings de forma eficiente. StringBuilder es la recomendada en codigo single-threaded; StringBuffer es sincronizada y mas lenta. En un bucle que concatena miles de veces, StringBuilder es órdenes de magnitud mas rapido.\n\nConceptos avanzados:\n- String es una secuencia de chars UTF-16. Los supplementary characters (emoji, etc.) ocupan dos posiciones (surrogate pairs), por lo que length() no siempre refleja el numero real de caracteres visibles.\n- text block (Java 15+) permite strings multilínea con triple comilla: \"\"\" ... \"\"\".\n- String.equals() compara contenido; == compara referencias. El metodo compareTo() ordena lexicograficamente.\n- Los metodos de String son inmutables: s.toUpperCase() retorna un nuevo String, no modifica s.\n- Pattern y Matcher permiten regex; Pattern.compile() es costoso, asi que se debe reutilizar el patron.\n- El metodo chars() retorna un IntStream de codigos de caracteres, util para filtrar o transformar.\n\nErrores comunes en entrevistas:\n- Usar == para comparar contenido de Strings.\n- Concatenar Strings dentro de un bucle sin StringBuilder.\n- Creer que String.valueOf(null) retorna \"null\" (retorna \"null\" literal).\n- Confundir length() con el numero de caracteres visibles en Strings con surrogate pairs.",
+      "sections": [
+        {
+          "title": "Inmutabilidad y String pool",
+          "text": "Los Strings son inmutables en Java: cualquier operacion crea un nuevo objeto String. El String pool reutiliza instancias de literales para ahorrar memoria. Esto significa que == puede dar resultados inesperados dependiendo de como se creo el String. Siempre usar equals() para comparar contenido.",
+          "code": "String s1 = \"Hola\";\nString s2 = \"Hola\";\nSystem.out.println(s1 == s2);      // true (mismo objeto en pool)\n\nString s3 = new String(\"Hola\");\nSystem.out.println(s1 == s3);      // false (diferentes objetos)\nSystem.out.println(s1.equals(s3)); // true (mismo contenido)\n\nString s4 = s3.intern();\nSystem.out.println(s1 == s4);      // true (s4 apunta al pool)\n\n// Inmutabilidad: cada operacion crea un nuevo String\nString original = \"hello\";\nString mayusculas = original.toUpperCase();\nSystem.out.println(original);   // \"hello\" (sin cambios)\nSystem.out.println(mayusculas); // \"HELLO\""
+        },
+        {
+          "title": "StringBuilder y StringBuffer",
+          "text": "StringBuilder es una clase mutable para construir Strings de forma eficiente. No crea objetos intermedios al concatenar, por lo que es ideal para bucles. StringBuffer es la version sincronizada, mas lenta en single-threaded. Para concatenaciones frecuentes, siempre preferir StringBuilder sobre el operador +.",
+          "code": "// MAL: concatenacion en bucle crea muitiplos objetos\nString resultado = \"\";\nfor (int i = 0; i < 10000; i++) {\n    resultado += i; // crea un nuevo String en cada iteracion\n}\n\n// BIEN: StringBuilder es mutable y eficiente\nStringBuilder sb = new StringBuilder();\nfor (int i = 0; i < 10000; i++) {\n    sb.append(i);\n}\nString resultado2 = sb.toString();\n\n// Builder pattern con StringBuilder\nString html = new StringBuilder()\n    .append(\"<html>\")\n    .append(\"<body>\")\n    .append(\"<h1>\")\n    .append(\"Titulo\")\n    .append(\"</h1>\")\n    .append(\"</body>\")\n    .append(\"</html>\")\n    .toString();"
+        },
+        {
+          "title": "Metodos utiles de String",
+          "text": "String ofrece una amplia gama de metodos para manipulacion de texto: substring, replace, split, trim, startsWith, endsWith, contains, indexOf, y muchos mas. Todos retornan un nuevo String. Los metodos de Java 11+ como isBlank(), strip(), y repeat() añaden funcionalidad moderna.",
+          "code": "String texto = \"  Hola Mundo  \";\n\nSystem.out.println(texto.strip());       // \"Hola Mundo\" (elimina espacios)\nSystem.out.println(texto.stripLeading()); // \"Hola Mundo  \"\nSystem.out.println(texto.isBlank());     // false\n\nString csv = \"a,b,c,d\";\nString[] partes = csv.split(\",\"); // [\"a\", \"b\", \"c\", \"d\"]\n\nString nombre = \"Juan\";\nSystem.out.println(nombre.startsWith(\"J\")); // true\nSystem.out.println(nombre.endsWith(\"n\"));   // true\nSystem.out.println(nombre.contains(\"ua\"));  // true\n\nString repetido = \"Ha\".repeat(3); // \"HaHaHa\"\n\nString formato = String.format(\"Nombre: %s, Edad: %d\", \"Ana\", 25);"
+        },
+        {
+          "title": "Text blocks y expresiones regulares",
+          "text": "Text blocks (Java 15+) permiten definir strings multilínea de forma limpia con triple comilla. Las expresiones regulares se manejan con Pattern y Matcher; Pattern.compile() es costoso, por lo que se debe reutilizar el patron. Los grupos de captura permiten extraer substrings que coincidan con un patron.",
+          "code": "// Text block (Java 15+)\nString json = \"\"\"\n    {\n        \"nombre\": \"Ana\",\n        \"edad\": 25\n    }\n    \"\"\";\n\n// Expresiones regulares con Pattern y Matcher\nPattern patron = Pattern.compile(\"(\\\\w+)@(\\\\w+\\\\.\\\\w+)\");\nMatcher matcher = patron.matcher(\"contacto@ejemplo.com\");\nif (matcher.matches()) {\n    System.out.println(\"Usuario: \" + matcher.group(1));  // \"contacto\"\n    System.out.println(\"Dominio: \" + matcher.group(2));   // \"ejemplo.com\"\n}\n\n// String.matches() para validacion simple\nboolean esEmail = \"test@example.com\".matches(\"[\\\\w.]+@[\\\\w.]+\");"
+        }
+      ],
+      "examples": [
+        "String s1 = \"abc\"; String s2 = \"abc\"; // s1 == s2 es true (String pool)",
+        "String s3 = new String(\"abc\"); // s1 == s3 es false",
+        "StringBuilder sb = new StringBuilder(); sb.append(\"a\").append(\"b\"); // \"ab\"",
+        "String texto = \"  Hola  \".strip(); // \"Hola\"",
+        "String[] partes = \"a,b,c\".split(\",\"); // [\"a\", \"b\", \"c\"]",
+        "String repetido = \"Ha\".repeat(3); // \"HaHaHa\"",
+        "boolean ok = \"test@example.com\".matches(\"[\\\\w.]+@[\\\\w.]+\");"
+      ]
+    },
+    {
+      "id": "core-records",
+      "title": "Records y sealed classes",
+      "content": "Los records (Java 16+) son clases inmutables compactas para transportar datos. El compilador genera automaticamente el constructor, getters (sin prefijo get), equals, hashCode y toString. Se declaran con record NombreClase(tipo campo, ...) { }. Son ideales para DTOs, value objects y datos inmutables.\n\nUn record es implicitamente final y extiende java.lang.Record. No puede heredar de otros records ni clases, pero si puede implementar interfaces. Los campos son private final; no hay setters. Puedes declarar campos adicionales con static y metodos adicionales, pero el estado solo se define en la parte compacta del record.\n\nLas compact canonical constructors permiten validacion antes de asignar campos. Si el nombre del constructor coincide con el record y no tiene parametros, es el canonical; si le agregas logica, validas antes de que se asignen los campos.\n\nSealed classes (Java 17+) restringen que clases pueden extenderlas o implementarlas. Se usan con permits: sealed class Animal permits Perro, Gato, Pajaro. Esto permite al compilador verificar exhaustividad en switch con pattern matching, y es fundamental para algebraic data types.\n\nPattern matching para sealed classes permite que el compilador determine automaticamente los casos posibles en un switch, eliminando la necesidad de un default cuando todos los casos estan cubiertos. Esto mejora la seguridad y reduce errores.\n\nConceptos avanzados:\n- Records pueden tener compact canonical constructors para validacion: public Record { public Record { if (campo == null) throw ... } }.\n- Los componentes de un record son efectivamente final; si un componente es una referencia a un objeto mutable, el record es inmutable en la referencia pero no en el estado del objeto.\n- Records no pueden declarar campos de instancia adicionales; todo se define en la cabecera.\n- Los records implementan equals y hashCode basados en todos los componentes.\n- Sealed classes con non-sealed permiten abrir la jerarquia.\n- Pattern matching en switch con sealed classes: el compilador sabe todos los casos y puede reportar si falta uno.\n\nErrores comunes:\n- Intentar heredar de un record: es implicitamente final.\n- Creer que los records son completamente inmutables: los componentes que son referencias a objetos mutables pueden cambiar su estado.\n- Olvidar que sealed classes requieren permits y que las subclases deben ser final, sealed o non-sealed.",
+      "sections": [
+        {
+          "title": "Records (Java 16+)",
+          "text": "Los records son clases inmutables compactas que el compilador genera automaticamente con constructor, getters, equals, hashCode y toString. Se declaran con record NombreClase(campos) { }. Son ideales para DTOs y value objects. Son implicitamente final y extienden Record.",
+          "code": "// Definicion de un record\npublic record Persona(String nombre, int edad) { }\n\n// Uso\nPersona p = new Persona(\"Ana\", 25);\nSystem.out.println(p.nombre());  // \"Ana\" (sin get)\nSystem.out.println(p.edad());    // 25\nSystem.out.println(p);           // Persona[nombre=Ana, edad=25]\n\n// Equals y hashCode estan implementados automaticamente\nPersona p2 = new Persona(\"Ana\", 25);\nSystem.out.println(p.equals(p2)); // true\n\n// Record con validacion en compact constructor\npublic record Email(String direccion) {\n    public Email {\n        if (direccion == null || !direccion.contains(\"@\")) {\n            throw new IllegalArgumentException(\"Email invalido\");\n        }\n    }\n}"
+        },
+        {
+          "title": "Records: campos y metodos adicionales",
+          "text": "Un record solo puede tener campos definidos en su cabecera, pero puede incluir campos estaticos, metodos adicionales, implementar interfaces y sobrescribir metodos. Los campos de instancia siempre son privados y finales; no existen los setters en records.",
+          "code": "public record Coordenada(double lat, double lon) implements Comparable<Coordenada> {\n    // Campo estatico\n    public static final Coordenada ORIGEN = new Coordenada(0, 0);\n\n    // Metodo adicional\n    public double distancia(Coordenada otra) {\n        return Math.sqrt(Math.pow(lat - otra.lat, 2) + Math.pow(lon - otra.lon, 2));\n    }\n\n    // Implementacion de interfaz\n    @Override\n    public int compareTo(Coordenada otra) {\n        return Double.compare(this.lat, otra.lat);\n    }\n\n    // Canonical constructor personalizado\n    public Coordenada {\n        if (lat < -90 || lat > 90) throw new IllegalArgumentException(\"Latitud invalida\");\n        if (lon < -180 || lon > 180) throw new IllegalArgumentException(\"Longitud invalida\");\n    }\n}"
+        },
+        {
+          "title": "Sealed classes (Java 17+)",
+          "text": "Las sealed classes restringen que clases pueden extenderlas o implementarlas. Se usan con la palabra clave permits para listar las subclases permitidas. Esto permite al compilador verificar exhaustividad en switch con pattern matching, y es fundamental para algebraic data types. Las subclases deben ser final, sealed o non-sealed.",
+          "code": "// Sealed class con permisos\npublic sealed class Forma permits Circulo, Rectangulo, Triangulo { }\n\npublic final class Circulo extends Forma {\n    double radio;\n}\n\npublic final class Rectangulo extends Forma {\n    double ancho, alto;\n}\n\npublic non-sealed class Triangulo extends Forma { }\n\n// El compilador sabe que solo hay 3 casos\nString describir(Forma forma) {\n    return switch (forma) {\n        case Circulo c    -> \"Circulo de radio \" + c.radio;\n        case Rectangulo r -> \"Rectangulo \" + r.ancho + \"x\" + r.alto;\n        case Triangulo t  -> \"Triangulo\";\n        // No se necesita default: el compilador verifica exhaustividad\n    };\n}"
+        },
+        {
+          "title": "Pattern matching y sealed classes",
+          "text": "Pattern matching con sealed classes permite que el compilador determine automaticamente los casos posibles en un switch. Si un switch cubre todos los casos de un sealed class, no se necesita default. Esto mejora la seguridad porque si se agrega una nueva subclase, el compilador reportara errores en los switches que no la manejan.",
+          "code": "// Algebraic data type con records y sealed classes\npublic sealed interface Resultado permits Exito, Error, Cargando { }\npublic record Exito(String datos) implements Resultado { }\npublic record Error(String mensaje) implements Resultado { }\npublic record Cargando() implements Resultado { }\n\n// Pattern matching exhaustivo\nString procesar(Resultado r) {\n    return switch (r) {\n        case Exito e  -> \"OK: \" + e.datos();\n        case Error e  -> \"Fallo: \" + e.mensaje();\n        case Cargando -> \"Cargando...\";\n        // No default necesario: sealed class tiene 3 casos, todos cubiertos\n    };\n}\n\n// Java 21: pattern matching con guarded patterns\nif (r instanceof Exito(String datos) && datos.length() > 5) {\n    System.out.println(\"Exito largo: \" + datos);\n}"
+        }
+      ],
+      "examples": [
+        "record Persona(String nombre, int edad) { } // define record",
+        "Persona p = new Persona(\"Ana\", 25); p.nombre(); // \"Ana\"",
+        "sealed class Forma permits Circulo, Rectangulo { } // sealed class",
+        "public final class Circulo extends Forma { double radio; } // subclase permitida",
+        "return switch (forma) { case Circulo c -> \"Circulo\"; case Rectangulo r -> \"Rect\"; }; // exhaustivo",
+        "record Coordenada(double lat, double lon) { } // record con compact constructor",
+        "Persona p2 = new Persona(\"Ana\", 25); p.equals(p2); // true (auto equals)"
       ]
     }
   ],
@@ -355,6 +427,81 @@
         ],
         "explanation": "Throwable es la raiz, Exception es su subclase, RuntimeException extiende Exception, y NullPointerException extiende RuntimeException.",
         "type": "ORDER"
+      },
+      {
+        "id": "cj-q12",
+        "text": "Que tipo de dato retorna el siguiente codigo?\n\nString s = \"abc\";\nSystem.out.println(s.getClass().getName());",
+        "options": [
+          "char[]",
+          "[C",
+          "java.lang.String",
+          "java.lang.CharSequence"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "getClass().getName() retorna \"java.lang.String\". Los Strings son objetos de la clase java.lang.String, no arrays de chars internamente (desde Java 9 usan byte[] con compact strings).",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q13",
+        "text": "Cual de las siguientes es la forma mas eficiente de concatenar strings dentro de un bucle?",
+        "options": [
+          "Usar el operador + directamente",
+          "Usar String.concat()",
+          "Usar StringBuilder.append()",
+          "Usar StringBuffer.append()"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "StringBuilder es la opcion mas eficiente en single-threaded porque es mutable y no crea objetos intermedios. El operador + en un bucle crea un nuevo String en cada iteracion. StringBuffer es sincronizada, innecesariamente lenta en single-threaded.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q14",
+        "text": "Que es un record en Java?",
+        "options": [
+          "Una clase abstracta para definir interfaces",
+          "Una clase inmutable compacta que genera automaticamente constructor, getters, equals, hashCode y toString",
+          "Un tipo de dato primitivo para valores grandes",
+          "Una interfaz funcional para lambdas"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Un record es una clase inmutable compacta (Java 16+) que genera automaticamente el constructor canonical, getters (sin prefijo get), equals, hashCode y toString. Es ideal para DTOs y value objects.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "cj-q15",
+        "text": "Cuales de las siguientes afirmaciones sobre sealed classes son correctas?",
+        "options": [
+          "Usan la palabra clave 'permits' para listar subclases permitidas",
+          "Las subclases deben ser final, sealed o non-sealed",
+          "Permiten al compilador verificar exhaustividad en switch",
+          "Pueden ser extendidas por cualquier clase sin restricciones"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Las sealed classes usan 'permits' para restringir subclases, las subclases deben ser final/sealed/non-sealed, y permiten exhaustividad en switch con pattern matching. La opcion D es incorrecta: justamente restringen la herencia.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "cj-q16",
+        "text": "En Java, la expresion \"abc\" == \"abc\" evalua a true porque ambos literales comparten la misma instancia en el String pool.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: los String literales se interningan automaticamente en el String pool, por lo que \"abc\" == \"abc\" es true porque apuntan al mismo objeto en memoria.",
+        "type": "TRUE_FALSE"
       }
     ]
   }

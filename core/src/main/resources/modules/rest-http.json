@@ -125,6 +125,104 @@
           "code": "public record CrearCuentaRequest(\n    @NotBlank(message = \"El nombre es obligatorio\")\n    String nombre,\n    @Email(message = \"Email invalido\")\n    String email,\n    @Min(value = 0, message = \"El saldo no puede ser negativo\")\n    double saldo\n) { }\n\n// Respuesta de error estandar\n{\n  \"status\": 422,\n  \"message\": \"Validacion fallida\",\n  \"errors\": [\n    {\"field\": \"email\", \"message\": \"Email invalido\"},\n    {\"field\": \"saldo\", \"message\": \"El saldo no puede ser negativo\"}\n  ],\n  \"timestamp\": \"2025-01-15T10:30:00Z\"\n}"
         }
       ]
+    },
+    {
+      "id": "http-auth",
+      "title": "Autenticacion y autorizacion en HTTP",
+      "content": "Autenticacion (quien eres) y autorizacion (que puedes hacer) son conceptos distintos que se manejan en capas separadas. HTTP no tiene sesion inherente; la identidad se transmite en cada peticion via cabeceras.\n\nLos mecanismos mas comunes: Basic Auth (base64 de usuario:password, inseguro sin HTTPS), Bearer tokens (JWT en Authorization), API Keys (query param o cabecera custom) y OAuth 2.0 (flujo de autorizacion con third parties).\n\nJWT (JSON Web Token) es el estandar actual:Header.Payload.Signature. El header indica el algoritmo, el payload carries claims (sub, exp, roles) y la firma garantiza integridad. El servidor valida la firma sin consultar una base de datos, lo que permite escalabilidad horizontal. Nunca guardar JWT en localStorage (XSS); usar httpOnly cookies o memory.\n\nOAuth 2.0 define flujos: Authorization Code (el mas seguro, con PKCE para SPAs), Client Credentials (machine-to-machine) y Implicit (obsoleto). Spring Security integra OAuth2 con @EnableOAuth2Client y ResourceServerConfiguration.\n\nErrores comunes en entrevistas: Confundir autenticacion (401) con autorizacion (403). Enviar JWT sin HTTPS. Guardar tokens en localStorage. No validar la expiracion de tokens. No usar refresh tokens para sesiones largas. Creer que Bearer tokens son inseguros (lo son si no se usa HTTPS).",
+      "sections": [
+        {
+          "title": "Basic Auth y Bearer tokens",
+          "text": "Basic Auth envia credenciales en base64 (no encriptado) en cada peticion. Inseguro sin HTTPS. Bearer tokens (JWT) envian un token firmado en Authorization: Bearer <token>. El servidor valida la firma sin consultar DB, permitiendo escalabilidad horizontal.",
+          "code": "// Basic Auth\nAuthorization: Basic dXN1cmlvOnBhc3N3b3Jk  // base64 de usuario:password\n\n// Bearer JWT\nAuthorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U\n\n// Estructura JWT\nHeader: {\"alg\": \"HS256\", \"typ\": \"JWT\"}\nPayload: {\"sub\": \"1234567890\", \"name\": \"Ana\", \"exp\": 1700000000}\nSignature: HMACSHA256(base64(header) + \".\" + base64(payload), secret)"
+        },
+        {
+          "title": "JWT en profundidad",
+          "text": "JWT es un token auto-contenido: el servidor valida la firma sin consultar una base de datos. Los claims estandar son sub (subject), exp (expiration), iat (issued at) y roles/permissions. La firma garantiza integridad: si alguien modifica el payload, la validacion falla. Nunca guardar JWT en localStorage por riesgo de XSS; usar httpOnly cookies o memoria.",
+          "code": "// Generar JWT en Java (con JJWT)\nString token = Jwts.builder()\n    .setSubject(userId)\n    .claim(\"roles\", List.of(\"ADMIN\", \"USER\"))\n    .setIssuedAt(new Date())\n    .setExpiration(Date.from(Instant.now().plus(Duration.ofMinutes(15))))\n    .signWith(key, SignatureAlgorithm.HS256)\n    .compact();\n\n// Validar JWT\nClaims claims = Jwts.parserBuilder()\n    .setSigningKey(key)\n    .build()\n    .parseClaimsJws(token)\n    .getBody();\n\nString userId = claims.getSubject();\nList<String> roles = claims.get(\"roles\", List.class);\n\n// Si exp ha vencido, lanza ExpiredJwtException"
+        },
+        {
+          "title": "OAuth 2.0 y flujos",
+          "text": "OAuth 2.0 es un framework de autorizacion que permite a un usuario dar acceso limitado a sus recursos a una tercera parte sin exponer credenciales. Define varios flujos segun el caso de uso: Authorization Code (el mas seguro, con PKCE para SPAs), Client Credentials (machine-to-machine) y Implicit (obsoleto).",
+          "code": "// Authorization Code Flow (simplificado)\n// 1. Cliente redirige al usuario al servidor de autorizacion\nGET /authorize?\n    response_type=code&\n    client_id=mi-app&\n    redirect_uri=https://mi-app.com/callback&\n    scope=read,write&\n    state=abc123  // proteccion contra CSRF\n\n// 2. Usuario autentica y autoriza\n// 3. Servidor redirige con codigo de autorizacion\n// https://mi-app.com/callback?code=AUTH_CODE_xyz&state=abc123\n\n// 4. Cliente intercambia codigo por token (en backend)\nPOST /token\n    grant_type=authorization_code&\n    code=AUTH_CODE_xyz&\n    redirect_uri=https://mi-app.com/callback&\n    client_id=mi-app&\n    client_secret=secret\n\n// 5. Servidor retorna access_token + refresh_token"
+        },
+        {
+          "title": "API Keys y rate limiting",
+          "text": "API Keys son tokens simples que identifican al cliente (no al usuario). Se envian en query params o cabeceras custom. Utiles para APIs publicas con rate limiting. No deben exponerse en codigo frontend ni en URLs cacheadas. Spring Cloud提供 @RateLimiter para limitar por IP o API key.",
+          "code": "// API Key en cabecera custom\nX-API-Key: ak_1234567890abcdef\n\n// API Key en query param (menos recomendado)\nGET /api/data?api_key=ak_1234567890abcdef\n\n// Rate limiting con Spring Boot\n@Configuration\npublic class RateLimitConfig {\n    @Bean\n    public RateLimiter rateLimiter() {\n        return RateLimiter.builder()\n            .limitForPeriod(100, Duration.ofMinutes(1))\n            .timeoutDuration(Duration.ofMillis(500))\n            .build();\n    }\n}\n\n// En el controller\n@GetMapping(\"/api/data\")\npublic ResponseEntity<?> getData(@RequestHeader(\"X-API-Key\") String apiKey) {\n    if (!rateLimiter.tryAcquire()) {\n        return ResponseEntity.status(429).body(\"Rate limit exceeded\");\n    }\n    // procesar request\n}"
+        }
+      ]
+    },
+    {
+      "id": "http-security",
+      "title": "Seguridad en APIs REST",
+      "content": "La seguridad en APIs REST se divide en tres capas: transport (HTTPS), autenticacion (quien eres) y autorizacion (que puedes hacer). Ademas hay protecciones especificas como CORS, rate limiting y validacion de entrada.\n\nHTTPS encripta el transporte con TLS. Sin HTTPS, los tokens viajan en texto plano y pueden ser interceptados. En produccion, HTTPS es obligatorio; en desarrollo se puede usar certificados auto-firmados. Spring Boot configura HTTPS con server.ssl.* properties.\n\nCORS (Cross-Origin Resource Sharing) controla que dominios pueden acceder a la API desde un navegador. Sin CORS, el navegador bloquea peticiones cross-origin. Spring configura CORS con @CrossOrigin o en WebConfig: allowedOrigins, allowedMethods, allowedHeaders, allowCredentials.\n\nValidacion de entrada: nunca confiar en el cliente. Sanitizar inputs para prevenir inyeccion SQL, XSS y otros ataques. Usar @Valid en DTOs, longitud maxima en strings, rangos en numeros. OWASP Top 10 es la referencia de seguridad para APIs.\n\nOtros patrones: HTTPS everywhere, headers de seguridad (HSTS, X-Content-Type-Options, X-Frame-Options), logging de eventos de seguridad sin exponer datos sensibles, y rotacion periodica de secretos.\n\nErrores comunes en entrevistas: No usar HTTPS en produccion. Configurar CORS con allowedOrigins(\"*\"). No sanitizar inputs. Exponer stack traces en errores 500. Guardar secrets en el codigo fuente. No rate limiting (vulnerable a DoS).",
+      "sections": [
+        {
+          "title": "HTTPS y TLS",
+          "text": "HTTPS encripta la comunicacion con TLS (Transport Layer Security). Sin HTTPS, tokens y credenciales viajan en texto plano. En produccion es obligatorio; Let's Encrypt ofrece certificados gratuitos. Spring Boot configura HTTPS con server.ssl.key-store y server.ssl.key-store-password.",
+          "code": "# application.properties\nserver.ssl.enabled=true\nserver.ssl.key-store=classpath:keystore.p12\nserver.ssl.key-store-password=secret\nserver.ssl.key-store-type=PKCS12\nserver.ssl.key-alias=tomcat\n\n# HTTP redirect a HTTPS (en produccion)\nserver.port=8443\nserver.ssl.enabled=true"
+        },
+        {
+          "title": "CORS en Spring Boot",
+          "text": "CORS controla que dominios pueden acceder a la API desde un navegador. Sin CORS, el navegador bloquea peticiones cross-origin (ej: front en :5174, back en :8080). Configurar allowedOrigins con dominios especificos, nunca con asterisco en produccion si se usa credentials.",
+          "code": "@Configuration\npublic class WebConfig implements WebMvcConfigurer {\n    @Override\n    public void addCorsMappings(CorsRegistry registry) {\n        registry.addMapping(\"/api/**\")\n            .allowedOrigins(\"http://localhost:5174\")\n            .allowedMethods(\"GET\", \"POST\", \"PUT\", \"PATCH\", \"DELETE\")\n            .allowedHeaders(\"*\")\n            .allowCredentials(true)\n            .maxAge(3600);\n    }\n}\n\n// Per-endpoint\n@CrossOrigin(origins = \"http://localhost:5174\")\n@GetMapping(\"/api/cuentas\")\npublic List<CuentaDto> listar() { ... }"
+        },
+        {
+          "title": "Validacion y OWASP Top 10",
+          "text": "Nunca confiar en el cliente. Sanitizar todos los inputs para prevenir inyeccion SQL, XSS y otros ataques. Usar @Valid en DTOs, longitud maxima en strings, rangos en numeros. OWASP Top 10 es la referencia de seguridad para APIs web. Inyeccion SQL se previene con PreparedStatement, no con concatenacion.",
+          "code": "// Validacion robusta en el DTO\npublic record CrearUsuarioRequest(\n    @NotBlank @Size(min = 3, max = 50)\n    String nombre,\n    @Email @NotBlank\n    String email,\n    @NotBlank @Size(min = 8, max = 100)\n    String password,\n    @Min(0) @Max(150)\n    int edad\n) { }\n\n// Prevencion de inyeccion SQL\n// MAL: String sql = \"SELECT * FROM users WHERE name = '\" + name + \"'\";\n// BIEN:\nPreparedStatement ps = conn.prepareStatement(\n    \"SELECT * FROM users WHERE name = ?\");\nps.setString(1, name);"
+        },
+        {
+          "title": "Headers de seguridad",
+          "text": "Los headers de seguridad protegen contra ataques comunes. HSTS fuerza HTTPS, X-Content-Type-Options previene MIME sniffing, X-Frame-Options previene clickjacking, y Content-Security-Policy limita recursos cargados. Spring Security los agrega automaticamente.",
+          "code": "HSTS: max-age=31536000; includeSubDomains  // fuerza HTTPS\nX-Content-Type-Options: nosniff  // previene MIME sniffing\nX-Frame-Options: DENY  // previene clickjacking\nX-XSS-Protection: 1; mode=block  // filtro XSS del navegador\nContent-Security-Policy: default-src 'self'  // limita recursos\nReferrer-Policy: strict-origin-when-cross-origin\n\n// Spring Security los agrega automaticamente\n@EnableWebSecurity\npublic class SecurityConfig {\n    @Bean\n    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {\n        return http\n            .headers(headers -> headers\n                .contentSecurityPolicy(csp -> csp\n                    .policyDirectives(\"default-src 'self'\")\n                )\n            )\n            .build();\n    }\n}"
+        }
+      ]
+    },
+    {
+      "id": "http-caching",
+      "title": "Cache en HTTP",
+      "content": "La cache en HTTP reduce latencia y carga del servidor al almacenar respuestas que no cambian frecuentemente. Existen tres niveles: browser cache, proxy cache (CDN) y server cache. Cada nivel se controla con cabeceras.\n\nCache-Control es la cabecera principal: max-age (duracion), no-store (no cachear), no-cache (revalidar siempre), private (solo browser), shared (CDNs). ETag es un hash del recurso; el cliente envia If-None-Match con el ETag y el servidor responde 304 si no cambio. Last-Modified / If-Modified-Since funciona similar pero con timestamps.\n\nEl flujo tipico: el servidor envia Cache-Control: max-age=3600 y ETag: \"abc123\". Durante una hora, el browser usa la cache sin consultar. Despues, envia If-None-Match: \"abc123\" y el servidor responde 304 (sin cuerpo) si no cambio, o 200 con el nuevo recurso si cambio.\n\nEn APIs REST, las respuestas de lectura deben incluir cabeceras de cache. Las escrituras deben invalidar caches relacionados. La cache privada (browser) es distinta de la compartida (CDN). Los caches no funcionan con POST/PUT/DELETE; solo con metodos safe.\n\nErrores comunes en entrevistas: No configurar Cache-Control en respuestas GET. Usar no-store en todo (desactiva cache innecesariamente). No usar ETags para concurrencia optimista. Asumir que la cache funciona con POST. No invalidar caches al modificar recursos.",
+      "sections": [
+        {
+          "title": "Cache-Control y ETag",
+          "text": "Cache-Control define las politicas de cache: max-age (duracion en segundos), no-store (no cachear), no-cache (revalidar siempre), private (solo browser), shared (CDNs). ETag es un hash del recurso que permite revalidacion condicional. Si el ETag no cambia, el servidor responde 304 sin transferir el cuerpo.",
+          "code": "// Respuesta con cache\nHTTP/1.1 200 OK\nCache-Control: max-age=3600, private\nETag: \"v1-abc123\"\nContent-Type: application/json\n\n{\"id\": 1, \"nombre\": \"Ana\", \"saldo\": 2500}\n\n// Revalidacion: el cliente envia el ETag anterior\nGET /api/cuentas/1\nIf-None-Match: \"v1-abc123\"\n\n// Si no cambio:\nHTTP/1.1 304 Not Modified\n(etiqueta coincide, sin cuerpo)\n\n// Si cambio:\nHTTP/1.1 200 OK\nETag: \"v2-def456\"\n{\"id\": 1, \"nombre\": \"Ana\", \"saldo\": 3000}"
+        },
+        {
+          "title": "Last-Modified y cache de browser",
+          "text": "Last-Modified / If-Modified-Since es un mecanismo alternativo a ETag basado en timestamps. El browser almacena la fecha de ultima modificacion y la envia en subsequentes peticiones. Si el recurso no se修改o desde esa fecha, el servidor responde 304. Cache-Control: max-age controla cuanto tiempo el browser usa la cache sin consultar.",
+          "code": "// Primera peticion\nGET /api/cuentas/1\n\nHTTP/1.1 200 OK\nLast-Modified: Tue, 01 Jan 2025 00:00:00 GMT\nCache-Control: max-age=86400  // 24 horas\n\n// Segunda peticion (dentro de 24h, usa cache local)\nGET /api/cuentas/1\n// El browser NO hace la peticion al servidor\n\n// Tercera peticion (despues de 24h, revalida)\nGET /api/cuentas/1\nIf-Modified-Since: Tue, 01 Jan 2025 00:00:00 GMT\n\n// Si no cambio:\nHTTP/1.1 304 Not Modified\n\n// Si cambio:\nHTTP/1.1 200 OK\nLast-Modified: Wed, 02 Jan 2025 12:00:00 GMT"
+        },
+        {
+          "title": "Estrategias de cache en APIs",
+          "text": "En APIs REST, las respuestas GET deben incluir cabeceras de cache. Las escrituras (POST/PUT/DELETE) deben invalidar caches relacionados. La cache privada (browser) es distinta de la compartida (CDN). Los caches solo funcionan con metodos safe (GET, HEAD). Spring soporta cache con @Cacheable y @CacheEvict.",
+          "code": "// Spring Cache abstraction\n@Service\npublic class CuentaService {\n    @Cacheable(value = \"cuentas\", key = \"#id\")\n    public CuentaDto findById(Long id) {\n        // solo se ejecuta si no esta en cache\n        return repository.findById(id)\n            .map(CuentaDto::from)\n            .orElseThrow();\n    }\n\n    @CacheEvict(value = \"cuentas\", key = \"#id\")\n    public void update(Long id, CrearCuentaRequest req) {\n        // invalida la cache al modificar\n    }\n\n    @CacheEvict(value = \"cuentas\", allEntries = true)\n    @Scheduled(fixedRate = 3600000)  // cada hora\n    public void evictAll() {\n        // invalidacion periodica\n    }\n}"
+        }
+      ]
+    },
+    {
+      "id": "http-testing",
+      "title": "Testing de APIs REST",
+      "content": "El testing de APIs REST verifica que los endpoints funcionan correctamente: status codes, response bodies, headers, validacion y manejo de errores. Existen tres niveles: unit tests (MockMvc), integration tests (TestRestTemplate) y contract tests (Pact, Spring Cloud Contract).\n\nMockMvc permite testear endpoints sin levantar el servidor completo. Es rapido y aislado. Se usa con @WebMvcTest y se simula el comportamiento del controller. TestRestTemplate levanta el contexto completo de Spring y hace peticiones HTTP reales al servidor de prueba.\n\n contract testing verifica que el backend y el frontend cumplen el mismo contrato de API. Spring Cloud Contract genera stubs que el frontend puede consumir en sus tests. Esto evita breaking changes entre versiones.\n\nBuenas practicas: testear todos los codes de respuesta posibles (exito, error del cliente, error del servidor), verificar headers de cache, probar validacion de entrada, y testear el flujo completo (crear -> obtener -> modificar -> eliminar). Los tests de integracion deben ser independentes entre si.\n\nErrores comunes en entrevistas: Solo testear el happy path (200 OK). No testear errores de validacion (400/422). No verificar headers en respuestas. Usar datos hardcodeados que dependen del estado de la DB. No testear paginacion. Olvidar testear CORS.",
+      "sections": [
+        {
+          "title": "MockMvc: tests unitarios de endpoints",
+          "text": "MockMvc permite testear endpoints sin levantar el servidor completo. Es rapido y aislado. Se configura con @WebMvcTest y se simula el comportamiento del service con @MockBean. Permite verificar status codes, response bodies, headers y validacion.",
+          "code": "@WebMvcTest(CuentaController.class)\nclass CuentaControllerTest {\n\n    @Autowired\n    private MockMvc mockMvc;\n\n    @MockBean\n    private CuentaService service;\n\n    @Test\n    void shouldReturnCuenta_whenExists() throws Exception {\n        when(service.findById(1L)).thenReturn(new CuentaDto(1L, \"Ana\", \"ana@test.com\", 2500, true));\n\n        mockMvc.perform(get(\"/api/cuentas/1\")\n                .accept(MediaType.APPLICATION_JSON))\n            .andExpect(status().isOk())\n            .andExpect(jsonPath(\"$.id\").value(1))\n            .andExpect(jsonPath(\"$.nombre\").value(\"Ana\"))\n            .andExpect(jsonPath(\"$.saldo\").value(2500));\n    }\n\n    @Test\n    void shouldReturn404_whenNotFound() throws Exception {\n        when(service.findById(99L)).thenThrow(new ResourceNotFoundException(\"Cuenta\", 99L));\n\n        mockMvc.perform(get(\"/api/cuentas/99\"))\n            .andExpect(status().isNotFound());\n    }\n\n    @Test\n    void shouldReturn400_whenInvalidInput() throws Exception {\n        String body = \"{\\\"nombre\\\": \\\"\\\", \\\"email\\\": \\\"invalido\\\"}\";\n\n        mockMvc.perform(post(\"/api/cuentas\")\n                .contentType(MediaType.APPLICATION_JSON)\n                .content(body))\n            .andExpect(status().isBadRequest());\n    }\n}"
+        },
+        {
+          "title": "TestRestTemplate: tests de integracion",
+          "text": "TestRestTemplate levanta el contexto completo de Spring y hace peticiones HTTP reales al servidor de prueba. Es mas lento que MockMvc pero mas realista. Se usa con @SpringBootTest y TestRestTemplate inyectado. Util para testear el flujo completo CRUD.",
+          "code": "@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)\nclass CuentaIntegrationTest {\n\n    @Autowired\n    private TestRestTemplate restTemplate;\n\n    @Test\n    void shouldCreateAndRetrieveCuenta() {\n        // Crear\n        CrearCuentaRequest req = new CrearCuentaRequest(\"Ana\", \"ana@test.com\");\n        ResponseEntity<CuentaDto> createResponse = restTemplate.postForEntity(\n            \"/api/cuentas\", req, CuentaDto.class);\n        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);\n        Long id = createResponse.getBody().id();\n\n        // Obtener\n        ResponseEntity<CuentaDto> getResponse = restTemplate.getForEntity(\n            \"/api/cuentas/\" + id, CuentaDto.class);\n        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);\n        assertThat(getResponse.getBody().nombre()).isEqualTo(\"Ana\");\n\n        // Eliminar\n        restTemplate.delete(\"/api/cuentas/\" + id);\n        ResponseEntity<CuentaDto> deletedResponse = restTemplate.getForEntity(\n            \"/api/cuentas/\" + id, CuentaDto.class);\n        assertThat(deletedResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);\n    }\n}"
+        },
+        {
+          "title": "Contract testing con Spring Cloud Contract",
+          "text": "Contract testing verifica que backend y frontend cumplen el mismo contrato de API. Spring Cloud Contract genera stubs desde anotaciones Java o definiciones YAML. El frontend consume los stubs en sus tests para verificar que la API cumple sus expectativas, evitando breaking changes.",
+          "code": "// Definicion de contrato (Groovy)\nContract.make {\n    description(\"Deberia devolver una cuenta por id\")\n    request {\n        method 'GET'\n        url '/api/cuentas/1'\n        headers {\n            accept(applicationJson())\n        }\n    }\n    response {\n        status 200\n        headers {\n            contentType(applicationJson())\n        }\n        body([\n            id: 1,\n            nombre: \"Ana\",\n            email: \"ana@test.com\",\n            saldo: 2500.0,\n            activa: true\n        ])\n    }\n}\n\n// Genera stubs automaticamente\n// mvn generateStubs\n// Los stubs se publican como artifact Maven\n// El frontend los consume en sus tests"
+        }
+      ]
     }
   ],
   "quiz": {
@@ -300,6 +398,140 @@
         ],
         "explanation": "400 (peticion mal formada), 401 (sin autenticacion), 403 (sin autorizacion), 404 (no encontrado), 500 (error interno del servidor).",
         "type": "ORDER"
+      },
+      {
+        "id": "rh-q12",
+        "text": "Que indica el codigo 401 Unauthorized?",
+        "options": [
+          "El recurso no fue encontrado",
+          "Falta autenticacion o el token es invalido",
+          "El cliente no tiene permisos",
+          "La peticion esta mal formada"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "401 indica que falta autenticacion o el token es invalido. 403 indica autenticacion exitosa pero autorizacion insuficiente.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q13",
+        "text": "Que cabecera HTTP se usa para autenticar con JWT?",
+        "options": [
+          "X-Auth-Token",
+          "Cookie",
+          "Authorization: Bearer <token>",
+          "X-JWT-Token"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "La cabecera Authorization con el esquema Bearer es el estandar para enviar JWT en peticiones HTTP.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q14",
+        "text": "Cuales son las ventajas de usar ETag en una API REST?",
+        "options": [
+          "Reduce el trafico de red al evitar transferir recursos que no cambiaron",
+          "Permite concurrencia optimista para evitar sobreescrituras",
+          "Mejora la seguridad de la API",
+          "Acelera la serializacion JSON"
+        ],
+        "correctIndexes": [
+          0,
+          1
+        ],
+        "explanation": "ETag permite revalidacion condicional (304 Not Modified) y concurrencia optimista con If-Match. No afecta directamente la seguridad ni la serializacion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "rh-q15",
+        "text": "CORS protege contra ataques de sitios cruzados.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Verdadero: CORS (Cross-Origin Resource Sharing) es un mecanismo de seguridad del navegador que controla que dominios pueden acceder a la API desde javascript.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "rh-q16",
+        "text": "Que flujo de OAuth 2.0 es el mas recomendado para Single Page Applications (SPAs)?",
+        "options": [
+          "Implicit Grant",
+          "Password Grant",
+          "Authorization Code con PKCE",
+          "Client Credentials"
+        ],
+        "correctIndexes": [
+          2
+        ],
+        "explanation": "Authorization Code con PKCE (Proof Key for Code Exchange) es el flujo mas seguro para SPAs. Implicit Grant es obsoleto porque expone el token en la URL.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q17",
+        "text": "Que cabecera HTTP se usa para configurar politicas de cache?",
+        "options": [
+          "X-Cache-Policy",
+          "Cache-Control",
+          "If-None-Match",
+          "Last-Modified"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Cache-Control es la cabecera principal para politicas de cache: max-age, no-store, no-cache, private, shared. If-None-Match y Last-Modified son para revalidacion.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q18",
+        "text": "Que tipo de test usa MockMvc para probar endpoints?",
+        "options": [
+          "Test de integracion con base de datos",
+          "Test unitario del controller sin levantar servidor",
+          "Test end-to-end con navegador",
+          "Test de contrato con frontend"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "MockMvc permite testear endpoints sin levantar el servidor completo. Es un test unitario del controller, rapido y aislado. Se usa con @WebMvcTest.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q19",
+        "text": "Cuales son las tres capas de seguridad en una API REST?",
+        "options": [
+          "Transport (HTTPS), Autenticacion, Autorizacion",
+          "CORS, Rate Limiting, Cache",
+          "JWT, OAuth, API Keys",
+          "Firewall, IDS, WAF"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "Las tres capas principales son: transport (HTTPS/TLS), autenticacion (quien eres) y autorizacion (que puedes hacer). CORS y rate limiting son protecciones adicionales.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "rh-q20",
+        "text": "Que indica el codigo 429 Too Many Requests?",
+        "options": [
+          "Error de validacion del servidor",
+          "Rate limiting: el cliente ha enviado demasiadas peticiones",
+          "El recurso fue eliminado permanentemente",
+          "El servidor esta sobrecargado"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "429 es el codigo estandar para rate limiting. Debe incluir la cabecera Retry-After indicando cuando reintentar.",
+        "type": "SINGLE"
       }
     ]
   }

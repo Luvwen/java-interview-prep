@@ -156,6 +156,55 @@
           "code": "# Configurar firma GPG\ngit config --global user.signingkey ABCD1234\n\n# Crear commit firmado\ngit commit -S -m \"feat: add signed commit support\"\n\n# Verificar firmas\ngit log --show-signature\n\n# --- Submodulos ---\n# Agregar un repositorio como submodulo\ngit submodule add https://github.com/lib/utils.git libs/utils\n\n# Clonar un repositorio con submodulos\ngit clone --recursive https://github.com/user/proyecto.git\n\n# Actualizar submodulos existentes\ngit submodule update --init --recursive"
         }
       ]
+    },
+    {
+      "id": "git-reset-restore",
+      "title": "Reset, restore y operaciones destructivas",
+      "content": "git reset mueve el HEAD (y opcionalmente el staging y working tree) a un commit especifico. Tiene tres modos: --soft (solo mueve HEAD, conserva staging y working), --mixed (mueve HEAD y resetea staging, conserva working) y --hard (mueve HEAD, resetea staging Y working, descartando cambios).\n\n--soft es util para combinar los ultimos commits en uno. --mixed es el default: deshace el commit pero conserva los cambios en working. --hard es destructivo: descarta todos los cambios no commiteados. La diferencia clave con git revert es que reset reescribe la historia mientras que revert crea un nuevo commit.\n\nEl objeto special HEAD~1 (o HEAD~) se refiere al commit padre del HEAD actual. git reset HEAD~1 mueve el HEAD un commit atras. Con --hard, esto descarta el ultimo commit y todos sus cambios.\n\nConceptos avanzados:\n- git restore (desde Git 2.23) reemplaza a git checkout para restaurar archivos: git restore archivo quita cambios del working; git restore --staged archivo quita del staging.\n- git clean -fd elimina archivos y directorios no rastreados. Es destructivo y no tiene undo directo; usar siempre -n (dry-run) primero.\n- git reset --keep es similar a --hard pero preserva cambios locales si no hay conflictos, ofreciendo una alternativa mas segura.\n- El reflog permite recuperar cualquier commit, incluso despues de un --hard: git reflog muestra el hash anterior, y git reset --hard <hash> lo restaura.\n\nErrores comunes en entrevistas:\n- Confundir git reset con git revert: reset reescribe historia (peligroso en compartido), revert crea un commit nuevo (seguro).\n- Usar --hard sin saber que descarta cambios irrecuperables (aunque el reflog ayuda).\n- No conocer git restore como alternativa moderna a git checkout para archivos.",
+      "sections": [
+        {
+          "title": "git reset: los tres modos",
+          "text": "git reset controla que areas se resetean. --soft solo mueve HEAD (ideal para squash). --mixed (default) mueve HEAD y resetea staging pero conserva working. --hard resetea todo: HEAD, staging y working, descartando cambios no commiteados.",
+          "code": "# --soft: combinar ultimos 3 commits en uno\ngit reset --soft HEAD~3\ngit commit -m \"feat: all new features squashed\"\n\n# --mixed (default): deshace commit pero conserva cambios\ngit reset HEAD~1\n# Los cambios quedan en working directory\n\n# --hard: descarta todo (DESTRUCTIVO)\ngit reset --hard HEAD~1\n# El ultimo commit Y sus cambios se pierden\n\n# Reset a un commit especifico\ngit reset --hard abc1234\n\n# Reset un solo archivo al estado del último commit\ngit reset HEAD -- src/Main.java"
+        },
+        {
+          "title": "git restore y git clean",
+          "text": "git restore reemplaza archivos en working o staging con la version del commit. --staged quita del staging sin tocar working. --worktree restaura working sin tocar staging. git clean -fd elimina archivos no rastreados (sin undo directo, usar -n primero).",
+          "code": "# Descartar cambios en working (volver a la version del commit)\ngit restore src/Main.java\n\n# Quitar archivo del staging (sin borrar cambios del working)\ngit restore --staged src/Main.java\n\n# Restaurar archivo a como estaba en un commit especifico\ngit restore --source=HEAD~1 src/Main.java\n\n# Dry-run: ver que eliminaria git clean\ngit clean -fdn\n\n# Eliminar archivos y directorios no rastreados\ngit clean -fd\n\n# Eliminar tambien ignorados\ngit clean -fdx"
+        }
+      ],
+      "examples": [
+        "git reset --soft HEAD~3",
+        "git reset --hard abc1234",
+        "git restore src/Main.java",
+        "git restore --staged src/Main.java",
+        "git clean -fdn  # dry-run antes de limpiar",
+        "git reset --hard HEAD~1  # deshace el ultimo commit"
+      ]
+    },
+    {
+      "id": "git-hooks-tags",
+      "title": "Hooks, tags y automatizacion",
+      "content": "Git hooks son scripts que se ejecutan automaticamente en eventos especificos del ciclo de vida del commit. Viven en .git/hooks/ y no se commitean. El hook mas comun es pre-commit (lint, tests), que se ejecuta antes de confirmar y puede abortar el commit si falla.\n\nLos hooks mas importantes: pre-commit (antes del commit), commit-msg (validar mensaje), pre-push (antes de push al remoto) y post-merge (despues de merge). Son scripts shell o Python que Git ejecuta en secuencia.\n\nLos tags son marcadores inmutables para puntos importantes como releases. git tag v1.0 crea un tag ligero (solo apunta al commit). git tag -a v1.0 -m 'Release 1.0' crea un tag anotado con metadata. Los tags se push con git push origin v1.0.\n\nConceptos avanzados:\n- Los hooks permiten automatizar calidad de codigo: eslint en pre-commit, validacion de mensaje en commit-msg, y tests en pre-push.\n- Los hooks server-side se ejecutan en el remoto (pre-receive, update) y se usan para validar pushes antes de aceptarlos.\n- Los tags firmados con GPG proveen autenticacion del autor del release: git tag -s v1.0 -m 'Signed release'.\n- Los tags se pueden usar para desplegar versiones especificas: git checkout v1.0 permite volver a ese punto exacto.\n- git tag -d v1.0 elimina un tag local; git push origin --delete v1.0 lo elimina del remoto.",
+      "sections": [
+        {
+          "title": "Git hooks: pre-commit, commit-msg, pre-push",
+          "text": "Los hooks son scripts que Git ejecuta automaticamente. pre-commit se ejecuta antes del commit (ideal para lint y tests), commit-msg valida el mensaje, y pre-push verifica antes de subir al remoto. Se configuran en .git/hooks/ y no se commitean.",
+          "code": "# Crear hook pre-commit (bash)\n#!/bin/bash\n# .git/hooks/pre-commit\n\n# Ejecutar tests antes de commitear\necho \"Running tests...\"\nmvn test -q\nif [ $? -ne 0 ]; then\n  echo \"Tests failed. Commit aborted.\"\n  exit 1\nfi\n\n# Ejecutar lint\necho \"Running lint...\"\n# eslint src/ --max-warnings 0\nif [ $? -ne 0 ]; then\n  echo \"Lint failed. Commit aborted.\"\n  exit 1\nfi\n\n# Commit-msg: validar formato\ncat .git/COMMIT_MSG | grep -qE \"^(feat|fix|chore|docs|refactor):\"\nif [ $? -ne 0 ]; then\n  echo \"Invalid commit message format!\"\n  echo \"Use: feat: description\"\n  exit 1\nfi"
+        },
+        {
+          "title": "Tags: ligeros, anotados y firmados",
+          "text": "Los tags son marcadores inmutables para puntos importantes como releases. Un tag ligero solo apunta al commit. Un tag anotado incluye metadata (autor, fecha, mensaje). Los tags firmados con GPG proveen autenticacion. Se push por separado con git push origin <tag>.",
+          "code": "# Tag ligero (solo apunta al commit)\ngit tag v1.0\n\n# Tag anotado con metadata\ngit tag -a v1.0 -m \"Release 1.0: auth + search\"\n\n# Tag firmado con GPG\ngit tag -s v1.0 -m \"Signed release v1.0\"\n\n# Listar tags\ngit tag              # todos\ngit tag -l \"v1.*\"    # filtrar por patron\n\n# Subir tags al remoto\ngit push origin v1.0          # tag especifico\ngit push origin --tags        # todos los tags\n\n# Verificar un tag\ngit show v1.0\n\n# Eliminar tag\ngit tag -d v1.0                           # local\ngit push origin --delete v1.0              # remoto\n\n# Checkout de un tag (ver el codigo en ese release)\ngit checkout v1.0\n\n# Crear rama desde un tag\ngit checkout -b hotfix/v1.0-fix v1.0"
+        }
+      ],
+      "examples": [
+        "#!/bin/bash # .git/hooks/pre-commit",
+        "git tag -a v1.0 -m \"Release 1.0\"",
+        "git push origin v1.0",
+        "git checkout v1.0",
+        "git tag -d v1.0 && git push origin --delete v1.0"
+      ]
     }
   ],
   "quiz": {
@@ -329,6 +378,67 @@
         ],
         "explanation": "Primero se intenta el merge, luego se edita el archivo para resolver el conflicto, se agrega con git add y finalmente se confirma con git commit.",
         "type": "ORDER"
+      },
+      {
+        "id": "gi-q12",
+        "text": "Que hace git reset --hard HEAD~1?",
+        "options": [
+          "Deshace el ultimo commit conservando los cambios en working",
+          "Deshace el ultimo commit descartando todos los cambios",
+          "Crea un nuevo commit que revierte el anterior",
+          "Elimina la rama actual"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "git reset --hard mueve el HEAD y descarta todos los cambios tanto del staging como del working directory, perdiendo el commit y sus modificaciones.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "gi-q13",
+        "text": "Cual es la diferencia entre git reset y git revert?",
+        "options": [
+          "Reset reescribe la historia; revert crea un nuevo commit que deshace el cambio",
+          "Son comandos identicos con nombres diferentes",
+          "Revert reescribe la historia; reset crea un nuevo commit",
+          "Reset solo funciona en local; revert en cualquier lugar"
+        ],
+        "correctIndexes": [
+          0
+        ],
+        "explanation": "git reset mueve el HEAD y reescribe historia (peligroso en ramas compartidas). git revert crea un nuevo commit que deshace los cambios, la forma segura de deshacer en historial compartido.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "gi-q14",
+        "text": "Un tag ligero y un tag anotado son exactamente iguales.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [
+          1
+        ],
+        "explanation": "Falso: un tag anotado incluye metadata como autor, fecha y mensaje de la tag. Un tag ligero solo apunta al commit sin metadata adicional. Los anotados son preferidos para releases.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "gi-q15",
+        "text": "Que hooks de Git son utiles para automatizar calidad de codigo?",
+        "options": [
+          "pre-commit (lint, tests antes de commitear)",
+          "commit-msg (validar formato del mensaje)",
+          "pre-push (tests antes de subir al remoto)",
+          "post-merge (instalar dependencias despues de merge)"
+        ],
+        "correctIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "explanation": "Todos son hooks validos: pre-commit ejecuta lint/tests, commit-msg valida formato, pre-push ejecuta tests finales, y post-merge puede instalar dependencias.",
+        "type": "MULTIPLE"
       }
     ]
   }

@@ -43,7 +43,7 @@ class ApiIntegrationTest {
         mockMvc.perform(get("/api/modules/poo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("POO"))
-                .andExpect(jsonPath("$.topics", hasSize(5)));
+                .andExpect(jsonPath("$.topics", hasSize(7)));
     }
 
     @Test
@@ -56,7 +56,6 @@ class ApiIntegrationTest {
     void quizResponseIncludesCorrectIndexes() throws Exception {
         mockMvc.perform(get("/api/modules/core-java/quiz"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.questions", hasSize(11)))
                 .andExpect(jsonPath("$.questions[0].correctIndexes").isArray())
                 .andExpect(jsonPath("$.questions[?(@.type=='TRUE_FALSE')]").isNotEmpty())
                 .andExpect(jsonPath("$.questions[?(@.type=='ORDER')]").isNotEmpty());
@@ -65,15 +64,15 @@ class ApiIntegrationTest {
     @Test
     void submitsQuizAndReturnsFeedback() throws Exception {
         String body = """
-                {"answers": [[1], [0], [0, 1, 3], [1], [0], [1], [0, 1, 2, 3], [1], [0], [1], [0, 1, 2, 3]]}
+                {"answers": [[1], [0], [0, 1, 3], [1], [0], [1], [0, 1, 2, 3], [1], [0], [1], [0, 1, 2, 3], [2], [2], [0], [0], [0]]}
                 """;
         mockMvc.perform(post("/api/modules/core-java/quiz")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.score").isNumber())
-                .andExpect(jsonPath("$.total").value(11))
-                .andExpect(jsonPath("$.feedback", hasSize(11)));
+                .andExpect(jsonPath("$.total").value(16))
+                .andExpect(jsonPath("$.feedback", hasSize(16)));
     }
 
     @Test

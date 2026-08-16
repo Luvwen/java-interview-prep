@@ -182,6 +182,11 @@
           "title": "Bridge: separar abstraccion de implementacion",
           "text": "Bridge separa una abstraccion de su implementacion para que ambas jerarquias varien independientemente. Usa composicion en lugar de herencia: la abstraccion contiene una referencia a la implementacion. Reduce explosiones de clases (M x N -> M + N) y permite intercambiar la implementacion en runtime.",
           "code": "interface Renderizador {\n    void renderCirculo(double radio);\n    void renderRectangulo(double w, double h);\n}\n\nclass SVGRenderizador implements Renderizador {\n    public void renderCirculo(double radio) {\n        System.out.println(\"SVG circle r=\" + radio);\n    }\n    public void renderRectangulo(double w, double h) {\n        System.out.println(\"SVG rect \" + w + \"x\" + h);\n    }\n}\n\nclass CanvasRenderizador implements Renderizador {\n    public void renderCirculo(double radio) {\n        System.out.println(\"Canvas arc r=\" + radio);\n    }\n    public void renderRectangulo(double w, double h) {\n        System.out.println(\"Canvas fillRect \" + w + \"x\" + h);\n    }\n}\n\nabstract class Forma {\n    protected final Renderizador renderizador;\n    Forma(Renderizador r) { this.renderizador = r; }\n    abstract void dibujar();\n}\n\nclass Circulo extends Forma {\n    private final double radio;\n    Circulo(Renderizador r, double radio) { super(r); this.radio = radio; }\n    void dibujar() { renderizador.renderCirculo(radio); }\n}\n\nclass Rectangulo extends Forma {\n    private final double w, h;\n    Rectangulo(Renderizador r, double w, double h) { super(r); this.w = w; this.h = h; }\n    void dibujar() { renderizador.renderRectangulo(w, h); }\n}\n\nForma c = new Circulo(new SVGRenderizador(), 5.0);\nc.dibujar();\nForma rect = new Rectangulo(new CanvasRenderizador(), 10, 20);\nrect.dibujar();"
+        },
+        {
+          "title": "Composite: tratar individuos y compuestos igual",
+          "text": "Composite permite tratar por igual a objetos individuales (hojas) y a grupos de objetos (compuestos). Usa una interfaz comun para ambos. Tipico en estructuras de arbol: archivos y carpetas, menus y submenus, grafos de UI. Cada componente puede ser hoja (sin hijos) o compuesto (con hijos).",
+          "code": "// Interfaz comun para hojas y compuestos\ninterface Componente {\n    void mostrar(String indent);\n    double getTamano();\n}\n\n// Hoja: archivo individual\nclass Archivo implements Componente {\n    private final String nombre;\n    private final double tamano;\n\n    Archivo(String nombre, double tamano) {\n        this.nombre = nombre;\n        this.tamano = tamano;\n    }\n\n    void mostrar(String indent) {\n        System.out.println(indent + \"- \" + nombre + \" (\" + tamano + \" KB)\");\n    }\n\n    double getTamano() { return tamano; }\n}\n\n// Compuesto: carpeta que contiene archivos y subcarpetas\nclass Carpeta implements Componente {\n    private final String nombre;\n    private final List<Componente> hijos = new ArrayList<>();\n\n    Carpeta(String nombre) { this.nombre = nombre; }\n\n    void agregar(Componente c) { hijos.add(c); }\n\n    void mostrar(String indent) {\n        System.out.println(indent + \"+ \" + nombre + \" (\" + getTamano() + \" KB)\");\n        hijos.forEach(h -> h.mostrar(indent + \"  \"));\n    }\n\n    double getTamano() {\n        return hijos.stream().mapToDouble(Componente::getTamano).sum();\n    }\n}\n\n// Uso\nCarpeta raiz = new Carpeta(\"proyecto\");\nraiz.agregar(new Archivo(\"readme.md\", 5));\nCarpeta src = new Carpeta(\"src\");\nsrc.agregar(new Archivo(\"Main.java\", 12));\nsrc.agregar(new Archivo(\"Utils.java\", 8));\nraiz.agregar(src);\nraiz.mostrar(\"\");"
         }
       ],
       "examples": [
@@ -540,6 +545,19 @@
         ],
         "explanation": "Layered es la mas simple (capas basicas), Clean agrega circulos concentricos estrictos, Hexagonal formaliza puertos/adaptadores, Microservicios descompone el sistema en servicios independientes con complejidad operacional.",
         "type": "ORDER"
+      },
+      {
+        "id": "dp-q21",
+        "text": "En que se diferencian Flyweight y Composite?",
+        "options": [
+          "Flyweight optimiza memoria compartiendo objetos; Composite permite tratar individuos y compuestos igual",
+          "Flyweight es un patron de creacion; Composite es de comportamiento",
+          "Flyweight usa herencia; Composite usa composicion",
+          "Ambos resuelven el mismo problema de eficiencia"
+        ],
+        "correctIndexes": [0],
+        "explanation": "Flyweight minimiza uso de memoria compartiendo objetos inmutables de grano fino. Composite permite tratar por igual a objetos individuales (hojas) y agrupaciones (compuestos) usando una interfaz comun en estructuras de arbol.",
+        "type": "SINGLE"
       }
     ]
   }
