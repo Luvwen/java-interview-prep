@@ -30,6 +30,7 @@ Contenido de teoria y ejemplos organizado por modulos. Modulos iniciales propues
 - **Patrones de diseno**: creacionales, estructurales y de comportamiento con ejemplos en Java.
 - **REST y HTTP**: protocolo HTTP, verbos, codigos de estado, JSON y diseno de APIs.
 - **Git**: control de versiones, branching, merge/rebase y flujos de trabajo.
+- **IA para Desarrollo de Software**: prompt engineering, agents y delegation, archivos para agentes (AGENTS.md, specs), spec-driven development, code review con IA, testing de codigo generado, y patrones avanzados (tool use, RAG, multi-agent).
 
 Cada modulo expone: objetivos de aprendizaje, teoria resumida, ejemplos de codigo y un quiz de autoevaluacion.
 

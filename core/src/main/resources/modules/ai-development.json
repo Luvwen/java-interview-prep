@@ -1,0 +1,453 @@
+{
+  "id": "ai-development",
+  "title": "IA para Desarrollo de Software",
+  "description": "Como usar inteligencia artificial de forma efectiva para programar: prompt engineering, agents, delegation, spec-driven development y patrones avanzados. El futuro del programador no es reemplazado por IA, sino potenciado por ella.",
+  "topics": [
+    {
+      "id": "ai-prompt-engineering",
+      "title": "Prompt engineering para codigo",
+      "content": "Un buen prompt es la diferencia entre obtener basura y obtener codigo production-ready. Los cuatro pilares de un efectivo prompt son: contexto (que proyecto, que stack, que restricciones), instruccion (que hacer exactamente), formato (como quiero la salida) y ejemplos (few-shot). La mayoria de la gente solo dice 'hazme un endpoint' y obtiene basura. Los profesionales dan contexto.\n\nZero-shot es pedir directamente sin ejemplos. Few-shot es dar 1-3 ejemplos de lo que esperas antes de pedir el resultado. Chain-of-thought (CoT) le pide al modelo que razone paso a paso antes de producir codigo, lo que reduce errores dramaticamente en logica compleja.\n\nLa temperatura controla la aleatoriedad: 0 = determinista (ideal para codigo), 1+ = creativo (ideal para brainstorming). Para codigo, siempre temperatura baja.\n\nLos system prompts establecen el rol y las reglas permanentes de la sesion. Un buen system prompt para desarrollo incluye: el lenguaje y version, el framework, las convenciones de codigo, y restricciones (no usar deprecated, seguir SOLID, etc.).\n\nErrores comunes: prompts vagos ('hazme una API'), sin contexto ('usa la mejor practica'), sin formato especifico ('ponlo en un archivo'), y no iterar (aceptar la primera respuesta sin refinar).\n\nPrompt negativo: decir lo que NO quieres ('no uses var', 'no hardcodees valores'). Prompt positivo: decir lo que SI quieres ('usa records para DTOs', 'inyecta dependencias por constructor'). Ambos son utiles, pero el positivo es mas efectivo.",
+      "sections": [
+        {
+          "title": "Los cuatro pilares de un buen prompt",
+          "text": "Contexto, instruccion, formato y ejemplos. Sin contexto, el modelo adivina. Sin instruccion clara, genera basura. Sin formato, la salida es inutil. Sin ejemplos, el modelo no sabe que estilo prefieres.",
+          "code": "// MAL: prompt vago\n\"Hazme un endpoint de usuarios\"\n\n// BIEN: prompt con los cuatro pilares\n\"Contexto: Spring Boot 3.2, Java 21, PostgreSQL, arquitectura hexagonal.\nTengo una entidad User con id, name, email, role.\n\nInstruccion: Crea un GET /api/users/{id} que:\n1. Busque por ID usando el repositorio\n2. Retorne 200 con el DTO o 404 si no existe\n3. Use un record UserResponse para el DTO\n\nFormato: Dame solo el controller, el record y el servicio. Cada archivo en su bloque de codigo con el nombre del archivo como comentario.\n\nEjemplo del DTO que quiero:\npublic record UserResponse(Long id, String name, String email, String role) {}\n\nRestricciones: no uses ResponseEntity, usa Optional en el servicio, inyecta por constructor.\""
+        },
+        {
+          "title": "Zero-shot, few-shot y chain-of-thought",
+          "text": "Zero-shot es pedir sin ejemplos (funciona para tareas simples). Few-shot es dar 1-3 ejemplos del patron que esperas. Chain-of-thought le pide al modelo que razone paso a paso, reduciendo errores en logica compleja.",
+          "code": "// Zero-shot (tarea simple)\n\"Convierte esta lista de IDs a un IN clause de SQL: [1,2,3,4,5]\"\n\n// Few-shot (dar el patron)\n\"Convierte listas a IN clause. Ejemplos:\n[1,2,3] -> WHERE id IN (1, 2, 3)\n[\"a\",\"b\"] -> WHERE name IN ('a', 'b')\n\nAhora convierte: [10, 20, 30, 40]\"\n\n// Chain-of-thought (razonamiento)\n\"Quiero optimizar este metodo que busca en una lista.\nAntes de darme el codigo, explicame paso a paso:\n1. Cual es la complejidad actual?\n2. Que estructura de datos seria mejor?\n3. Cual es la complejidad resultante?\nLuego dame el codigo optimizado.\"\n\n// CoT para debugging\n\"Este test falla con ConcurrentModificationException.\nAnaliza paso a paso:\n1. Que linea la causa?\n2. Por que ocurre?\n3. Cual es la solucion correcta?\nLuego dame el fix.\""
+        },
+        {
+          "title": "System prompts y temperatura",
+          "text": "El system prompt establece el rol y reglas permanentes. Para codigo: especificar lenguaje, stack, convenciones y restricciones. Temperatura 0-0.3 para codigo determinista, 0.7+ para brainstorming.",
+          "code": "// System prompt efectivo para desarrollo\n\"Eres un senior Java developer. Reglas:\n- Java 21 LTS, Spring Boot 3.2\n- Usa records para DTOs\n- Inyeccion por constructor, nunca @Autowired en campos\n- Siempre maneja errores con exceptions custom\n- No uses var, se explicito con tipos\n- Metodos cortos (max 20 lineas)\n- Tests con JUnit 5 + Mockito\n- SQL sin concatenar strings, siempre PreparedStatement\"\n\n// Temperatura\n\"// Codigo: temperatura 0 (determinista)\n\"// Brainstorming: temperatura 0.8 (creativo)\n\"// Refactor: temperatura 0.3 (balanceado)\""
+        },
+        {
+          "title": "Prompt negativo vs positivo y iteracion",
+          "text": "Prompt negativo dice que NO quieres. Prompt positivo dice que SI quieres. El positivo es mas efectivo. Iterar es clave: pedir, revisar, refinar. No aceptar la primera respuesta.",
+          "code": "// Prompt negativo (menos efectivo)\n\"No uses instanceof, no hagas casting, no pongas null\"\n\n// Prompt positivo (mas efectivo)\n\"Usa pattern matching instanceof (Java 21):\nif (obj instanceof String s) { ... }\nUsa Optional en lugar de null.\nUsa sealed interfaces para tipos fijos.\"\n\n// Iteracion: el verdadero poder\n// Ronda 1: \"Crea un servicio de autenticacion\"\n// Ronda 2: \"Agrega rate limiting con bucket4j\"\n// Ronda 3: \"Maneja token refresh automatico\"\n// Ronda 4: \"Refactoriza para que sea testeable\"\n// Ronda 5: \"Agrega tests de integracion\"\n\n// Pedir revision del propio codigo\n\"Revisa este codigo y dime:\n1. Bugs potenciales\n2. Violaciones de SOLID\n3. Edge cases sin manejar\n4. Mejores practicas que faltan\""
+        }
+      ],
+      "examples": [
+        "\"Contexto: Spring Boot 3.2, Java 21. Instruccion: Crea GET /api/users/{id}. Formato: solo el controller.\"",
+        "\"Chain-of-thought: Explica paso a paso antes de darme el codigo.\"",
+        "\"Few-shot: Ejemplo A -> Resultado A. Ejemplo B -> Resultado B. Ahora hace C.\"",
+        "\"Revisa este codigo y dime bugs, SOLID, edge cases y mejores practicas.\""
+      ]
+    },
+    {
+      "id": "ai-agents-workflow",
+      "title": "Agents, subagents y delegation",
+      "content": "Un agent es un loop que combina un LLM con herramientas (files, terminal, search, web fetch). En lugar de solo generar texto, el agent puede leer archivos, ejecutar comandos, buscar en el codebase y tomar decisiones basadas en el resultado. Es la diferencia entre un chatbot y un asistente de desarrollo.\n\nSubagents son agentes especializados que manejan una tarea especifica. En lugar de que un solo agent haga todo, delegas a subagents: uno busca en el codebase, otro escribe tests, otro hace review. Cada subagent tiene su propio contexto y herramientas, y reporta resultados al agent principal.\n\nEl patron de delegation mas comun es: (1) el agent principal analiza la tarea, (2) la descompone en sub-tareas, (3) delega cada sub-tarea al subagent apropiado, (4) recopila resultados, (5) integra y verifica.\n\nTipos de orquestacion:\n- Sequential: las tareas se ejecutan en orden, cada una depende de la anterior.\n- Parallel: las tareas son independientes y se ejecutan simultaneamente.\n- Router: el agent principal decide que subagent usar basado en la tarea.\n- Hierarchical: subagents pueden delegar a otros subagents.\n\nSkills son capacidades especializadas que se cargan dinamicamente. Un skill contiene instrucciones, scripts y recursos para una tarea especifica (ej: 'crear opencode skill', 'deployar a kubernetes'). Se activan cuando la tarea coincide con la descripcion del skill.\n\nTool use (function calling) es como el agent interactua con el mundo: leer archivos (Read), buscar (Grep/Glob), ejecutar comandos (Bash), escribir archivos (Write/Edit), buscar en web (WebSearch/WebFetch). El agent decide que herramienta usar y con que argumentos.",
+      "sections": [
+        {
+          "title": "Que es un agent y como funciona",
+          "text": "Un agent es un loop: LLM recibe tarea -> decide herramienta -> ejecuta -> observe resultado -> decide siguiente paso. Se diferencia de un chatbot porque tiene agency: puede actuar en el mundo real (archivos, terminal, web) en lugar de solo generar texto.",
+          "code": "// Patron simplificado de un agent\nwhile (tarea no completada) {\n    String observacion = llm.decide(herramientas, contexto);\n    \n    if (observacion.esAccion()) {\n        Resultado r = herramientas.ejecutar(\n            observacion.getTool(),\n            observacion.getArgs()\n        );\n        contexto.agregar(r);\n    } else {\n        // El LLM decidio que la tarea esta completa\n        return observacion.getRespuesta();\n    }\n}\n\n// Ejemplo real con opencode:\n// 1. Le pides: \"Agrega un endpoint DELETE /api/users/{id}\"\n// 2. El agent lee los archivos existentes (Read, Grep)\n// 3. Entiende la estructura del proyecto\n// 4. Escribe el nuevo endpoint (Edit)\n// 5. Corre los tests (Bash)\n// 6. Si fallan, investiga y corrige\n// 7. Reporta el resultado"
+        },
+        {
+          "title": "Subagents: especializacion y parallelismo",
+          "text": "Subagents son agentes especializados que manejan una tarea acotada. El agent principal delega y recopila resultados. Esto permite parallelismo (varios subagents trabajando a la vez) y mejor contexto (cada subagent solo ve lo que necesita).",
+          "code": "// Ejemplo de delegation con subagents\n// Tarea: \"Agregar autenticacion JWT al proyecto\"\n\n// Agent principal descompone:\n// 1. Subagent A: \"Lee la estructura del proyecto y describe el stack\"\n//    Herramientas: Read, Glob, Grep\n//    Resultado: \"Spring Boot 3.2, Java 21, PostgreSQL, arquitectura hexagonal\"\n\n// 2. Subagent B: \"Busca como esta organizada la capa de seguridad\"\n//    Herramientas: Grep, Read\n//    Resultado: \"No hay security config, hay un AuthController basico\"\n\n// 3. Subagent C: \"Escribe el filtro JWT y el servicio de tokens\"\n//    Herramientas: Write, Edit\n//    Resultado: \"JwtFilter.java, TokenService.java creados\"\n\n// 4. Subagent D: \"Escribe tests de integracion para el flujo de auth\"\n//    Herramientas: Write\n//    Resultado: \"AuthIntegrationTest.java creado\"\n\n// 5. Agent principal integra todo y corre tests\n//    Herramientas: Bash (mvn test)\n//    Resultado: \"57 tests pasan\""
+        },
+        {
+          "title": "Patrones de orquestacion",
+          "text": "Sequential para tareas dependientes. Parallel para tareas independientes. Router cuando hay multiples tipos de tarea. Hierarchical para complejidad extrema. El patrón correcto depende de las dependencias entre tareas.",
+          "code": "// Sequential: paso a paso con dependencias\nStep 1: Analizar codebase\nStep 2: Disenar solucion basado en el analisis\nStep 3: Implementar basado en el diseno\nStep 4: Testear la implementacion\nStep 5: Refactorizar si es necesario\n\n// Parallel: tareas independientes simultaneas\nSubagent A: Crear endpoint\nSubagent B: Crear tests\nSubagent C: Actualizar documentacion\n// Todos trabajan en paralelo, el principal integra\n\n// Router: decidir que subagent usar\nif (tarea.esLectura()) {\n    delegarALector(tarea);\n} else if (tarea.esEscritura()) {\n    delegarAEscritor(tarea);\n} else if (tarea.esDebug()) {\n    delegarADebugger(tarea);\n}\n\n// Jerarquico: subagents que delegan\nAgent Principal\n  -> Subagent Arquitecto\n    -> Subagent Disenador DB\n    -> Subagent Disenador API\n  -> Subagent Implementador\n    -> Subagent Backend\n    -> Subagent Frontend"
+        },
+        {
+          "title": "Skills y tool use",
+          "text": "Skills son capacidades que se cargan dinamicamente cuando la tarea coincide. Contienen instrucciones, scripts y recursos. Tool use es como el agent interactua con el mundo: Read, Grep, Bash, Write, WebSearch. El agent decide que herramienta usar.",
+          "code": "// Ejemplo de skill (opencode format)\n// Skill: \"customize-opencode\"\n// Se activa cuando editas opencode.json o archivos .opencode/\n// Contiene: instrucciones, scripts, examples\n\n// Herramientas tipicas de un agent:\n// Read: leer archivos\n// Write: crear archivos\n// Edit: modificar archivos (reemplazo exacto)\n// Bash: ejecutar comandos (git, mvn, npm, etc.)\n// Grep: buscar contenido en archivos\n// Glob: buscar archivos por patron\n// WebSearch: buscar en internet\n// WebFetch: obtener contenido de una URL\n\n// El agent decide que usar:\n// \"Necesito ver la estructura\" -> Read + Glob\n// \"Necesito buscar un patron\" -> Grep\n// \"Necesito crear un archivo\" -> Write\n// \"Necesito modificar uno\" -> Edit\n// \"Necesito correr tests\" -> Bash\n// \"Necesito info actualizada\" -> WebSearch + WebFetch"
+        }
+      ],
+      "examples": [
+        "Agent loop: LLM -> decide herramienta -> ejecuta -> observe -> siguiente paso",
+        "Subagent A lee codebase, Subagent B escribe codigo, Subagent C escribe tests",
+        "Sequential para dependencias, Parallel para tareas independientes",
+        "Skills se cargan dinamicamente cuando la tarea coincide con la descripcion"
+      ]
+    },
+    {
+      "id": "ai-agent-files",
+      "title": "Archivos utiles para agentes",
+      "content": "Los agentes de IA leen archivos del proyecto para entender el contexto. Tener archivos bien estructurados mejora dramaticamente la calidad de las respuestas. Los mas importantes son AGENTS.md, specs y rules files.\n\nAGENTS.md es el archivo mas importante. Le dice al agente: que hace el repo, que toolchain usa, que convenciones seguir, como correr tests, y que workflow preferir. Debe ser conciso pero completo. Ubicacion: raiz del proyecto. Es el primer archivo que el agente lee.\n\nEstructura recomendada de AGENTS.md:\n1. Proposito del repo (que hace la app)\n2. Toolchain (lenguaje, framework, build tool, testing)\n3. Estructura de directorios\n4. Convenciones de codigo (nombres, formato, patterns)\n5. Como correr tests y build\n6. Workflow preferido (spec-driven, TDD, etc.)\n7. Restricciones (no hacer X, siempre hacer Y)\n\nSpecs documents son contratos vivos que describen que hace la app y como se construye. Tipicamente: functional-description.md (que hace) y technical-description.md (como se construye). Los agentes los usan para entender el alcance antes de implementar.\n\nRules files son restricciones especificas: .cursorrules, .github/copilot-instructions.md, .opencode/config.json. Contienen reglas como 'no uses var', 'siempre escribe tests', 'usa Java 21 features'.\n\nContext files adicionales: README.md (para humanos y agentes), ADRs (decisiones arquitectonicas), CHANGELOG.md (historial).",
+      "sections": [
+        {
+          "title": "AGENTS.md: el archivo mas importante",
+          "text": "AGENTS.md le dice al agente todo lo que necesita saber: que hace el repo, que stack usa, como correr tests, y que workflow seguir. Debe ser el primer archivo que el agente lee. Ubicacion: raiz del proyecto.",
+          "code": "# AGENTS.md\n\n## Proposito\nAplicacion de aprendizaje de Java para entrevistas tecnicas.\n\n## Toolchain\n- Java 21 LTS con Maven\n- Spring Boot 3.2 (backend)\n- React + Vite + TypeScript (frontend)\n- JUnit 5 + Mockito (testing)\n- Jackson (persistencia JSON)\n\n## Estructura\n- core/: dominio, infraestructura, tests\n- web/: controllers REST, tests de integracion\n- ui/: SPA React + Vite\n- modules/: contenido de teoria (JSON)\n\n## Convenciones\n- Java: camelCase metodos, PascalCase clases\n- Inyeccion por constructor, nunca @Autowired en campos\n- Records para DTOs, interfaces para puertos\n- Tests: nombre Metodo_Escenario_Resultado\n\n## Commands\n- Tests: mvn test -q\n- Build: mvn clean package -DskipTests\n- Backend: java -jar web/target/web-0.1.0-SNAPSHOT.jar\n- Frontend: cd ui && npm run dev\n\n## Workflow\n- Spec-driven: actualizar specs ANTES de codigo\n- Commit messages en ingles, docs en espanol\n- Siempre correr tests antes de commitear"
+        },
+        {
+          "title": "Specs y context files",
+          "text": "Specs son contratos vivos: functional-description.md (que hace la app) y technical-description.md (como se construye). Los agentes los leen para entender alcance y restricciones antes de implementar.",
+          "code": "// Specs tipicos de un proyecto\n// specs/functional-description.md\n\"## 1. Proposito\nAplicacion de aprendizaje de Java...\n\n## 2. Modulos tematicos\n- Core Java: tipos, referencias, modificadores\n- POO: clases, interfaces, herencia\n\n## 3. Caracteristicas\n- Teoria organizada por modulos\n- Quiz de autoevaluacion\n- Ejercicios de practica\"\n\n// specs/technical-description.md\n\"## Stack\n- Java 21 + Maven\n- Spring Boot 3.2\n- React + Vite\n\n## Arquitectura\n- Multi-modulo Maven: core + web\n- Dominio puro en core\n- Adaptadores en web\n\n## Decisiones (ADRs)\n- ADR-001: Jackson sobre Gson\n- ADR-002: JUnit 5 sobre JUnit 4\n- ADR-003: React sobre Angular\""
+        },
+        {
+          "title": "Rules files y otros archivos utiles",
+          "text": "Rules files son restricciones especificas por herramienta: .cursorrules para Cursor, .github/copilot-instructions.md para Copilot, opencode.json para opencode. README.md sirve para humanos y agentes. ADRs documentan decisiones arquitectonicas.",
+          "code": "// .cursorrules (Cursor IDE)\n\"Siempre usar Java 21 features.\nNo usar var, ser explicito con tipos.\nInyeccion por constructor.\nTests con JUnit 5 + Mockito.\nMetodos max 20 lineas.\"\n\n// .github/copilot-instructions.md (GitHub Copilot)\n\"You are a senior Java developer.\nUse Spring Boot 3.2 and Java 21.\nAlways write tests.\nFollow SOLID principles.\"\n\n// README.md (util para agentes tambien)\n\"# Project Name\n\n## Quick Start\n1. mvn clean install\n2. java -jar web/target/app.jar\n3. curl localhost:8080/api/modules\n\n## Testing\nmvn test\n\n## Architecture\nHexagonal: core (domain) + web (adapters)\"\n\n// ADR-001.md (Architecture Decision Record)\n\"# ADR-001: Jackson for JSON\n\n## Status: Accepted\n## Context: Need JSON serialization\n## Decision: Use Jackson (Spring default)\n## Consequences: Better Spring integration\""
+        }
+      ],
+      "examples": [
+        "AGENTS.md: toolchain, estructura, convenciones, commands, workflow",
+        "functional-description.md: que hace la app, modulos, caracteristicas",
+        "technical-description.md: stack, arquitectura, ADRs",
+        ".cursorrules: restricciones especificas para el IDE"
+      ]
+    },
+    {
+      "id": "ai-spec-driven",
+      "title": "Spec-driven development",
+      "content": "Spec-driven development (SDD) es un flujo de trabajo donde el spec (especificacion) es el punto de partida, no el codigo. Primero describes QUE quieres hacer y COMO se construye, luego implementas. Esto reduce rework, mejora la calidad de los prompts a la IA, y crea documentacion viva.\n\nEl flujo completo es: (1) Escribir/actualizar el spec funcional, (2) Escribir/actualizar el spec tecnico, (3) Disenar la solucion en el spec, (4) Implementar basado en el spec, (5) Testear contra el spec, (6) Refinar el spec si es necesario.\n\nPor que funciona mejor que solo pedir codigo:\n- El agente entiende el alcance antes de implementar\n- Reduce iteraciones porque el spec aclara ambiguedades\n- Crea documentacion que otros (humanos o agentes) pueden leer\n- Permite revisar el diseno antes del codigo\n- Facilita el parallelismo (otros agentes pueden trabajar mientras tanto)\n\nRelacion con TDD: SDD es a nivel de feature, TDD es a nivel de implementacion. SDD dice 'que hace el sistema', TDD dice 'como verifico que funciona'. Se complementan.\n\nSpecs vivos: los specs se actualizan continuamente a medida que se aprende o cambia el alcance. No son documentos estaticos sino contratos vivos. Cuando el codigo diverge del spec, se actualiza el spec.",
+      "sections": [
+        {
+          "title": "El flujo completo de SDD",
+          "text": "Spec -> Diseno -> Implement -> Test -> Refinar. Cada paso genera artefactos que alimentan el siguiente. El spec es la fuente de verdad, no el codigo.",
+          "code": "// Flujo SDD para una feature \"Agregar autenticacion JWT\"\n\n// Paso 1: Spec funcional\n// \"La app debe permitir registro, login y acceso protegido.\n//  El login retorna un JWT que se usa en headers.\n//  Tokens expiran en 24h. Refresh automatico.\"\n\n// Paso 2: Spec tecnico\n// \"Implementar con:\n//  - JwtFilter en la capa de seguridad\n//  - TokenService para generar/validar tokens\n//  - AuthController con /register y /login\n//  - UserRepository para persistencia\n//  - BCrypt para hashing de passwords\"\n\n// Paso 3: Diseno (puede ser ADR o diagrama)\n// \"El flujo es: Client -> AuthController -> TokenService\n//  -> UserRepository. El filtro intercepta requests\n//  y valida el token antes de llegar al controller.\"\n\n// Paso 4: Implementar (agente genera codigo)\n// El agente lee los specs y genera:\n// JwtFilter.java, TokenService.java, AuthController.java, etc.\n\n// Paso 5: Testear contra el spec\n// \"Verificar: registro exitoso, login exitoso,\n//  token invalido retorna 401, token expirado retorna 401\"\n\n// Paso 6: Refinar\n// \"El spec decia refresh automatico, agregar RefreshTokenService\""
+        },
+        {
+          "title": "Specs funcionales vs tecnicos",
+          "text": "El spec funcional describe QUE hace la app (alcance, reglas de negocio, usuarios). El spec tecnico describe COMO se construye (stack, arquitectura, decisiones). Ambos son necesarios para que el agente entienda el contexto completo.",
+          "code": "// Spec funcional: QUE hace la app\n\"## Modulos\n- Core Java: tipos, referencias, excepciones\n- POO: clases, interfaces, herencia\n- Collections: List, Set, Map\n\n## Quiz\n- Preguntas SINGLE, MULTIPLE, TRUE_FALSE, ORDER\n- Feedback inmediato con explicacion\n- Minimo 2 TRUE_FALSE por modulo\n\n## Progreso\n- Guardar estado por modulo\n- Porcentaje general de avance\"\n\n// Spec tecnico: COMO se construye\n\"## Stack\n- Java 21 + Maven multi-modulo\n- core/: dominio + infra\n- web/: Spring Boot REST\n- ui/: React + Vite\n\n## Decisiones\n- Jackson sobre Gson (ADR-001)\n- JUnit 5 sobre JUnit 4 (ADR-002)\n- Persistencia en JSON, no DB (ADR-003)\n\n## Restricciones\n- Dependencias minimas\n- No usar Lombok\n- Java 21 features: records, sealed, pattern matching\""
+        },
+        {
+          "title": "Specs vivos y refactoring con IA",
+          "text": "Los specs se actualizan continuamente. Cuando el codigo diverge del spec, se actualiza el spec. La IA puede ayudar a detectar divergencias y sugerir actualizaciones del spec.",
+          "code": "// Ejemplo de spec que evoluciona\n\n// Sprint 1: spec basico\n\"La app tiene modulos de teoria con quiz.\"\n\n// Sprint 2: spec expandido\n\"La app tiene modulos de teoria con quiz.\nNuevo: ejercicios de practica (code-fill, bug-hunt).\"\n\n// Sprint 3: spec con V2\n\"La app tiene modulos de teoria con quiz.\nEjercicios de practica.\nNuevo: actividades V2 (flashcards, examen, time-attack).\"\n\n// Pedir a la IA que detecte divergencias\n\"Lee el spec tecnico y el codigo actual.\nDime que features estan implementadas pero no documentadas\nen el spec, y que features del spec no estan implementadas.\"\n\n// Pedir que actualice el spec\n\"Actualiza el spec tecnico para documentar que\nagregamos el modulo de AI para desarrollo.\"\n\n// La IA actualiza:\n\"## Modulos (actualizado)\n- ...\n- AI para Desarrollo: prompt engineering, agents, SDD\n  (nuevo en v1.4)\""
+        },
+        {
+          "title": "SDD vs TDD: complementarios",
+          "text": "SDD es a nivel de feature (que hace el sistema), TDD es a nivel de implementacion (como verifico). Se complementan: SDD define el alcance, TDD verifica la implementacion. Ambos crean documentacion y ambos usan tests.",
+          "code": "// SDD: \"Agregar endpoint GET /api/users/{id}\"\n// Spec: \"Retorna 200 con el usuario o 404 si no existe\"\n\n// TDD para implementar:\n// 1. Test: \"buscarPorIdExistente_retornaUsuario\"\n//    @Test\n//    void buscarPorIdExistente_retornaUsuario() {\n//        when(repo.findById(1L)).thenReturn(Optional.of(user));\n//        var result = service.buscarPorId(1L);\n//        assertThat(result).isPresent();\n//        assertThat(result.get().name()).isEqualTo(\"Ana\");\n//    }\n\n// 2. Test: \"buscarPorIdInexistente_retornaVacio\"\n//    @Test\n//    void buscarPorIdInexistente_retornaVacio() {\n//        when(repo.findById(99L)).thenReturn(Optional.empty());\n//        var result = service.buscarPorId(99L);\n//        assertThat(result).isEmpty();\n//    }\n\n// 3. Implementar para que pasen\n// 4. Refactorizar\n\n// SDD verifica que el endpoint HACE lo correcto\n// TDD verifica que el codigo FUNCIONA correctamente"
+        }
+      ],
+      "examples": [
+        "Flujo: spec funcional -> spec tecnico -> diseno -> implementar -> testear -> refinar",
+        "Spec funcional: QUE hace la app. Spec tecnico: COMO se construye.",
+        "Specs vivos se actualizan cuando el codigo diverge",
+        "SDD es feature-level, TDD es implementation-level. Se complementan."
+      ]
+    },
+    {
+      "id": "ai-code-review",
+      "title": "Code review y debugging con IA",
+      "content": "La IA es excelente para code review y debugging si sabes como pedirlo. En lugar de 'revisa este codigo', dale instrucciones especificas: que busque, que metricas use, que standards aplique.\n\nPara code review efectivo, pedir:\n1. Bugs potenciales (null pointer, race conditions, resource leaks)\n2. Violaciones de principios (SOLID, DRY, KISS)\n3. Edge cases sin manejar (null, vacio, overflow, concurrencia)\n4. Mejores practicas que faltan (nombres, estructura, patterns)\n5. Seguridad (SQL injection, XSS, secrets hardcodeados)\n\nPara debugging:\n1. Paste el stacktrace completo y pide que lo analice\n2. Pide que identifique la causa raiz, no solo el symptom\n3. Pide que sugiera 2-3 soluciones con pros/contras\n4. Pide que verifique que el fix no rompe nada\n\nRefactoring asistido: pedir que identifique code smells y sugiera refactorizaciones. Pedir que aplique un patron especifico. Pedir que mejore la legibilidad.\n\nBisect con IA: cuando un test falla intermitentemente, pedir que analice el historial de commits recientes y sugiera que cambio introdujo el bug.",
+      "sections": [
+        {
+          "title": "Code review con instrucciones especificas",
+          "text": "En lugar de 'revisa esto', pedir: busca bugs, violaciones SOLID, edge cases, seguridad, y mejores practicas. Dar contexto sobre que hace el codigo y que restricciones aplican.",
+          "code": "// MAL: \"Revisa este codigo\"\n// BIEN: instrucciones especificas\n\n\"Revisa el siguiente servicio de autenticacion y busca:\n1. Bugs: null pointers, race conditions, resource leaks\n2. SOLID: violaciones de SRP, OCP, DIP\n3. Edge cases: que pasa con password vacio, email duplicado, concurrent login\n4. Seguridad: passwords hasheados? rate limiting? timing attacks?\n5. Mejores practicas: nombres claros, metodos cortos, tests\n\nRestricciones: Java 21, Spring Boot 3.2, BCrypt.\n\n[Codigo del servicio]\"\n\n// Respuesta esperada del agente:\n\"## Bugs encontrados\n- Linea 45: potential NPE si user.getPassword() es null\n- Linea 67: timing attack en comparacion de passwords\n\n## SOLID\n- SRP: AuthService maneja auth + token + persistencia\n\n## Edge cases\n- No valida email format\n- No maneja concurrent login del mismo usuario\n\n## Seguridad\n- BCrypt OK pero sin salt rounds configurados\n- No hay rate limiting\"\n"
+        },
+        {
+          "title": "Debugging con stacktraces y causa raiz",
+          "text": "Pegar el stacktrace completo y pedir que analice la causa raiz, no solo el symptom. Pedir 2-3 soluciones con pros/contras. Verificar que el fix no rompe nada.",
+          "code": "// Pedir debugging efectivo\n\"Este test falla intermitentemente:\n\norg.opentest4j.AssertionFailedError: \n  expected: <3> but was: <2>\n  at AppTest.testConcurrentCounter(AppTest.java:42)\n\n[Codigo del test y del servicio]\n\nAnaliza paso a paso:\n1. Por que puede fallar intermitentemente?\n2. Cual es la causa raiz?\n3. Dame 2-3 soluciones con pros/contras\n4. Que solucion recomendarias y por que?\"\n\n// Respuesta esperada:\n\"## Analisis\n1. El test usa un contador compartido sin sincronizacion\n2. Causa raiz: race condition en incrementar()\n3. Soluciones:\n   a. AtomicInteger (simple, rendimiento OK)\n   b. synchronized (mas overhead, mas control)\n   c. LongAdder (mejor para alta concurrencia)\n4. Recomiendo AtomicInteger por simplicidad\"\n"
+        },
+        {
+          "title": "Refactoring asistido por IA",
+          "text": "Pedir que identifique code smells, sugiera refactorizaciones, y aplique patrones. Pedir que verifique que el refactoring no cambia el comportamiento.",
+          "code": "// Pedir refactorizacion\n\"Refactoriza este servicio. Identifica code smells y aplique SOLID.\n[Codigo]\n\nPara cada refactorizacion:\n1. Que smell detectaste?\n2. Que patron o principio aplicas?\n3. Cual es el before y after?\n4. Como verifico que no cambio el comportamiento?\"\n\n// Ejemplo de refactorizacion sugerida:\n\"## Code Smell: Large Class\nAuthService tiene 200 lineas y maneja 4 responsabilidades.\n\n## Refactoring: Extract Class\n- AuthController (HTTP layer)\n- TokenService (JWT generation/validation)\n- PasswordService (hashing)\n- UserRepository (persistence)\n\n## Verificacion\n- Los tests existentes deben seguir pasando\n- Agregar tests para cada clase extraida\"\n"
+        }
+      ],
+      "examples": [
+        "\"Revisa este codigo: busca bugs, SOLID, edge cases, seguridad, mejores practicas\"",
+        "\"Analiza este stacktrace, dame la causa raiz y 2-3 soluciones\"",
+        "\"Identifica code smells y refactoriza aplicando patrones\"",
+        "\"Pegar stacktrace completo + codigo + que analice paso a paso\""
+      ]
+    },
+    {
+      "id": "ai-testing-ai",
+      "title": "Testing de codigo generado por IA",
+      "content": "Nunca confies ciegamente en codigo generado por IA. La IA puede generar codigo que compila y parece correcto pero tiene bugs logicos, edge cases sin manejar, o violaciones de seguridad. Siempre testea.\n\nEstrategias de validacion:\n1. Tests unitarios: pedir que la IA genere tests antes de implementar (TDD inverso)\n2. Edge cases: pedir explicitamente que pruebe null, vacio, overflow, concurrencia\n3. Mutacion testing: verificar que los tests detectan cambios en el codigo\n4. Code review humano: la IA puede revisar su propio codigo, pero un humano ve cosas diferentes\n5. Build y deploy: compilar y desplegar en un entorno real\n\nEdge cases que la IA olvida frecuentemente:\n- Strings vacios y null\n- Listas vacias\n- Numeros en limites (Integer.MAX_VALUE, 0, negativos)\n- Concurrencia (race conditions, deadlocks)\n- Recursos (streams no cerrados, conexiones sin release)\n- Tiempo (timeouts, timezone, daylight saving)\n\nMutacion testing: cambiar una linea del codigo y verificar que los tests fallan. Si los tests pasan con el mutante, son debiles. Herramientas: PITest para Java.\n\nLa IA tambien puede ayudar a encontrar bugs en su propio codigo si le pides que intente romperlo.",
+      "sections": [
+        {
+          "title": "Por que no confiar ciegamente",
+          "text": "La IA genera codigo que compila pero puede tener bugs logicos, edge cases sin manejar, o violaciones de seguridad. Siempre testea y revisa. La IA no tiene el contexto completo de tu negocio.",
+          "code": "// Ejemplo: la IA genera un \"endpoint correcto\"\n@GetMapping(\"/api/users/{id}\")\npublic User getUser(@PathVariable Long id) {\n    return userRepository.findById(id)\n        .orElseThrow(() -> new RuntimeException(\"Not found\"));\n}\n\n// Bugs que la IA olvidó:\n// 1. RuntimeException es demasiado generica (deberia ser NotFoundException)\n// 2. No valida que id no sea null o negativo\n// 3. No tiene rate limiting\n// 4. No tiene cache\n// 5. No maneja errores de conexion a la DB\n\n// Version corregida con testing:\n@GetMapping(\"/api/users/{id}\")\npublic ResponseEntity<UserResponse> getUser(\n        @PathVariable @Positive Long id) {\n    return userRepository.findById(id)\n        .map(user -> ResponseEntity.ok(toResponse(user)))\n        .orElseGet(() -> ResponseEntity.notFound().build());\n}\n\n// Tests que la IA deberia haber generado:\n@Test\nvoid getUser_existingUser_returns200() { ... }\n@Test\nvoid getUser_nonExistingUser_returns404() { ... }\n@Test\nvoid getUser_negativeId_returns400() { ... }"
+        },
+        {
+          "title": "Edge cases que la IA olvida",
+          "text": "Strings vacios/null, listas vacias, limites numericos, concurrencia, recursos sin cerrar, tiempo/timezone. Pedir explicitamente que la IA los maneje.",
+          "code": "// Edge cases tipicos que la IA olvida\n\n// 1. Strings vacios y null\nString nombre = \"\";  // la IA asume que siempre hay datos\nif (nombre == null || nombre.isBlank()) {\n    throw new IllegalArgumentException(\"Nombre requerido\");\n}\n\n// 2. Listas vacias\nList<String> items = List.of();  // la IA no prueba esto\nitems.stream().findFirst()  // Optional.empty()\n    .orElseThrow();  // la IA lanza excepcion sin motivo\n\n// 3. Limites numericos\nint suma = Integer.MAX_VALUE + 1;  // overflow!\nlong grande = Long.MAX_VALUE;\nfloat precise = 0.1f + 0.2f;  // != 0.3f\n\n// 4. Concurrencia\nMap<String, Integer> map = new HashMap<>();\n// La IA usa HashMap en contexto concurrente\n// Deberia ser ConcurrentHashMap\n\n// 5. Recursos sin cerrar\nFileInputStream fis = new FileInputStream(\"file.txt\");\n// La IA no cierra el stream\n// Usar try-with-resources:\ntry (var fis = new FileInputStream(\"file.txt\")) { ... }\n\n// Pedir a la IA:\n\"Escribe tests para estos edge cases:\n- Input null, vacio, espacios en blanco\n- Lista vacia, un elemento, muchos elementos\n- Numeros: 0, negativos, MAX_VALUE, MIN_VALUE\n- Concurrencia: 2 hilos modificando el mismo dato\""
+        },
+        {
+          "title": "Mutacion testing y validacion avanzada",
+          "text": "Mutacion testing verifica que los tests detectan cambios. Si el test pasa con el mutante, es debil. PITest es la herramienta para Java. Tambien pedir a la IA que intente romper el codigo.",
+          "code": "// Mutacion testing con PITest\n// pom.xml:\n\"<plugin>\n  <groupId>org.pitest</groupId>\n  <artifactId>pitest-maven</artifactId>\n  <configuration>\n    <targetClasses>com.javatheory.*</targetClasses>\n    <mutationThreshold>80</mutationThreshold>\n  </configuration>\n</plugin>\"\n\n// Ejecutar: mvn org.pitest:pitest-maven:mutationCoverage\n\n// El mutador cambia una linea y verifica si los tests fallan:\n// Original: return a + b;\n// Mutante: return a - b;\n// Si el test sigue pasando, el test es debil\n\n// Pedir a la IA que intente romper el codigo:\n\"Tengo este servicio de descuentos:\n[Codigo]\n\nIntenta encontrar 5 formas de que falle.\nPara cada una:\n1. Que input o scenario lo rompe?\n2. Por que el codigo actual no lo maneja?\n3. Como lo arreglaria?\""
+        }
+      ],
+      "examples": [
+        "Nunca confies ciegamente: la IA genera codigo que compila pero puede tener bugs",
+        "Edge cases: null, vacio, overflow, concurrencia, recursos sin cerrar, tiempo",
+        "Mutacion testing: PITest verifica que los tests detectan cambios",
+        "Pedir a la IA que intente romper su propio codigo"
+      ]
+    },
+    {
+      "id": "ai-advanced-patterns",
+      "title": "Patrones avanzados de IA para desarrollo",
+      "content": "Mas alla de prompts basicos, existen patrones avanzados que multiplican la productividad: tool use (function calling), memory y contexto de sesion, multi-agent systems, y RAG para codebases.\n\nTool use es cuando el LLM decide que herramienta usar (leer archivo, ejecutar comando, buscar en web). Los modelos modernos (GPT-4, Claude) soportan function calling nativo. Esto permite que el LLM interactue con el mundo real en lugar de solo generar texto.\n\nMemory y contexto: los LLMs tienen ventana de contexto limitada. Estrategias: (1) resumir conversaciones anteriores, (2) usar archivos de contexto (AGENTS.md), (3) RAG para recuperar informacion relevante del codebase, (4) dividerir tareas grandes en sub-tareas manejables.\n\nMulti-agent systems: multiples agentes trabajando juntos. Patrones: (1) Supervisor que orquesta, (2) Debaters que discuten soluciones, (3) Specialists que manejan dominios especificos. Herramientas: LangGraph, CrewAI, AutoGen.\n\nRAG (Retrieval Augmented Generation) para codebases: indexar el codigo fuente y recuperar solo los archivos relevantes para una tarea. Esto permite que la IA trabaje con proyectos grandes sin exceder la ventana de contexto.\n\nEl futuro: agentes autonomicos que pueden planificar, ejecutar, verificar y refactorizar sin supervision humana. Ya existen prototipos (Devin, OpenCode, Cursor Agent). La habilidad clave del programador sera orquestar estos agentes, no reemplazarlos.",
+      "sections": [
+        {
+          "title": "Tool use y function calling",
+          "text": "Tool use permite que el LLM interactue con el mundo: leer archivos, ejecutar comandos, buscar en web. Los modelos modernos soportan function calling nativo. El agent decide que herramienta usar basado en la tarea.",
+          "code": "// Ejemplo de tool definitions (funcion calling)\n// El LLM recibe estas definiciones y decide cuando usarlas:\n\n\"tools\": [\n  {\n    \"name\": \"read_file\",\n    \"description\": \"Lee el contenido de un archivo\",\n    \"parameters\": {\n      \"path\": \"string - ruta del archivo\"\n    }\n  },\n  {\n    \"name\": \"execute_command\",\n    \"description\": \"Ejecuta un comando en la terminal\",\n    \"parameters\": {\n      \"command\": \"string - comando a ejecutar\"\n    }\n  },\n  {\n    \"name\": \"search_code\",\n \"description\": \"Busca un patron en el codigo fuente\",\n    \"parameters\": {\n      \"pattern\": \"string - regex pattern\",\n      \"path\": \"string - directorio a buscar\"\n    }\n  }\n]\n\n// Flujo:\n// 1. Usuario: \"Crea un endpoint DELETE\"\n// 2. LLM decide: read_file(\"src/main/java/.../UserController.java\")\n// 3. LLM lee el archivo existente\n// 4. LLM decide: search_code(\"@RestController\", \"src/main/java\")\n// 5. LLM entiende la estructura\n// 6. LLM genera el endpoint correcto"
+        },
+        {
+          "title": "Memory, contexto y RAG",
+          "text": "Los LLMs tienen ventana de contexto limitada. Estrategias: resumir conversaciones, usar archivos de contexto, RAG para recuperar info relevante, y dividir tareas grandes en sub-tareas.",
+          "code": "// Estrategias de memoria para agentes\n\n// 1. Archivos de contexto (siempre disponibles)\n// AGENTS.md, specs, README.md\n// El agente los lee al inicio de cada sesion\n\n// 2. Resumen de conversacion\n// Despues de N interacciones, resumir:\n\"Resumen de la sesion:\n- Creamos el modulo de autenticacion\n- JWT filter y token service implementados\n- Tests pendientes para edge cases\"\n\n// 3. RAG: Retrieval Augmented Generation\n// Indexar el codebase y recuperar archivos relevantes\n// Para \"agregar endpoint DELETE\", RAG recupera:\n// - UserController.java (existente)\n// - UserRepository.java (para ver interfaz)\n// - application.properties (config)\n// No necesita leer TODOS los archivos del proyecto\n\n// 4. Dividir tareas\n// En lugar de \"haz toda la app\",\n// \"Paso 1: crear dominio\"\n// \"Paso 2: crear repositorios\"\n// \"Paso 3: crear servicios\"\n// \"Paso 4: crear controllers\"\n// \"Paso 5: crear tests\""
+        },
+        {
+          "title": "Multi-agent systems y el futuro",
+          "text": "Multiples agentes trabajando juntos: Supervisor que orquesta, Debaters que discuten, Specialists que manejan dominios. El futuro es agentes autonomicos que planifican, ejecutan y verifican sin supervision.",
+          "code": "// Patrones de multi-agent systems\n\n// 1. Supervisor: un agent orquesta a otros\nSupervisor\n  -> Buscador (lee codebase)\n  -> Implementador (escribe codigo)\n  -> Tester (escribe y corre tests)\n  -> Reviewer (revisa calidad)\n\n// 2. Debaters: discuten soluciones\n// Agent A propone solucion X\n// Agent B propone solucion Y\n// Agent C evalua ambas y recomienda\n\n// 3. Specialists: dominios especificos\n// DB Specialist: optimiza queries, schema\n// API Specialist: disena endpoints, DTOs\n// Security Specialist: audita vulnerabilidades\n// Performance Specialist: identifica bottlenecks\n\n// Herramientas existentes:\n// - LangGraph: grafos de agentes\n// - CrewAI: equipos de agentes\n// - AutoGen (Microsoft): conversaciones multi-agent\n// - OpenCode: agentes de desarrollo\n\n// El futuro del programador:\n// No es reemplazado por IA.\n// Es potenciado por IA.\n// La habilidad clave: orquestar agentes.\n// Como un director de orquesta que no toca\n// todos los instrumentos pero sabe como\n// coordinar a los musicos."
+        }
+      ],
+      "examples": [
+        "Tool use: LLM decide leer archivo, ejecutar comando, buscar en web",
+        "RAG: indexar codebase y recuperar solo archivos relevantes para la tarea",
+        "Multi-agent: Supervisor orquesta, Specialists manejan dominios",
+        "El futuro: orquestar agentes, no reemplazarlos"
+      ]
+    }
+  ],
+  "quiz": {
+    "id": "ai-development",
+    "questions": [
+      {
+        "id": "ai-q1",
+        "text": "Cuales son los cuatro pilares de un buen prompt para desarrollo?",
+        "options": [
+          "Contexto, instruccion, formato y ejemplos",
+          "Velocidad, precision, creatividad y simplicidad",
+          "Lenguaje, framework, base de datos y deployment",
+          "Codigo, tests, docs y commit"
+        ],
+        "correctIndexes": [0],
+        "explanation": "Un buen prompt tiene contexto (que proyecto, stack), instruccion (que hacer), formato (como la salida) y ejemplos (few-shot). Sin estos, el modelo genera basura.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q2",
+        "text": "Que diferencia hay entre zero-shot y few-shot?",
+        "options": [
+          "Zero-shot es mas preciso que few-shot",
+          "Zero-shot pide sin ejemplos; few-shot da 1-3 ejemplos antes de pedir",
+          "Few-shot solo funciona con modelos grandes",
+          "Son terminos interchangeables"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Zero-shot es pedir directamente sin ejemplos. Few-shot es dar 1-3 ejemplos del patron esperado antes de pedir el resultado, lo que mejora dramaticamente la calidad.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q3",
+        "text": "Que es chain-of-thought (CoT) y cuando usarlo?",
+        "options": [
+          "Pedir al modelo que razone paso a paso antes de generar codigo",
+          "Un tipo de modelo de lenguaje mas avanzado",
+          "Una tecnica para comprimir prompts",
+          "Un method de Java para resolver problemas"
+        ],
+        "correctIndexes": [0],
+        "explanation": "Chain-of-thought le pide al modelo que explique su razonamiento antes de producir el codigo final. Es especialmente util para logica compleja y debugging.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q4",
+        "text": "Que temperatura es ideal para generar codigo?",
+        "options": [
+          "1.0 (maxima creatividad)",
+          "0.0 - 0.3 (baja, determinista)",
+          "0.7 (media, balanceada)",
+          "La temperatura no afecta el codigo"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Para codigo se usa temperatura baja (0-0.3) porque se quiere determinismo y precision. Temperatura alta genera codigo creativo pero inconsistente.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q5",
+        "text": "Cuales son los componentes de un agent de IA?",
+        "options": [
+          "LLM + herramientas + loop de decision",
+          "Base de datos + API + frontend",
+          "Git + CI/CD + deploy",
+          "Tests + docs + monitoreo"
+        ],
+        "correctIndexes": [0],
+        "explanation": "Un agent combina un LLM con herramientas (Read, Write, Bash, etc.) en un loop: el LLM decide que herramienta usar, ejecuta, observe el resultado, y decide el siguiente paso.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q6",
+        "text": "Que es un subagent?",
+        "options": [
+          "Un modelo de lenguaje mas pequeno",
+          "Un agent especializado en una tarea especifica que reporta a un agent principal",
+          "Una copia del agent principal",
+          "Un plugin de extension"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Un subagent es un agent especializado que maneja una tarea acotada (leer codebase, escribir tests, hacer review) y reporta resultados al agent principal.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q7",
+        "text": "Que archivos son utiles para dar contexto a un agente de IA?",
+        "options": [
+          "AGENTS.md, specs, README.md, rules files",
+          "Solo el codigo fuente",
+          "Archivos de log y configuracion",
+          "Archivos temporales y cache"
+        ],
+        "correctIndexes": [0],
+        "explanation": "AGENTS.md (proposito, toolchain, convenciones), specs (que hace la app), README.md (quick start), y rules files (.cursorrules) dan contexto valioso al agente.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "ai-q8",
+        "text": "Que es spec-driven development?",
+        "options": [
+          "Escribir tests antes que el codigo (TDD)",
+          "Primero especificar QUE y COMO, luego implementar",
+          "Usar especificaciones de la base de datos para generar codigo",
+          "Un framework de testing para Java"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Spec-driven development es un flujo donde el spec (que hace la app + como se construye) es el punto de partida, no el codigo. Reduce rework y mejora la calidad de los prompts.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q9",
+        "text": "Cuando debes usar parallel vs sequential delegation con subagents?",
+        "options": [
+          "Siempre parallel para mayor velocidad",
+          "Sequential cuando las tareas dependen, parallel cuando son independientes",
+          "Nunca usar parallel, es mas complejo",
+          "Da igual, ambos funcionan igual"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Sequential es para tareas con dependencias (paso 1 antes que paso 2). Parallel es para tareas independientes que pueden ejecutarse simultaneamente.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q10",
+        "text": "Cuales edge cases olvida frecuentemente la IA al generar codigo?",
+        "options": [
+          "Strings vacios/null y listas vacias",
+          "Numeros en limites (MAX_VALUE, 0, negativos)",
+          "Concurrencia y race conditions",
+          "Recursos sin cerrar (streams, conexiones)",
+          "Todos los anteriores"
+        ],
+        "correctIndexes": [4],
+        "explanation": "La IA olvida frecuentemente: null/vacio, limites numericos, concurrencia, recursos sin cerrar, y timezone. Siempre pedir que los maneje explicitamente.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "ai-q11",
+        "text": "Que es mutacion testing?",
+        "options": [
+          "Tests que modifican el comportamiento del sistema",
+          "Verificar que los tests detectan cambios en el codigo (mutantes)",
+          "Una tecnica de refactorizacion asistida por IA",
+          "Un tipo de test de integracion"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Mutacion testing cambia una linea del codigo y verifica si los tests fallan. Si el test pasa con el mutante, es debil. Herramienta: PITest para Java.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q12",
+        "text": "Que es RAG en el contexto de IA para desarrollo?",
+        "options": [
+          "Un tipo de modelo de lenguaje",
+          "Retrieval Augmented Generation: recuperar archivos relevantes del codebase para dar contexto al LLM",
+          "Una herramienta de testing automatizado",
+          "Un patron de diseño para APIs REST"
+        ],
+        "correctIndexes": [1],
+        "explanation": "RAG indexa el codebase y recupera solo los archivos relevantes para una tarea, permitiendo que la IA trabaje con proyectos grandes sin exceder la ventana de contexto.",
+        "type": "SINGLE"
+      },
+      {
+        "id": "ai-q13",
+        "text": "Cuales son patrones de multi-agent systems?",
+        "options": [
+          "Supervisor que orquesta a otros agentes",
+          "Debaters que discuten soluciones",
+          "Specialists que manejan dominios especificos",
+          "Todos los anteriores"
+        ],
+        "correctIndexes": [3],
+        "explanation": "Multi-agent systems incluyen Supervisor (orquesta), Debaters (discuten), y Specialists (dominios). Cada patron resuelve un problema diferente de coordinacion.",
+        "type": "MULTIPLE"
+      },
+      {
+        "id": "ai-q14",
+        "text": "La IA reemplazara a los programadores en los proximos 5 anos.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Falso: la IA potenciara a los programadores, no los reemplazara. La habilidad clave sera orquestar agentes, no escribir cada linea manualmente.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "ai-q15",
+        "text": "AGENTS.md debe incluir la toolchain, estructura del proyecto y convenciones de codigo.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [0],
+        "explanation": "Verdadero: AGENTS.md es el primer archivo que el agente lee. Debe incluir que hace el repo, toolchain, estructura, convenciones, como correr tests y workflow.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "ai-q16",
+        "text": "Spec-driven development y TDD son lo mismo.",
+        "options": [
+          "Verdadero",
+          "Falso"
+        ],
+        "correctIndexes": [1],
+        "explanation": "Falso: SDD es a nivel de feature (que hace el sistema), TDD es a nivel de implementacion (como verifico). Se complementan pero son distintos.",
+        "type": "TRUE_FALSE"
+      },
+      {
+        "id": "ai-q17",
+        "text": "Ordena el flujo de spec-driven development:",
+        "options": [
+          "Implementar el codigo",
+          "Especificar que hace la feature (spec funcional)",
+          "Testear contra el spec",
+          "Especificar como se construye (spec tecnico)",
+          "Refinar el spec si es necesario"
+        ],
+        "correctIndexes": [1, 3, 0, 2, 4],
+        "explanation": "El flujo es: spec funcional -> spec tecnico -> implementar -> testear -> refinar. El spec siempre va primero.",
+        "type": "ORDER"
+      },
+      {
+        "id": "ai-q18",
+        "text": "En que orden delegarias tareas a subagents para agregar un endpoint DELETE?",
+        "options": [
+          "Escribir el endpoint DELETE",
+          "Leer la estructura del proyecto existente",
+          "Escribir tests para el endpoint",
+          "Correr los tests y verificar"
+        ],
+        "correctIndexes": [1, 0, 2, 3],
+        "explanation": "Primero leer la estructura (contexto), luego implementar, luego tests, y finalmente verificar. El contexto siempre va primero.",
+        "type": "ORDER"
+      }
+    ]
+  }
+}

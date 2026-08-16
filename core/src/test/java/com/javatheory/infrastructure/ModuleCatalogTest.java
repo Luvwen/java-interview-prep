@@ -18,12 +18,12 @@ class ModuleCatalogTest {
     private final ModuleLoader loader = new ModuleLoader(new ObjectMapper(), "modules");
 
     @Test
-    void loadsAllFourteenModulesInOrder() {
+    void loadsAllFifteenModulesInOrder() {
         List<Module> modules = loader.loadAll();
-        assertEquals(14, modules.size());
+        assertEquals(15, modules.size());
         assertEquals(List.of("core-java", "poo", "collections", "streams",
                 "concurrency", "jvm", "testing", "sql-jdbc", "rest-http",
-                "spring", "design-patterns", "git", "code-fill", "bug-hunt"),
+                "spring", "design-patterns", "git", "ai-development", "code-fill", "bug-hunt"),
                 modules.stream().map(Module::id).toList());
     }
 
