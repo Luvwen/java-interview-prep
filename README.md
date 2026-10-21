@@ -79,7 +79,7 @@ mvn -pl core exec:java
 
 ```
 java-interview-prep/
-├── core/                    # Dominio, servicios, infraestructura, contenido
+├── core/                    # Dominio, servicios, infraestructura
 │   └── src/main/resources/modules/   # Contenido JSON de los 12 modulos
 ├── web/                     # API REST (Spring Boot)
 ├── ui/                      # Frontend (React + Vite + TypeScript)
